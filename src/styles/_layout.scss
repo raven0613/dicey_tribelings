@@ -1,0 +1,300 @@
+@use 'variables' as *;
+
+.app-wrapper {
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  max-height: 100dvh;
+  background-color: $slate-950;
+  color: $slate-100;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 64rem; // 1024px
+  margin: 0 auto;
+  padding: 0.375rem 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.combat-arena {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.375rem;
+  margin: 0;
+}
+
+// Header Bar
+.header-bar {
+  width: 100%;
+  background-color: rgba($slate-900, 0.95);
+  border-bottom: 1px solid rgba($slate-700, 0.8);
+  padding: 0.375rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: $slate-100;
+  user-select: none;
+  box-shadow: $shadow-lg;
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+
+  .stats-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .hp-stat-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .heart-icon-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .heart-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        color: $rose-500;
+        fill: rgba($rose-500, 0.3);
+      }
+
+      .shield-badge {
+        position: absolute;
+        top: -0.375rem;
+        right: -0.5rem;
+        background-color: #3b82f6;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 900;
+        padding: 0 0.25rem;
+        border-radius: $radius-full;
+        display: flex;
+        align-items: center;
+        box-shadow: $shadow-sm;
+      }
+    }
+
+    .hp-info {
+      display: flex;
+      flex-direction: column;
+
+      .hp-text {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        font-weight: 700;
+        gap: 0.5rem;
+
+        .hp-label {
+          color: $slate-300;
+        }
+        .hp-numbers {
+          color: $rose-400;
+          font-family: monospace;
+        }
+      }
+
+      .hp-bar-track {
+        width: 8rem;
+        height: 0.625rem;
+        background-color: $slate-800;
+        border-radius: $radius-full;
+        overflow: hidden;
+        border: 1px solid $slate-700;
+
+        .hp-bar-fill {
+          height: 100%;
+          background: linear-gradient(to right, $rose-600, $rose-400);
+          transition: width 0.3s ease;
+          border-radius: $radius-full;
+        }
+      }
+    }
+  }
+
+  .gold-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background-color: rgba($amber-950, 0.4);
+    border: 1px solid rgba($amber-500, 0.3);
+    padding: 0.25rem 0.625rem;
+    border-radius: $radius-md;
+    color: $amber-300;
+    font-weight: 700;
+    font-size: 0.75rem;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .control-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background-color: rgba($indigo-950, 0.4);
+    border: 1px solid rgba($indigo-500, 0.3);
+    padding: 0.25rem 0.625rem;
+    border-radius: $radius-md;
+    color: $indigo-300;
+    font-weight: 700;
+    font-size: 0.75rem;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+
+    .control-value {
+      font-family: monospace;
+      color: $indigo-200;
+    }
+  }
+
+  .stage-badge {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba($slate-800, 0.8);
+    border: 1px solid $slate-700;
+    padding: 0.25rem 0.75rem;
+    border-radius: $radius-full;
+    font-size: 0.75rem;
+    color: $slate-300;
+
+    @media (min-width: 768px) {
+      display: flex;
+    }
+
+    .stage-text {
+      font-weight: 600;
+      color: $slate-200;
+    }
+  }
+
+  .actions-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .btn-dice-bag {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      background-color: $slate-800;
+      color: $slate-200;
+      border: 1px solid $slate-600;
+      padding: 0.375rem 0.75rem;
+      border-radius: $radius-lg;
+      font-size: 0.75rem;
+      font-weight: 700;
+      transition: all $transition-fast;
+      box-shadow: $shadow-sm;
+
+      &:hover {
+        background-color: $slate-700;
+        border-color: rgba($amber-500, 0.5);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    .btn-icon {
+      padding: 0.375rem;
+      background-color: $slate-800;
+      color: $slate-300;
+      border: 1px solid $slate-600;
+      border-radius: $radius-lg;
+      transition: background-color $transition-fast;
+
+      &:hover {
+        background-color: $slate-700;
+      }
+    }
+  }
+}
+
+// Map Progress
+.map-progress-container {
+  width: 100%;
+  background-color: rgba($slate-900, 0.8);
+  border: 1px solid rgba($slate-700, 0.6);
+  border-radius: $radius-xl;
+  padding: 0.25rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow-x: auto;
+  box-shadow: $shadow-md;
+  backdrop-filter: blur(8px);
+  user-select: none;
+  gap: 0.25rem;
+
+  .map-node-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: $radius-md;
+    font-size: 0.7rem;
+    font-weight: 700;
+    transition: all $transition-fast;
+    white-space: nowrap;
+
+    &.current {
+      background-color: $amber-500;
+      color: $slate-950;
+      font-weight: 900;
+      box-shadow: 0 10px 15px -3px rgba($amber-500, 0.2);
+      outline: 2px solid rgba($amber-400, 0.5);
+      transform: scale(1.05);
+    }
+
+    &.completed {
+      background-color: $slate-800;
+      color: $slate-400;
+      border: 1px solid rgba($slate-700, 0.6);
+    }
+
+    &.upcoming {
+      background-color: rgba($slate-900, 0.6);
+      color: $slate-500;
+      border: 1px solid $slate-800;
+    }
+
+    .node-title {
+      font-size: 11px;
+    }
+  }
+
+  .node-divider {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+
+    &.past {
+      color: $slate-600;
+    }
+    &.future {
+      color: $slate-700;
+    }
+  }
+}

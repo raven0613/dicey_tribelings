@@ -1,0 +1,258 @@
+@use 'variables' as *;
+
+.equipment-bar {
+  width: 100%;
+  background-color: rgba($slate-900, 0.8);
+  border: 1px solid rgba($slate-700, 0.6);
+  border-radius: $radius-xl;
+  padding: 0.375rem 0.625rem;
+  box-shadow: $shadow-lg;
+  user-select: none;
+  backdrop-filter: blur(8px);
+
+  .bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+
+    .bar-title {
+      font-size: 0.75rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $slate-300;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .bar-tip {
+      font-size: 11px;
+      color: $slate-400;
+    }
+  }
+
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.375rem;
+
+    .slot-empty {
+      height: 2.75rem;
+      border: 2px dashed rgba($slate-700, 0.7);
+      border-radius: $radius-lg;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: $slate-600;
+      font-size: 9px;
+      font-weight: 700;
+
+      .empty-sub {
+        font-size: 8px;
+        opacity: 0.6;
+      }
+    }
+
+    .slot-just-received {
+      animation: slotImpactGlow 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+    }
+
+    .slot-occupied {
+      position: relative;
+      height: 2.75rem;
+      background-color: rgba($slate-800, 0.9);
+      border: 1px solid rgba($amber-500, 0.4);
+      border-radius: $radius-lg;
+      padding: 0.25rem 0.375rem;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      transition: all $transition-fast;
+      box-shadow: $shadow-md;
+      cursor: pointer;
+
+      &:hover {
+        background-color: $slate-750;
+        border-color: $amber-400;
+      }
+
+      &.selected {
+        border-color: $amber-400;
+        outline: 2px solid rgba($amber-400, 0.4);
+        background-color: $slate-750;
+      }
+
+      .accent-stripe {
+        width: 0.2rem;
+        align-self: stretch;
+        border-radius: $radius-full;
+
+        &.pattern {
+          background-color: $amber-400;
+        }
+        &.control {
+          background-color: $indigo-400;
+        }
+        &.passive {
+          background-color: $emerald-400;
+        }
+      }
+
+      .slot-icon-box {
+        padding: 0.2rem;
+        border-radius: $radius-md;
+        background-color: rgba($slate-900, 0.8);
+        color: $amber-300;
+        flex-shrink: 0;
+      }
+
+      .slot-text-box {
+        flex: 1;
+        min-width: 0;
+
+        .equip-name {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: $slate-200;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.2;
+        }
+
+        .equip-type {
+          font-size: 9px;
+          color: rgba($amber-300, 0.9);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-transform: capitalize;
+          line-height: 1.1;
+        }
+      }
+    }
+  }
+}
+
+// Floating Tooltip Portal
+.equip-tooltip-box {
+  background-color: $slate-900;
+  border: 2px solid rgba($amber-500, 0.7);
+  border-radius: $radius-2xl;
+  padding: 1rem;
+  box-shadow: $shadow-2xl;
+  color: $slate-100;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+
+  .tooltip-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid $slate-800;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .tooltip-name {
+        font-weight: 900;
+        font-size: 0.875rem;
+        color: $slate-100;
+      }
+    }
+
+    .rarity-pill {
+      font-size: 10px;
+      font-weight: 900;
+      padding: 0.125rem 0.5rem;
+      border-radius: $radius-full;
+      border: 1px solid transparent;
+
+      &.common {
+        background-color: $slate-800;
+        color: $slate-300;
+        border-color: $slate-600;
+      }
+      &.rare {
+        background-color: rgba(#1e3a8a, 0.8);
+        color: #93c5fd;
+        border-color: rgba(#3b82f6, 0.6);
+      }
+      &.epic {
+        background-color: rgba($purple-950, 0.8);
+        color: $purple-300;
+        border-color: rgba($purple-500, 0.6);
+      }
+      &.legendary {
+        background-color: rgba($amber-950, 0.8);
+        color: $amber-300;
+        border-color: rgba($amber-500, 0.8);
+      }
+    }
+  }
+
+  .tooltip-desc {
+    font-size: 0.75rem;
+    color: $slate-200;
+    line-height: 1.5;
+  }
+
+  .tooltip-footer {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba($slate-800, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 700;
+
+    .cooldown-text {
+      color: $indigo-300;
+    }
+    .unlimited-text {
+      color: $emerald-400;
+    }
+    .type-text {
+      color: $slate-400;
+      text-transform: uppercase;
+    }
+  }
+
+  .tooltip-arrow {
+    position: absolute;
+    bottom: -0.375rem;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 0.75rem;
+    height: 0.75rem;
+    background-color: $slate-900;
+    border-right: 2px solid rgba($amber-500, 0.7);
+    border-bottom: 2px solid rgba($amber-500, 0.7);
+  }
+}
+
+@keyframes slotImpactGlow {
+  0% {
+    transform: scale(0.9);
+    border-color: #fff;
+    box-shadow: 0 0 0 0 rgba($amber-400, 1);
+  }
+  35% {
+    transform: scale(1.12);
+    border-color: $amber-300;
+    box-shadow: 0 0 28px 8px rgba($amber-400, 0.9), inset 0 0 15px rgba($amber-300, 0.6);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba($amber-400, 0);
+  }
+}

@@ -1,0 +1,182 @@
+@use '../variables' as *;
+
+// Battle Controls
+.battle-controls {
+  width: 100%;
+  background-color: rgba($slate-900, 0.9);
+  border: 1px solid rgba($slate-700, 0.8);
+  border-radius: $radius-xl;
+  padding: 0.375rem 0.75rem;
+  box-shadow: $shadow-xl;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  backdrop-filter: blur(12px);
+  user-select: none;
+
+  .controls-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: auto;
+    justify-content: flex-start;
+
+    .control-meter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+
+      .meter-icon-box {
+        padding: 0.375rem;
+        border-radius: $radius-lg;
+        background-color: rgba($indigo-950, 0.6);
+        border: 1px solid rgba($indigo-500, 0.4);
+        color: $indigo-400;
+      }
+
+      .meter-details {
+        display: flex;
+        flex-direction: column;
+
+        .meter-label {
+          font-size: 0.75rem;
+          color: $slate-400;
+          font-weight: 700;
+        }
+
+        .meter-dots {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          margin-top: 0.125rem;
+
+          .dot {
+            width: 0.875rem;
+            height: 0.875rem;
+            border-radius: $radius-full;
+            border: 1px solid transparent;
+            transition: all $transition-fast;
+
+            &.active {
+              background-color: $indigo-500;
+              border-color: $indigo-300;
+              box-shadow: 0 0 8px rgba($indigo-500, 0.5);
+              transform: scale(1.05);
+            }
+
+            &.empty {
+              background-color: $slate-800;
+              border-color: $slate-700;
+              opacity: 0.4;
+            }
+          }
+
+          .dots-text {
+            font-size: 0.75rem;
+            font-family: monospace;
+            font-weight: 700;
+            color: $slate-300;
+            margin-left: 0.25rem;
+          }
+        }
+      }
+    }
+
+    .tactics-tip {
+      font-size: 0.75rem;
+      color: $slate-400;
+      display: none;
+      border-left: 1px solid rgba($slate-700, 0.6);
+      padding-left: 1rem;
+
+      @media (min-width: 1024px) {
+        display: block;
+      }
+
+      .exhausted {
+        color: rgba($amber-400, 0.8);
+      }
+    }
+  }
+
+  .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: auto;
+    justify-content: flex-end;
+
+    .forecast-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin-right: 0.25rem;
+
+      .forecast-dmg {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: $slate-300;
+
+        .dmg-number {
+          color: $rose-400;
+          font-family: monospace;
+          font-size: 1rem;
+          font-weight: 900;
+          letter-spacing: -0.025em;
+          display: flex;
+          align-items: center;
+        }
+      }
+
+      .forecast-shield {
+        font-size: 10px;
+        font-weight: 700;
+        color: #93c5fd;
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .btn-resolve {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      padding: 0.45rem 1.125rem;
+      border-radius: $radius-lg;
+      font-weight: 900;
+      font-size: 0.8125rem;
+      letter-spacing: 0.025em;
+      box-shadow: $shadow-lg;
+      transition: all $transition-fast;
+
+      &.ready {
+        background: linear-gradient(to right, $rose-600, $amber-600, $amber-500);
+        color: #fff;
+        box-shadow: 0 10px 20px -3px rgba($rose-600, 0.3);
+        outline: 2px solid rgba($amber-400, 0.5);
+
+        &:hover {
+          background: linear-gradient(to right, $rose-500, $amber-500, $amber-400);
+          box-shadow: $shadow-2xl;
+        }
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+
+      &.disabled {
+        background-color: $slate-800;
+        color: $slate-500;
+        border: 1px solid $slate-700;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+}

@@ -1,0 +1,115 @@
+@use '../variables' as *;
+
+// Game Over Modal
+.game-over-card {
+  width: 100%;
+  max-width: 28rem; // 448px
+  margin: auto;
+  background-color: $slate-900;
+  border: 2px solid $slate-700;
+  border-radius: $radius-3xl;
+  padding: 1.5rem;
+  box-shadow: $shadow-2xl;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+  color: $slate-100;
+
+  .game-over-icon-box {
+    width: 5rem;
+    height: 5rem;
+    border-radius: $radius-full;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: $shadow-2xl;
+
+    &.victory {
+      background-color: rgba($amber-500, 0.2);
+      color: $amber-400;
+      border: 2px solid $amber-400;
+    }
+    &.defeat {
+      background-color: rgba($rose-500, 0.2);
+      color: $rose-500;
+      border: 2px solid $rose-500;
+    }
+  }
+
+  .game-over-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+
+    &.victory {
+      color: $amber-300;
+    }
+    &.defeat {
+      color: $rose-400;
+    }
+  }
+
+  .game-over-desc {
+    font-size: 0.75rem;
+    color: $slate-400;
+    margin-top: 0.25rem;
+    line-height: 1.5;
+  }
+
+  .stats-summary-card {
+    width: 100%;
+    background-color: rgba($slate-800, 0.8);
+    border: 1px solid $slate-700;
+    border-radius: $radius-2xl;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      .label {
+        color: $slate-400;
+      }
+      .val {
+        font-weight: 700;
+        color: $slate-200;
+      }
+      .val-amber {
+        font-weight: 700;
+        color: $amber-300;
+      }
+      .val-indigo {
+        font-weight: 700;
+        color: $indigo-300;
+      }
+    }
+  }
+
+  .btn-restart {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(to right, $amber-500, $amber-600);
+    color: $slate-950;
+    font-weight: 900;
+    border-radius: $radius-xl;
+    font-size: 0.875rem;
+    box-shadow: $shadow-xl;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: linear-gradient(to right, $amber-400, $amber-500);
+    }
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}

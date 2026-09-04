@@ -1,0 +1,166 @@
+@use '../variables' as *;
+
+// Dice Board Arena
+.dice-board {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 9.5rem;
+  max-height: 15rem;
+  background: radial-gradient(circle at center, rgba($slate-900, 0.95), rgba($slate-950, 0.98));
+  border: 2px solid rgba($slate-700, 0.7);
+  border-radius: $radius-2xl;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: $shadow-2xl;
+  user-select: none;
+  overflow: visible; // Allow dice forward dash to visibly strike monster!
+
+  .dice-tray-area {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    overflow: visible; // Allow dice forward dash outside tray!
+  }
+
+  .die-anchor {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .speed-trail {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2.5rem;
+      height: 8rem;
+      background: linear-gradient(to top, transparent, rgba($amber-500, 0.6), $amber-300);
+      filter: blur(2px);
+      border-radius: $radius-full;
+      pointer-events: none;
+      z-index: -10;
+    }
+
+    .impact-shockwave {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 7rem;
+      height: 7rem;
+      border-radius: $radius-full;
+      border: 4px solid $amber-400;
+      background-color: rgba($amber-400, 0.25);
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    .die-action-group {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+
+      .die-name-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: $slate-300;
+        max-width: 5.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .btn-reroll {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.625rem;
+        border-radius: $radius-md;
+        font-size: 0.75rem;
+        font-weight: 900;
+        box-shadow: $shadow-md;
+        transition: all $transition-fast;
+
+        &.active {
+          background-color: $indigo-600;
+          color: #fff;
+          border: 1px solid rgba($indigo-400, 0.5);
+
+          &:hover {
+            background-color: $indigo-500;
+            box-shadow: 0 4px 10px rgba($indigo-500, 0.4);
+          }
+          &:active {
+            transform: scale(0.95);
+          }
+        }
+
+        &.disabled {
+          background-color: $slate-800;
+          color: $slate-500;
+          border: 1px solid $slate-700;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .calc-tags-group {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.25rem;
+      max-width: 7rem;
+
+      .calc-tag {
+        background-color: rgba($amber-950, 0.9);
+        border: 1px solid rgba($amber-500, 0.6);
+        color: $amber-300;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 0.125rem 0.375rem;
+        border-radius: $radius-sm;
+        box-shadow: $shadow-sm;
+      }
+    }
+  }
+
+  .board-footer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: $slate-400;
+    border-top: 1px solid rgba($slate-700, 0.5);
+    padding-top: 0.25rem;
+    z-index: 10;
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      .highlight {
+        color: $slate-200;
+        font-weight: 700;
+      }
+      .control-num {
+        color: $indigo-400;
+        font-family: monospace;
+        font-size: 0.875rem;
+      }
+    }
+
+    .footer-right {
+      font-size: 11px;
+      color: $slate-500;
+    }
+  }
+}

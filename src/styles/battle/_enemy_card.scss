@@ -1,0 +1,249 @@
+@use '../variables' as *;
+
+// Enemy Card
+.enemy-card {
+  position: relative;
+  width: 100%;
+  max-width: 28rem; // 448px
+  margin: 0 auto;
+  background-color: rgba($slate-900, 0.9);
+  border: 2px solid rgba($slate-700, 0.8);
+  border-radius: $radius-xl;
+  padding: 0.375rem 0.75rem;
+  box-shadow: $shadow-lg;
+  backdrop-filter: blur(12px);
+  transition: all 0.1s ease;
+  user-select: none;
+
+  &.boss {
+    border-color: rgba($amber-500, 0.8);
+    box-shadow: 0 10px 25px -5px rgba($amber-500, 0.2);
+  }
+
+  &.elite {
+    border-color: rgba($purple-500, 0.7);
+    box-shadow: 0 10px 25px -5px rgba($purple-500, 0.2);
+  }
+
+  &.impacted {
+    filter: brightness(1.25);
+    outline: 4px solid rgba($rose-500, 0.8);
+  }
+
+  .damage-pops-layer {
+    position: absolute;
+    top: -1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .damage-pop-item {
+      position: absolute;
+      white-space: nowrap;
+      font-weight: 900;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9));
+
+      .pop-label {
+        font-size: 11px;
+        padding: 0.125rem 0.375rem;
+        border-radius: $radius-full;
+        background-color: $amber-400;
+        color: #000;
+        font-weight: 800;
+        text-transform: uppercase;
+        box-shadow: $shadow-sm;
+      }
+    }
+  }
+
+  .enemy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+
+    .enemy-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .enemy-badge {
+        font-size: 0.75rem;
+        font-weight: 900;
+        padding: 0.125rem 0.5rem;
+        border-radius: $radius-full;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        box-shadow: $shadow-sm;
+
+        &.boss-badge {
+          background-color: rgba($amber-500, 0.2);
+          border: 1px solid $amber-500;
+          color: $amber-300;
+        }
+
+        &.elite-badge {
+          background-color: rgba($purple-500, 0.2);
+          border: 1px solid $purple-500;
+          color: $purple-300;
+        }
+      }
+
+      .enemy-name {
+        font-size: 1rem;
+        font-weight: 900;
+        color: $slate-100;
+        letter-spacing: -0.025em;
+      }
+    }
+
+    .intent-bubble {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: $radius-lg;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      box-shadow: $shadow-md;
+
+      &.heavy-attack {
+        background-color: rgba($rose-950, 0.8);
+        border-color: rgba($rose-500, 0.8);
+        color: $rose-300;
+      }
+      &.attack {
+        background-color: rgba($amber-950, 0.8);
+        border-color: rgba($amber-500, 0.8);
+        color: $amber-300;
+      }
+      &.defend {
+        background-color: rgba($indigo-950, 0.8);
+        border-color: rgba($indigo-500, 0.8);
+        color: $indigo-300;
+      }
+      &.buff {
+        background-color: rgba($emerald-950, 0.8);
+        border-color: rgba($emerald-500, 0.8);
+        color: $emerald-300;
+      }
+    }
+  }
+
+  .enemy-body {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .enemy-avatar-box {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: $radius-xl;
+      background-color: rgba($slate-800, 0.9);
+      border: 1px solid $slate-700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+
+      .avatar-emoji {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+        transition: transform $transition-fast;
+        &:hover {
+          transform: scale(1.1);
+        }
+      }
+
+      .avatar-shield-badge {
+        position: absolute;
+        top: -0.25rem;
+        right: -0.25rem;
+        background-color: #2563eb;
+        border: 1px solid #93c5fd;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 900;
+        padding: 0.1rem 0.35rem;
+        border-radius: $radius-full;
+        display: flex;
+        align-items: center;
+        box-shadow: $shadow-sm;
+      }
+    }
+
+    .enemy-hp-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+
+      .hp-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        font-weight: 700;
+
+        .hp-label {
+          color: $slate-400;
+        }
+        .hp-val {
+          font-family: monospace;
+          color: $slate-200;
+
+          .hp-current {
+            color: $rose-400;
+            font-weight: 900;
+            font-size: 0.8125rem;
+          }
+        }
+      }
+
+      .hp-track {
+        width: 100%;
+        height: 0.625rem;
+        background-color: rgba($slate-950, 0.8);
+        border-radius: $radius-full;
+        overflow: hidden;
+        border: 1px solid $slate-700;
+        position: relative;
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+
+        .shield-fill {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          background-color: rgba(#3b82f6, 0.6);
+          z-index: 10;
+          transition: width 0.2s ease;
+          border-right: 1px solid #93c5fd;
+        }
+
+        .hp-fill {
+          height: 100%;
+          transition: width 0.3s ease;
+          border-radius: $radius-full;
+          background: linear-gradient(to right, $rose-600, $rose-400);
+
+          &.boss-hp {
+            background: linear-gradient(to right, $amber-600, $rose-500, $rose-600);
+          }
+        }
+      }
+    }
+  }
+}

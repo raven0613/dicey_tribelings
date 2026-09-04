@@ -1,0 +1,6 @@
+{
+  "name": "Dice Sticker Roguelite",
+  "description": "Indie roguelite prototype featuring fake physics dice rolling, stickers, equipment combos, and tactical control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
