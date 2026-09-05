@@ -1,4 +1,4 @@
-import { Dice, Equipment, StickerItem, Enemy, MapNode } from '../types/game';
+import { Dice, Equipment, StickerItem, MapNode } from '../types/game';
 
 export const INITIAL_PLAYER_STATS = {
   maxHp: 60,
@@ -160,7 +160,46 @@ export const ALL_EQUIPMENT_CATALOG: Equipment[] = [
 ];
 
 export const ALL_STICKERS_CATALOG: StickerItem[] = [
-  // Permanent Stickers: Values breakthrough 7 ~ 15+!
+  {
+    id: 'st_normal_4',
+    name: '精鍛鐵面 [普4]',
+    isDisposable: false,
+    baseValue: 4,
+    element: 'normal',
+    description: '永久覆蓋骰面為普通4。',
+    rarity: 'common',
+    rewardTier: 'early',
+  },
+  {
+    id: 'st_fire_5',
+    name: '引火刻印 [火5]',
+    isDisposable: false,
+    baseValue: 5,
+    element: 'fire',
+    description: '永久覆蓋骰面為火5。',
+    rarity: 'common',
+    rewardTier: 'early',
+  },
+  {
+    id: 'st_wind_6',
+    name: '疾風刻印 [風6]',
+    isDisposable: false,
+    baseValue: 6,
+    element: 'wind',
+    description: '永久覆蓋骰面為風6。',
+    rarity: 'common',
+    rewardTier: 'early',
+  },
+  {
+    id: 'st_thunder_8',
+    name: '雷鳴刻印 [雷8]',
+    isDisposable: false,
+    baseValue: 8,
+    element: 'thunder',
+    description: '永久覆蓋骰面為雷8。',
+    rarity: 'rare',
+    rewardTier: 'early',
+  },
   {
     id: 'st_fire_8',
     name: '熾炎核芯 [火8]',
@@ -170,6 +209,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久覆蓋骰面為「火屬性 8點」。突破基礎骰面！',
     rarity: 'common',
     cost: 20,
+    rewardTier: 'mid',
   },
   {
     id: 'st_fire_12',
@@ -180,6 +220,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久覆蓋骰面為「火屬性 12點」。超魄力大火，強烈推薦！',
     rarity: 'rare',
     cost: 34,
+    rewardTier: 'late',
   },
   {
     id: 'st_wind_9',
@@ -190,6 +231,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久覆蓋骰面為「風屬性 9點」。',
     rarity: 'common',
     cost: 22,
+    rewardTier: 'mid',
   },
   {
     id: 'st_wind_13',
@@ -200,6 +242,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久覆蓋骰面為「風屬性 13點」。超高風力輸出！',
     rarity: 'rare',
     cost: 36,
+    rewardTier: 'late',
   },
   {
     id: 'st_thunder_10',
@@ -211,6 +254,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久：造成10點雷傷，並引爆全場骰面 +2 點連鎖！',
     rarity: 'rare',
     cost: 38,
+    rewardTier: 'mid',
   },
   {
     id: 'st_thunder_14',
@@ -222,6 +266,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久：造成14點巨額雷傷並引爆連鎖！毀滅級雷暴！',
     rarity: 'legendary',
     cost: 55,
+    rewardTier: 'late',
   },
   {
     id: 'st_ice_9',
@@ -233,6 +278,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久覆蓋骰面為「冰屬性 9點 + 9點護盾」。',
     rarity: 'common',
     cost: 24,
+    rewardTier: 'mid',
   },
   {
     id: 'st_ice_13',
@@ -244,6 +290,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久：造成13點冰傷並提供 13 點堅厚護盾！',
     rarity: 'rare',
     cost: 38,
+    rewardTier: 'late',
   },
   {
     id: 'st_crit_crush',
@@ -255,6 +302,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久：高達15點粉碎傷害並觸發全體暴擊！極致單點毀滅爽感！',
     rarity: 'legendary',
     cost: 60,
+    rewardTier: 'late',
   },
   {
     id: 'st_echo_fire',
@@ -266,6 +314,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久：造成9點火傷，並額外複製上一顆骰子的傷害！',
     rarity: 'legendary',
     cost: 50,
+    rewardTier: 'late',
   },
   {
     id: 'st_wild_prism',
@@ -277,6 +326,7 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久：10點萬能元素，輕易滿足各類裝備圖騰條件！',
     rarity: 'legendary',
     cost: 52,
+    rewardTier: 'mid',
   },
   {
     id: 'st_normal_11',
@@ -287,9 +337,9 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
     description: '永久覆蓋骰面為「普通 11點」。樸實而剛猛！',
     rarity: 'common',
     cost: 20,
+    rewardTier: 'mid',
   },
 
-  // Disposable (One-Time) Stickers - Stored in Consumables (max 3), Active for the ENTIRE battle!
   {
     id: 'st_disp_meteor_15',
     name: '『一次性』末日爆星 [火15]',
@@ -334,141 +384,15 @@ export const ALL_STICKERS_CATALOG: StickerItem[] = [
   },
 ];
 
-export const BUYABLE_DICE_CATALOG: Dice[] = [
-  {
-    id: 'dice_frost_d6',
-    name: '霜晶寒冰骰 (Frost D6)',
-    dieType: 'd6',
-    colorTheme: 'emerald',
-    faces: [
-      { id: 'f_i1', baseValue: 3, element: 'ice' },
-      { id: 'f_i2', baseValue: 3, element: 'ice' },
-      { id: 'f_i3', baseValue: 4, element: 'ice' },
-      { id: 'f_i4', baseValue: 4, element: 'normal' },
-      { id: 'f_i5', baseValue: 5, element: 'ice' },
-      { id: 'f_i6', baseValue: 6, element: 'ice' },
-    ],
-  },
-  {
-    id: 'dice_volcano_d8',
-    name: '火山巨岩骰 (Volcano D8)',
-    dieType: 'd8',
-    colorTheme: 'obsidian',
-    faces: [
-      { id: 'f_v1', baseValue: 2, element: 'fire' },
-      { id: 'f_v2', baseValue: 3, element: 'fire' },
-      { id: 'f_v3', baseValue: 4, element: 'fire' },
-      { id: 'f_v4', baseValue: 5, element: 'fire' },
-      { id: 'f_v5', baseValue: 6, element: 'fire' },
-      { id: 'f_v6', baseValue: 7, element: 'normal' },
-      { id: 'f_v7', baseValue: 8, element: 'fire' },
-      { id: 'f_v8', baseValue: 8, element: 'fire' },
-    ],
-  },
-  {
-    id: 'dice_chaos_d6',
-    name: '混沌三元骰 (Chaos Triad)',
-    dieType: 'd6',
-    colorTheme: 'gold',
-    faces: [
-      { id: 'f_c1', baseValue: 3, element: 'fire' },
-      { id: 'f_c2', baseValue: 3, element: 'wind' },
-      { id: 'f_c3', baseValue: 3, element: 'thunder' },
-      { id: 'f_c4', baseValue: 5, element: 'fire' },
-      { id: 'f_c5', baseValue: 5, element: 'wind' },
-      { id: 'f_c6', baseValue: 5, element: 'thunder' },
-    ],
-  },
-];
-
-export const INITIAL_ENEMIES: Enemy[] = [
-  {
-    id: 'enemy_slime',
-    name: '黏液史萊姆 (Slime)',
-    maxHp: 28,
-    hp: 28,
-    shield: 0,
-    avatar: '🟢',
-    attackPower: 6,
-    intents: [
-      { type: 'attack', value: 6, description: '撲擊造成 6 點傷害' },
-      { type: 'defend', value: 5, description: '生成 5 點護盾' },
-      { type: 'attack', value: 8, description: '重擊造成 8 點傷害' },
-    ],
-    currentIntentIndex: 0,
-  },
-  {
-    id: 'enemy_goblin',
-    name: '投石哥布林 (Goblin Rocker)',
-    maxHp: 38,
-    hp: 38,
-    shield: 0,
-    avatar: '👺',
-    attackPower: 8,
-    intents: [
-      { type: 'attack', value: 8, description: '投擲飛石造成 8 點傷害' },
-      { type: 'buff', value: 3, description: '磨利武器，攻擊力提升' },
-      { type: 'heavy_attack', value: 12, description: '致命猛擲造成 12 點傷害' },
-    ],
-    currentIntentIndex: 0,
-  },
-  {
-    id: 'enemy_fire_golem',
-    name: '熾焰魔像 (Fire Golem)',
-    maxHp: 55,
-    hp: 55,
-    shield: 0,
-    avatar: '🗿',
-    attackPower: 10,
-    intents: [
-      { type: 'attack', value: 10, description: '熔岩重拳造成 10 點傷害' },
-      { type: 'defend', value: 10, description: '熔岩甲殼獲得 10 點護盾' },
-      { type: 'heavy_attack', value: 15, description: '炎爆衝擊造成 15 點傷害' },
-    ],
-    currentIntentIndex: 0,
-  },
-  {
-    id: 'enemy_elite_dragon',
-    name: '【菁英】雷翼幼龍 (Storm Wyvern)',
-    maxHp: 75,
-    hp: 75,
-    shield: 0,
-    avatar: '🐉',
-    isElite: true,
-    attackPower: 12,
-    intents: [
-      { type: 'attack', value: 12, description: '電弧撕咬造成 12 點傷害' },
-      { type: 'heavy_attack', value: 18, description: '雷霆吐息造成 18 點高額傷害' },
-      { type: 'defend', value: 12, description: '雷電屏障生成 12 點護盾' },
-    ],
-    currentIntentIndex: 0,
-  },
-  {
-    id: 'enemy_boss_sovereign',
-    name: '【BOSS】骰之支配者 (The Dice Sovereign)',
-    maxHp: 130,
-    hp: 130,
-    shield: 0,
-    avatar: '👑',
-    isBoss: true,
-    attackPower: 14,
-    intents: [
-      { type: 'heavy_attack', value: 16, description: '命運審判造成 16 點傷害' },
-      { type: 'defend', value: 15, description: '黃金天平生成 15 點護盾' },
-      { type: 'heavy_attack', value: 24, description: '天命隕滅造成 24 點毀滅傷害！' },
-    ],
-    currentIntentIndex: 0,
-  },
-];
 
 export const INITIAL_MAP_NODES: MapNode[] = [
-  { id: 0, type: 'fight', title: '森林邊緣', description: '遭遇黏液史萊姆', completed: false, current: true },
-  { id: 1, type: 'fight', title: '林間小徑', description: '遭遇投石哥布林', completed: false, current: false },
+  { id: 0, type: 'fight', enemyId: 'bubble_slime', title: '森林邊緣', description: '遭遇鼓泡史萊姆', completed: false, current: true },
+  { id: 1, type: 'fight', enemyId: 'rock_goblin', title: '林間小徑', description: '遭遇投石哥布林・喀啦', completed: false, current: false },
   { id: 2, type: 'chest', title: '迷霧寶箱', description: '獲取貼紙包或珍稀裝備', completed: false, current: false },
-  { id: 3, type: 'shop', title: '地精黑市', description: '購買貼紙、新骰子與裝備', completed: false, current: false },
-  { id: 4, type: 'fight', title: '炙熱洞穴', description: '遭遇熾焰魔像', completed: false, current: false },
-  { id: 5, type: 'elite', title: '雷鳴斷崖', description: '挑戰【菁英】雷翼幼龍', completed: false, current: false },
-  { id: 6, type: 'chest', title: '古代密室', description: '獲取高級一次性貼紙與骰子', completed: false, current: false },
+  { id: 3, type: 'shop', title: '地精黑市', description: '購買一次性貼紙、裝備與補給', completed: false, current: false },
+  { id: 4, type: 'fight', enemyId: 'thorn_boar', title: '荊棘坡道', description: '遭遇荊背岩豬', completed: false, current: false },
+  { id: 5, type: 'elite', enemyId: 'moss_colossus', title: '苔冠石庭', description: '挑戰苔冠巨像', completed: false, current: false },
+  { id: 6, type: 'chest', title: '古代密室', description: '獲取貼紙包或珍稀裝備', completed: false, current: false },
   { id: 7, type: 'shop', title: '流浪商人', description: '整備裝備與補給生命', completed: false, current: false },
-  { id: 8, type: 'boss', title: '命運神殿', description: '決戰【BOSS】骰之支配者', completed: false, current: false },
+  { id: 8, type: 'boss', enemyId: 'mistroot_mur', title: '霧冠樹心', description: '決戰霧冠古樹穆爾', completed: false, current: false },
 ];

@@ -29,12 +29,14 @@ export function performControlReroll(
     equipments: Equipment[];
     combatPhase: CombatPhase;
   }
-): {
-  success: boolean;
-  newControl?: number;
-  newRolledIndices?: number[];
-  newSummary?: BattleComboSummary;
-} {
+):
+  | { success: false }
+  | {
+      success: true;
+      newControl: number;
+      newRolledIndices: number[];
+      newSummary: BattleComboSummary;
+    } {
   const { control, dicePool, rolledIndices, equipments, combatPhase } = state;
   if (combatPhase !== 'CONTROL_PHASE' || control <= 0) return { success: false };
   const targetDie = dicePool[dieIndex];

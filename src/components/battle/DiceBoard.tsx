@@ -169,6 +169,7 @@ export const DiceBoard: React.FC<DiceBoardProps> = ({ currentStepIndex = 0 }) =>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#fcd34d', fontWeight: 700, padding: '0.25rem 0.625rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.375rem', boxShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
             <Sparkles style={{ width: '14px', height: '14px' }} className="animate-spin" />
+            {combatPhase === 'PREPARATION' && '戰前準備：配置本場戰術貼紙'}
             {combatPhase === 'ROLLING' && '骰子拋擲翻滾中 (0.8s)...'}
             {combatPhase === 'CONTROL_PHASE' && '戰術控制階段：檢視結果或花費 Control 重骰'}
             {combatPhase === 'RESOLVING_CALCULATION' && '裝備與組合數值跳動增幅中！'}
@@ -274,16 +275,15 @@ export const DiceBoard: React.FC<DiceBoardProps> = ({ currentStepIndex = 0 }) =>
                 isSpinning={isSlotSpinning}
                 isLocked={isSlotLocked}
                 isBuffed={isBuffed}
-                isDisposableBurned={calcItem?.isDisposable && combatPhase === 'RESOLVING_ATTACK'}
                 onClick={() => {
-                  if (combatPhase === 'CONTROL_PHASE' && control > 0 && !isRerolling) {
+                  if (combatPhase === 'CONTROL_PHASE' && control > 0 && activeRerollingIndex === null) {
                     useControlReroll(idx);
                   }
                 }}
               />
 
               {/* Die Name & Re-roll Action Button in Control Phase */}
-              {combatPhase === 'CONTROL_PHASE' && !isRerolling && (
+              {combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null && (
                 <div className="die-action-group">
                   <span className="die-name-label">
                     {die.name.split(' ')[0]}

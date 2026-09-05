@@ -91,7 +91,7 @@ export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onCl
                       <span className="face-idx">第 {idx + 1} 面</span>
                       {isTemp && (
                         <span className="sticker-badge">
-                          一次性覆蓋
+                          本場覆蓋
                         </span>
                       )}
                     </div>

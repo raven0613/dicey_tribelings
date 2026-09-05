@@ -2,6 +2,8 @@ export type ElementType = 'normal' | 'fire' | 'wind' | 'thunder' | 'ice';
 
 export type SpecialEffect = 'none' | 'echo' | 'chain' | 'wild' | 'crit' | 'shield';
 
+export type RewardTier = 'early' | 'mid' | 'late' | 'boss';
+
 export interface TemporarySticker {
   name: string;
   baseValue: number;
@@ -15,8 +17,7 @@ export interface DiceFace {
   baseValue: number;
   element: ElementType;
   special?: SpecialEffect;
-  // If present, this temporary sticker overrides the face until used
-  temporarySticker?: TemporarySticker | null;
+  temporarySticker?: TemporarySticker;
 }
 
 export interface Dice {
@@ -54,15 +55,25 @@ export interface BonusEquipmentDice {
 export interface StickerItem {
   id: string;
   name: string;
-  isDisposable: boolean; // true = 1-time disposable, false = permanent
+  isDisposable: boolean;
   baseValue: number;
   element: ElementType;
   special?: SpecialEffect;
   description: string;
   rarity: EquipmentRarity;
   cost?: number;
-  isPack?: boolean;
-  packId?: string;
+  rewardTier?: RewardTier;
+}
+
+export interface ConsumableSticker {
+  instanceId: string;
+  stickerId: string;
+  name: string;
+  baseValue: number;
+  element: ElementType;
+  special?: SpecialEffect;
+  description: string;
+  rarity: EquipmentRarity;
 }
 
 export interface StickerPack {
@@ -72,33 +83,31 @@ export interface StickerPack {
   description: string;
   stickerCount: number;
   themeName: string;
+  stickerIds: string[];
 }
 
-export interface EnemyIntent {
-  type: 'attack' | 'defend' | 'buff' | 'heavy_attack';
-  value: number;
-  description: string;
+export type BattleRewardOption =
+  | { id: string; kind: 'sticker'; sticker: StickerItem }
+  | { id: string; kind: 'stickerPack'; pack: StickerPack };
+
+export type ChestRewardOption =
+  | { id: string; kind: 'equipment'; equipment: Equipment }
+  | { id: string; kind: 'stickerPack'; pack: StickerPack };
+
+export interface TemporaryStickerPlacement {
+  consumable: ConsumableSticker;
+  diceId: string;
+  faceIndex: number;
 }
 
-export interface Enemy {
-  id: string;
-  name: string;
-  maxHp: number;
-  hp: number;
-  shield: number;
-  avatar: string;
-  isElite?: boolean;
-  isBoss?: boolean;
-  attackPower: number;
-  intents: EnemyIntent[];
-  currentIntentIndex: number;
-}
+export type { Enemy, EnemyIntent } from './enemy';
 
 export type MapNodeType = 'fight' | 'chest' | 'shop' | 'elite' | 'boss';
 
 export interface MapNode {
   id: number;
   type: MapNodeType;
+  enemyId?: string;
   title: string;
   description: string;
   completed: boolean;
@@ -129,10 +138,10 @@ export interface ActiveRollState {
   // Calculation details during settlement
   calculatedValue: number;
   bonusDetails: string[];
-  isDisposableBurned?: boolean;
 }
 
 export type CombatPhase =
+  | 'PREPARATION'
   | 'ROLLING'
   | 'CONTROL_PHASE'
   | 'RESOLVING_CALCULATION'

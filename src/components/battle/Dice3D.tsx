@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dice, DiceFace, ElementType } from '../../types/game';
-import { Flame, Wind, Zap, Snowflake, Sparkles, Shield, Circle, FlameKindling } from 'lucide-react';
+import { Circle, Flame, Snowflake, Sparkles, Wind, Zap } from 'lucide-react';
 
 interface Dice3DProps {
   dice: Dice;
@@ -14,7 +14,6 @@ interface Dice3DProps {
   isSpinning?: boolean;
   isLocked?: boolean;
   isBuffed?: boolean;
-  isDisposableBurned?: boolean;
   onClick?: () => void;
 }
 
@@ -38,7 +37,6 @@ export const Dice3D: React.FC<Dice3DProps> = ({
   isSpinning = false,
   isLocked = false,
   isBuffed = false,
-  isDisposableBurned = false,
   onClick,
 }) => {
   const half = size / 2;
@@ -95,7 +93,7 @@ export const Dice3D: React.FC<Dice3DProps> = ({
           </span>
           {isOverridden && (
             <span className="disposable-badge animate-pulse">
-              1次
+              本場
             </span>
           )}
           {effectiveSpecial && effectiveSpecial !== 'none' && !isOverridden && (
@@ -119,12 +117,6 @@ export const Dice3D: React.FC<Dice3DProps> = ({
           <span className="dot" />
         </div>
 
-        {/* Burn effect overlay if disposable sticker consumed */}
-        {isDisposableBurned && isTargetFace && (
-          <div className="disposable-burn-overlay animate-ping">
-            <FlameKindling style={{ width: '20px', height: '20px' }} />
-          </div>
-        )}
       </div>
     );
   };

@@ -320,78 +320,6 @@
   }
 }
 
-// Fixed Flying Relic Portal
-.flying-relic-container {
-  position: fixed;
-  z-index: 99999;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1.15),
-              left 0.65s cubic-bezier(0.22, 1, 0.36, 1.15),
-              top 0.65s cubic-bezier(0.22, 1, 0.36, 1.15),
-              opacity 0.65s ease;
-
-  .flying-relic-badge {
-    width: 4rem;
-    height: 4rem;
-    border-radius: $radius-full;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, $amber-400, $amber-600);
-    color: $slate-950;
-    box-shadow: 0 0 35px 8px rgba($amber-400, 0.9), 0 10px 25px rgba($slate-950, 0.8);
-    border: 3px solid #fff;
-    position: relative;
-
-    &.rare {
-      background: linear-gradient(135deg, $blue-400, $blue-600);
-      box-shadow: 0 0 35px 8px rgba($blue-400, 0.9);
-      color: #fff;
-    }
-    &.epic {
-      background: linear-gradient(135deg, $purple-400, $purple-600);
-      box-shadow: 0 0 35px 8px rgba($purple-400, 0.9);
-      color: #fff;
-    }
-    &.legendary {
-      background: linear-gradient(135deg, $amber-300, $amber-600);
-      box-shadow: 0 0 45px 12px rgba($amber-400, 1);
-      color: $slate-950;
-    }
-
-    .badge-glow {
-      position: absolute;
-      inset: -6px;
-      border-radius: $radius-full;
-      border: 2px dashed rgba(#fff, 0.7);
-      animation: spinSlow 3s linear infinite;
-    }
-  }
-
-  .flying-relic-name {
-    background-color: rgba($slate-950, 0.9);
-    border: 1px solid $amber-400;
-    color: $amber-300;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 0.2rem 0.6rem;
-    border-radius: $radius-full;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba($slate-950, 0.6);
-  }
-
-  &.arrived {
-    .flying-relic-badge {
-      animation: relicImpactShockwave 0.3s ease-out forwards;
-    }
-  }
-}
-
 @keyframes chestIconPulse {
   0%, 100% {
     transform: scale(1);
@@ -400,28 +328,5 @@
   50% {
     transform: scale(1.05);
     box-shadow: 0 15px 35px -3px rgba($amber-400, 0.6);
-  }
-}
-
-@keyframes spinSlow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes relicImpactShockwave {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.4);
-    box-shadow: 0 0 50px 15px rgba($amber-300, 1);
-  }
-  100% {
-    transform: scale(0.9);
-    opacity: 0.2;
   }
 }

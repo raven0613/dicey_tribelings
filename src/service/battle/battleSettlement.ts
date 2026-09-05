@@ -1,11 +1,15 @@
-import { Enemy, Dice, DamagePop, AttackStage, StickerItem } from '../../types/game';
+import { AttackStage, DamagePop, Enemy } from '../../types/game';
 import { soundService } from '../audio/soundService';
 import { ALL_STICKERS_CATALOG } from '../../configs/gameConfig';
 import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
+import { generateBattleRewardOptions, getRewardTier } from '../rewards/rewardService';
+import { restoreTemporaryStickers } from '../inventory/inventoryService';
+import type { GameState } from '../../store/gameStore.types';
+import { applyEnemyDamage, resolveEnemyIntent } from './enemies/enemyIntent';
 
 export interface BattleStoreMethods {
-  get: () => any;
-  set: (partial: any) => void;
+  get: () => GameState;
+  set: (partial: Partial<GameState>) => void;
   triggerScreenShake: (intensity?: number) => void;
   startBattleRoll: () => void;
   addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
@@ -17,8 +21,7 @@ export interface BattleStoreMethods {
  * 1. Visual number pumping
  * 2. Sequential forward-dash dice rush attacks
  * 3. Accurate enemy HP & shield deduction without state reset bugs
- * 4. Disposable sticker consumption
- * 5. Victory check & enemy counterattack
+ * 4. Victory check & enemy counterattack
  */
 /**
  * Calculate sequential slot wheel display number for tick t out of totalTicks.
@@ -39,7 +42,7 @@ export async function runBattleSettlement(
   onStepProgress?: (step: number) => void
 ): Promise<void> {
   const { get, set, triggerScreenShake, startBattleRoll, addDamagePop } = methods;
-  const { comboSummary, currentEnemy, dicePool, rolledIndices, playerShield } = get();
+  const { comboSummary, currentEnemy, dicePool, playerShield } = get();
   if (!comboSummary || !currentEnemy) return;
 
   // Maintain activeEnemy directly so closures NEVER revert HP/Shield!
@@ -57,7 +60,7 @@ export async function runBattleSettlement(
 
   // Initialize initial values for all base dice
   const initialDiceSlots: Record<number, { displayValue: number; isSpinning: boolean; isLocked: boolean; isBuffed: boolean }> = {};
-  comboSummary.items.forEach((item: any, idx: number) => {
+  comboSummary.items.forEach((item, idx) => {
     initialDiceSlots[idx] = {
       displayValue: item.baseValue,
       isSpinning: false,
@@ -68,8 +71,8 @@ export async function runBattleSettlement(
   set({ diceSlotStates: initialDiceSlots });
 
   const buffedDice = comboSummary.items
-    .map((item: any, idx: number) => ({ item, idx }))
-    .filter(({ item }: any) => item.finalDamage > item.baseValue);
+    .map((item, idx) => ({ item, idx }))
+    .filter(({ item }) => item.finalDamage > item.baseValue);
 
   if (buffedDice.length > 0) {
     soundService.playComboTrigger();
@@ -112,7 +115,7 @@ export async function runBattleSettlement(
     }
   } else {
     // If no dice buffed, brief step preview
-    const maxSteps = Math.max(...comboSummary.items.map((i: any) => i.stepValues.length), 1);
+    const maxSteps = Math.max(...comboSummary.items.map((item) => item.stepValues.length), 1);
     for (let s = 0; s < maxSteps; s++) {
       soundService.playNumberPump(s);
       if (onStepProgress) onStepProgress(s);
@@ -196,19 +199,9 @@ export async function runBattleSettlement(
     soundService.playEnemyHit(isHeavy);
     triggerScreenShake(isHeavy ? 14 : 7);
 
-    let damageToHp = 0;
-    if (remainingEnemyShield > 0) {
-      if (remainingEnemyShield >= item.finalDamage) {
-        remainingEnemyShield -= item.finalDamage;
-      } else {
-        damageToHp = item.finalDamage - remainingEnemyShield;
-        remainingEnemyShield = 0;
-        remainingEnemyHp = Math.max(0, remainingEnemyHp - damageToHp);
-      }
-    } else {
-      damageToHp = item.finalDamage;
-      remainingEnemyHp = Math.max(0, remainingEnemyHp - damageToHp);
-    }
+    const damaged = applyEnemyDamage(activeEnemy, item.finalDamage);
+    remainingEnemyHp = damaged.enemy.hp;
+    remainingEnemyShield = damaged.enemy.shield;
 
     activeEnemy.hp = remainingEnemyHp;
     activeEnemy.shield = remainingEnemyShield;
@@ -266,19 +259,9 @@ export async function runBattleSettlement(
       soundService.playEnemyHit(true);
       triggerScreenShake(14);
 
-      let damageToHp = 0;
-      if (remainingEnemyShield > 0) {
-        if (remainingEnemyShield >= bDie.bonusDamage) {
-          remainingEnemyShield -= bDie.bonusDamage;
-        } else {
-          damageToHp = bDie.bonusDamage - remainingEnemyShield;
-          remainingEnemyShield = 0;
-          remainingEnemyHp = Math.max(0, remainingEnemyHp - damageToHp);
-        }
-      } else {
-        damageToHp = bDie.bonusDamage;
-        remainingEnemyHp = Math.max(0, remainingEnemyHp - damageToHp);
-      }
+      const damaged = applyEnemyDamage(activeEnemy, bDie.bonusDamage);
+      remainingEnemyHp = damaged.enemy.hp;
+      remainingEnemyShield = damaged.enemy.shield;
 
       activeEnemy.hp = remainingEnemyHp;
       activeEnemy.shield = remainingEnemyShield;
@@ -312,14 +295,17 @@ export async function runBattleSettlement(
   }
 
   // Apply any remaining flat combo extra damage if not in bonusDice
-  const itemsSum = comboSummary.items.reduce((a: number, b: any) => a + b.finalDamage, 0);
-  const bonusSum = (comboSummary.bonusDice || []).reduce((a: number, b: any) => a + b.bonusDamage, 0);
+  const itemsSum = comboSummary.items.reduce((sum, item) => sum + item.finalDamage, 0);
+  const bonusSum = comboSummary.bonusDice.reduce((sum, die) => sum + die.bonusDamage, 0);
   const flatDmg = comboSummary.totalDamage - (itemsSum + bonusSum);
   if (flatDmg > 0) {
     soundService.playEnemyHit(true);
     triggerScreenShake(14);
-    remainingEnemyHp = Math.max(0, remainingEnemyHp - flatDmg);
+    const damaged = applyEnemyDamage(activeEnemy, flatDmg);
+    remainingEnemyHp = damaged.enemy.hp;
+    remainingEnemyShield = damaged.enemy.shield;
     activeEnemy.hp = remainingEnemyHp;
+    activeEnemy.shield = remainingEnemyShield;
 
     addDamagePop({
       value: flatDmg,
@@ -342,50 +328,31 @@ export async function runBattleSettlement(
     set({ control: Math.min(get().maxControl, get().control + comboSummary.bonusControlGranted) });
   }
 
-  // Step 3: Disposable stickers remain active for the ENTIRE battle!
-  // (Do not burn them per roll; they persist across turns until victory/battle concludes)
-
   // Step 4: Check if Enemy Defeated
   if (remainingEnemyHp <= 0) {
     // Wait for the final die attack recoil animation to settle smoothly
     await new Promise((res) => setTimeout(res, 350));
     soundService.playVictory();
 
-    // Battle concluded: restore temporary stickers on all dice faces to original!
-    const restoredDicePool = (dicePool as Dice[]).map((die) => ({
-      ...die,
-      faces: die.faces.map((f) => ({ ...f, temporarySticker: null })),
-    }));
-
-    // General fight rewards: ONLY Permanent Stickers (breakthrough 7~15+ values) + very low chance (~10%) of Sticker Booster Pack!
-    const permStickers = ALL_STICKERS_CATALOG.filter((s) => !s.isDisposable);
-    const shuffledPerm = [...permStickers].sort(() => Math.random() - 0.5);
-    const rewardOptions: StickerItem[] = shuffledPerm.slice(0, 3);
-
-    // Low chance (~10%) to replace third option with a Mystery Sticker Pack
-    if (Math.random() < 0.10) {
-      const pack = STICKER_PACKS_CATALOG[Math.floor(Math.random() * STICKER_PACKS_CATALOG.length)];
-      rewardOptions[2] = {
-        id: `pack_reward_${Date.now()}`,
-        name: pack.name,
-        isDisposable: false,
-        baseValue: pack.stickerCount,
-        element: 'normal',
-        description: pack.description,
-        rarity: pack.rarity,
-        isPack: true,
-        packId: pack.id,
-      };
-    }
+    const state = get();
+    const tier = getRewardTier(state.currentNodeIndex, state.mapNodes.length);
+    const rewardOptions = currentEnemy.isBoss
+      ? []
+      : generateBattleRewardOptions(
+          ALL_STICKERS_CATALOG,
+          STICKER_PACKS_CATALOG,
+          tier,
+          Math.random,
+          !currentEnemy.isElite
+        );
 
     const earnedGold = currentEnemy.isBoss ? 50 : currentEnemy.isElite ? 30 : 15;
 
     set({
       combatPhase: 'VICTORY',
       gold: get().gold + earnedGold,
-      dicePool: restoredDicePool,
-      rewardStickerOptions: rewardOptions,
-      victoryRewardClaimed: false,
+      dicePool: restoreTemporaryStickers(dicePool),
+      battleRewardOptions: rewardOptions,
       attackingDieIndex: null,
       attackingStage: 'idle' as AttackStage,
     });
@@ -397,11 +364,14 @@ export async function runBattleSettlement(
   await new Promise((res) => setTimeout(res, 600));
 
   const intent = activeEnemy.intents[activeEnemy.currentIntentIndex] || activeEnemy.intents[0];
-  const nextIntentIdx = (activeEnemy.currentIntentIndex + 1) % activeEnemy.intents.length;
-  activeEnemy.currentIntentIndex = nextIntentIdx;
+  const damageTaken = currentEnemy.hp + currentEnemy.shield - activeEnemy.hp - activeEnemy.shield;
+  const resolution = resolveEnemyIntent(activeEnemy, damageTaken);
+  activeEnemy.currentIntentIndex = resolution.nextIntentIndex;
+  activeEnemy.shield += resolution.shieldGain;
+  set({ currentEnemy: { ...activeEnemy } });
 
-  if (intent.type === 'attack' || intent.type === 'heavy_attack') {
-    const incoming = intent.value;
+  if (resolution.damage > 0) {
+    const incoming = resolution.damage;
     let currentPShield = get().playerShield;
     let currentPHp = get().playerHp;
 
@@ -424,19 +394,9 @@ export async function runBattleSettlement(
 
     if (currentPHp <= 0) {
       soundService.playEnemyHit(true);
-      set({ combatPhase: 'DEFEAT' });
+      set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool) });
       return;
     }
-  } else if (intent.type === 'defend') {
-    activeEnemy.shield += intent.value;
-    set({
-      currentEnemy: { ...activeEnemy }, // Strictly preserved!
-    });
-  } else if (intent.type === 'buff') {
-    activeEnemy.attackPower += intent.value;
-    set({
-      currentEnemy: { ...activeEnemy }, // Strictly preserved!
-    });
   }
 
   await new Promise((res) => setTimeout(res, 600));

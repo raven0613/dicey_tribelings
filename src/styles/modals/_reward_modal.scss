@@ -107,6 +107,11 @@
             color: $emerald-300;
             border: 1px solid rgba($emerald-500, 0.5);
           }
+          &.pack {
+            background-color: rgba($purple-950, 0.8);
+            color: $purple-300;
+            border: 1px solid rgba($purple-500, 0.5);
+          }
         }
 
         .rarity-label {

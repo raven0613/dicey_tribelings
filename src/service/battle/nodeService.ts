@@ -1,40 +1,40 @@
 import { Enemy, MapNode, Equipment, StickerItem } from '../../types/game';
 import {
-  INITIAL_ENEMIES,
   INITIAL_PLAYER_STATS,
   ALL_STICKERS_CATALOG,
   ALL_EQUIPMENT_CATALOG,
 } from '../../configs/gameConfig';
-
-export interface NodeSetupResult {
-  currentEnemy: Enemy | null;
-  control: number;
-  maxControl: number;
-  combatPhase: 'ROLLING' | 'CONTROL_PHASE';
-  shopStickers: StickerItem[];
-  shopEquipments: Equipment[];
-}
+import { createEnemy } from './enemies/enemyFactory';
 
 export function getEnemyForNode(node: MapNode, nodeIndex: number): Enemy {
-  if (node.type === 'boss') {
-    return INITIAL_ENEMIES.find((e) => e.isBoss) || INITIAL_ENEMIES[INITIAL_ENEMIES.length - 1];
-  }
-  if (node.type === 'elite') {
-    return INITIAL_ENEMIES.find((e) => e.isElite) || INITIAL_ENEMIES[3];
-  }
-  const standardEnemies = INITIAL_ENEMIES.filter((e) => !e.isElite && !e.isBoss);
-  const idx = Math.min(nodeIndex, standardEnemies.length - 1);
-  return standardEnemies[idx] || standardEnemies[0];
+  if (!node.enemyId) throw new Error(`Missing monster for node ${nodeIndex}`);
+  return createEnemy(node.enemyId);
 }
 
-export function generateShopStock(equipments: Equipment[]): {
+function takeRandom<T>(pool: T[], count: number, random: () => number): T[] {
+  const available = [...pool];
+  const result: T[] = [];
+  while (result.length < count && available.length > 0) {
+    const index = Math.min(available.length - 1, Math.floor(random() * available.length));
+    result.push(available.splice(index, 1)[0]);
+  }
+  return result;
+}
+
+export function generateShopStock(equipments: Equipment[], random: () => number = Math.random): {
   shopStickers: StickerItem[];
   shopEquipments: Equipment[];
 } {
-  const shopStickers = [...ALL_STICKERS_CATALOG].sort(() => Math.random() - 0.5).slice(0, 4);
-  const shopEquipments = [...ALL_EQUIPMENT_CATALOG]
-    .filter((eq) => !equipments.some((e) => e.id === eq.id))
-    .slice(0, 3);
+  const shopStickers = takeRandom(
+    ALL_STICKERS_CATALOG.filter((sticker) => sticker.isDisposable),
+    4,
+    random
+  );
+  const shopEquipments = takeRandom(
+    ALL_EQUIPMENT_CATALOG.filter((equipment) => !equipments.some((owned) => owned.id === equipment.id)),
+    3,
+    random
+  );
   return { shopStickers, shopEquipments };
 }
 

@@ -1,164 +1,98 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { ElementType } from '../../types/game';
-import { Sparkles, Flame, Wind, Zap, Snowflake, Circle, CheckCircle, X } from 'lucide-react';
+import { StickerElementBadge } from './StickerElementBadge';
 
 export const StickerApplierModal: React.FC = () => {
-  const { stickerToApply, dicePool, applyStickerToFace, setStickerToApply, advanceToNextNode, combatPhase } =
-    useGameStore();
-
-  const [selectedDiceId, setSelectedDiceId] = useState<string>(dicePool[0]?.id || '');
+  const { stickerFlow, dicePool, applyCurrentPermanentSticker, discardCurrentSticker } = useGameStore();
+  const [selectedDiceId, setSelectedDiceId] = useState(dicePool[0]?.id ?? '');
   const [hoveredFaceIndex, setHoveredFaceIndex] = useState<number | null>(null);
-  const [isApplying, setIsApplying] = useState(false);
+  const sticker = stickerFlow?.items[stickerFlow.index];
 
-  React.useEffect(() => {
-    setIsApplying(false);
-  }, [stickerToApply]);
-
-  if (!stickerToApply) return null;
-
-  const currentDie = dicePool.find((d) => d.id === selectedDiceId) || dicePool[0];
-
-  const handleApply = (faceIndex: number) => {
-    if (!currentDie || isApplying) return;
-    setIsApplying(true);
-    applyStickerToFace(currentDie.id, faceIndex, stickerToApply);
-
-    // If we're in victory reward phase, automatically advance to next map node
-    if (combatPhase === 'VICTORY') {
-      advanceToNextNode();
+  useEffect(() => {
+    if (!dicePool.some((die) => die.id === selectedDiceId)) {
+      setSelectedDiceId(dicePool[0]?.id ?? '');
     }
-  };
+  }, [dicePool, selectedDiceId]);
 
-  const getElementBadge = (elem: ElementType) => {
-    switch (elem) {
-      case 'fire':
-        return <span style={{ color: '#fb7185', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Flame size={12} /> 火</span>;
-      case 'wind':
-        return <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Wind size={12} /> 風</span>;
-      case 'thunder':
-        return <span style={{ color: '#facc15', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Zap size={12} /> 雷</span>;
-      case 'ice':
-        return <span style={{ color: '#22d3ee', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Snowflake size={12} /> 冰</span>;
-      default:
-        return <span style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Circle size={12} /> 普</span>;
-    }
-  };
+  if (!stickerFlow || !sticker || sticker.isDisposable) return null;
+  const currentDie = dicePool.find((die) => die.id === selectedDiceId) ?? dicePool[0];
 
   return (
     <div className="modal-overlay">
       <div className="sticker-applier-card">
-        {/* Modal Header */}
         <div className="modal-header">
           <div className="modal-header-left">
-            <div className="modal-icon-badge">
-              <Sparkles size={20} />
-            </div>
+            <div className="modal-icon-badge"><Sparkles size={20} /></div>
             <div className="modal-title-box">
-              <div className="modal-title">改造工坊 • 黏貼骰面貼紙</div>
-              <div className="modal-subtitle">選擇目標骰子與骰面，直接覆蓋替換以強化您的骰池！</div>
+              <div className="modal-title">永久貼紙改造</div>
+              <div className="modal-subtitle">
+                第 {stickerFlow.index + 1}/{stickerFlow.items.length} 張，選擇骰面立即覆蓋，或放棄這張貼紙。
+              </div>
             </div>
           </div>
-          {combatPhase !== 'VICTORY' && (
-            <button
-              onClick={() => setStickerToApply(null)}
-              className="modal-close-btn"
-            >
-              <X size={18} />
-            </button>
-          )}
+          <button type="button" onClick={discardCurrentSticker} className="btn-skip-reward">
+            放棄貼紙
+          </button>
         </div>
 
-        {/* Sticker Overview Card */}
         <div className="banner-overview">
           <div className="banner-left">
             <div className="val-tile">
-              <span>{stickerToApply.baseValue}</span>
-              <span style={{ fontSize: '10px' }}>{getElementBadge(stickerToApply.element)}</span>
+              <span>{sticker.baseValue}</span>
+              <StickerElementBadge element={sticker.element} />
             </div>
             <div className="banner-info">
               <div className="title-row">
-                <span className="sticker-name">{stickerToApply.name}</span>
-                <span className={`tag-pill ${stickerToApply.isDisposable ? 'disposable' : 'perm'}`}>
-                  {stickerToApply.isDisposable ? '【一次性爆發貼紙】' : '【永久改造貼紙】'}
-                </span>
+                <span className="sticker-name">{sticker.name}</span>
+                <span className="tag-pill perm">永久改造</span>
               </div>
-              <p className="sticker-desc">{stickerToApply.description}</p>
+              <p className="sticker-desc">{sticker.description}</p>
             </div>
           </div>
         </div>
 
-        {/* Step 1: Select Target Die */}
         <div>
-          <span className="step-label">1. 選擇要改造的骰子：</span>
+          <span className="step-label">1. 選擇骰子</span>
           <div className="dice-tabs-grid">
             {dicePool.map((die) => (
               <button
+                type="button"
                 key={die.id}
                 onClick={() => setSelectedDiceId(die.id)}
                 className={`dice-tab-btn ${selectedDiceId === die.id ? 'selected' : ''}`}
               >
-                <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 900 }}>{die.name}</span>
-                  {selectedDiceId === die.id && <CheckCircle size={14} color="#818cf8" />}
-                </div>
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>{die.faces.length} 面骰</div>
+                <span>{die.name}</span>
+                {selectedDiceId === die.id && <CheckCircle size={14} color="#818cf8" />}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Step 2: Select Face to Cover */}
         {currentDie && (
           <div>
-            <span className="step-label">
-              2. 選擇要覆蓋的骰面（點擊立即黏貼）：
-            </span>
+            <span className="step-label">2. 選擇要永久覆蓋的骰面</span>
             <div className="faces-apply-grid">
-              {currentDie.faces.map((face, fIdx) => {
-                const isHovered = hoveredFaceIndex === fIdx;
-                const isTemp = !!face.temporarySticker;
-                const effectiveVal = isTemp ? face.temporarySticker!.baseValue : face.baseValue;
-                const effectiveElem = isTemp ? face.temporarySticker!.element : face.element;
-
+              {currentDie.faces.map((face, faceIndex) => {
+                const isHovered = hoveredFaceIndex === faceIndex;
                 return (
-                  <div
-                    key={face.id || fIdx}
-                    onMouseEnter={() => setHoveredFaceIndex(fIdx)}
+                  <button
+                    type="button"
+                    key={face.id}
+                    onMouseEnter={() => setHoveredFaceIndex(faceIndex)}
                     onMouseLeave={() => setHoveredFaceIndex(null)}
-                    onClick={() => handleApply(fIdx)}
+                    onClick={() => applyCurrentPermanentSticker(currentDie.id, faceIndex)}
                     className={`face-apply-card ${isHovered ? 'hovered' : ''}`}
                   >
-                    <div className="face-card-top">
-                      <span>第 {fIdx + 1} 面</span>
-                      {isTemp && (
-                        <span style={{ fontSize: '9px', backgroundColor: 'rgba(159, 18, 57, 0.8)', color: '#fda4af', padding: '0 4px', borderRadius: '4px' }}>
-                          一次性中
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Face Value and Element */}
+                    <div className="face-card-top"><span>第 {faceIndex + 1} 面</span></div>
                     <div className="face-val-row">
                       <div className="num">
-                        {isHovered ? (
-                          <span className="replacement-preview">
-                            {effectiveVal} → {stickerToApply.baseValue}
-                          </span>
-                        ) : (
-                          effectiveVal
-                        )}
+                        {isHovered ? `${face.baseValue} → ${sticker.baseValue}` : face.baseValue}
                       </div>
-                      <div>
-                        {isHovered ? getElementBadge(stickerToApply.element) : getElementBadge(effectiveElem)}
-                      </div>
+                      <StickerElementBadge element={isHovered ? sticker.element : face.element} />
                     </div>
-
-                    <div className="face-sub-info">
-                      <span>點擊替換</span>
-                      <span style={{ color: '#fbbf24', fontWeight: 700 }}>→</span>
-                    </div>
-                  </div>
+                    <div className="face-sub-info"><span>點擊永久替換</span><span>→</span></div>
+                  </button>
                 );
               })}
             </div>

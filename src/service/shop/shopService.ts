@@ -1,62 +1,41 @@
 import { Equipment, StickerItem } from '../../types/game';
-import { INITIAL_PLAYER_STATS } from '../../configs/gameConfig';
+import { SHOP_CONFIG } from '../../configs/shopConfig';
 
-export interface ShopBuyResult {
-  success: boolean;
-  newGold?: number;
-  newPlayerHp?: number;
-  newEquipments?: Equipment[];
-  newShopEquipments?: Equipment[];
-  newShopStickers?: StickerItem[];
-  purchasedSticker?: StickerItem;
+interface ShopOffer<T> {
+  item: T;
+  cost: number;
 }
 
-export function handleBuyShopItem(
-  type: 'sticker' | 'equipment' | 'dice' | 'heal',
-  id: string,
-  state: {
-    gold: number;
-    playerHp: number;
-    maxHp: number;
-    equipments: Equipment[];
-    shopEquipments: Equipment[];
-    shopStickers: StickerItem[];
-  }
-): ShopBuyResult {
-  const { gold, playerHp, maxHp, equipments, shopEquipments, shopStickers } = state;
+export function getStickerOffer(
+  stock: StickerItem[],
+  stickerId: string,
+  gold: number
+): ShopOffer<StickerItem> | null {
+  const item = stock.find((sticker) => sticker.id === stickerId);
+  if (!item) return null;
+  const cost = item.cost ?? SHOP_CONFIG.defaultStickerCost;
+  return gold >= cost ? { item, cost } : null;
+}
 
-  if (type === 'sticker') {
-    const sticker = shopStickers.find((s) => s.id === id);
-    const cost = sticker?.cost || 20;
-    if (gold >= cost && sticker) {
-      return {
-        success: true,
-        newGold: gold - cost,
-        newShopStickers: shopStickers.filter((s) => s.id !== id),
-        purchasedSticker: sticker,
-      };
-    }
-  } else if (type === 'equipment') {
-    const equip = shopEquipments.find((e) => e.id === id);
-    const cost = 35;
-    if (gold >= cost && equip && equipments.length < INITIAL_PLAYER_STATS.maxEquipmentSlots) {
-      return {
-        success: true,
-        newGold: gold - cost,
-        newEquipments: [...equipments, equip],
-        newShopEquipments: shopEquipments.filter((e) => e.id !== id),
-      };
-    }
-  } else if (type === 'heal') {
-    const cost = 20;
-    if (gold >= cost && playerHp < maxHp) {
-      return {
-        success: true,
-        newGold: gold - cost,
-        newPlayerHp: Math.min(maxHp, playerHp + 25),
-      };
-    }
-  }
+export function getEquipmentOffer(
+  stock: Equipment[],
+  equipmentId: string,
+  gold: number
+): ShopOffer<Equipment> | null {
+  const item = stock.find((equipment) => equipment.id === equipmentId);
+  return item && gold >= SHOP_CONFIG.equipmentCost
+    ? { item, cost: SHOP_CONFIG.equipmentCost }
+    : null;
+}
 
-  return { success: false };
+export function calculateHealPurchase(
+  gold: number,
+  playerHp: number,
+  maxHp: number
+): { gold: number; playerHp: number } | null {
+  if (gold < SHOP_CONFIG.healCost || playerHp >= maxHp) return null;
+  return {
+    gold: gold - SHOP_CONFIG.healCost,
+    playerHp: Math.min(maxHp, playerHp + SHOP_CONFIG.healAmount),
+  };
 }

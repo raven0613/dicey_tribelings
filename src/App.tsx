@@ -13,6 +13,12 @@ import { RewardModal } from './components/rewards/RewardModal';
 import { ChestModal } from './components/chest/ChestModal';
 import { ShopModal } from './components/shop/ShopModal';
 import { GameOverModal } from './components/common/GameOverModal';
+import { BattlePreparationModal } from './components/battle/BattlePreparationModal';
+import { ConsumableBar } from './components/stickers/ConsumableBar';
+import { StickerPackModal } from './components/stickers/StickerPackModal';
+import { ConsumableReplacementModal } from './components/stickers/ConsumableReplacementModal';
+import { EquipmentReplacementModal } from './components/equipment/EquipmentReplacementModal';
+import { DiceUnlockModal } from './components/dice/DiceUnlockModal';
 
 export default function App() {
   const {
@@ -21,6 +27,7 @@ export default function App() {
     mapNodes,
     currentEnemy,
     combatPhase,
+    activeRerollingIndex,
     comboSummary,
     executeBattleSettlement,
     startNode,
@@ -44,7 +51,7 @@ export default function App() {
     currentNode?.type === 'fight' || currentNode?.type === 'elite' || currentNode?.type === 'boss';
 
   const handleResolveBattle = async () => {
-    if (isResolving || combatPhase !== 'CONTROL_PHASE') return;
+    if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
     setIsResolving(true);
     await executeBattleSettlement((step) => {
       setCalculationStep(step);
@@ -96,11 +103,17 @@ export default function App() {
         {currentNode?.type === 'shop' && <ShopModal />}
 
         {/* Equipment Relics Bar */}
+        <ConsumableBar />
         <EquipmentBar />
       </main>
 
       {/* Modals & Overlays */}
       <StickerApplierModal />
+      <BattlePreparationModal />
+      <StickerPackModal />
+      <ConsumableReplacementModal />
+      <EquipmentReplacementModal />
+      <DiceUnlockModal />
       <DiceInspectModal isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
       <RewardModal />
       <GameOverModal />

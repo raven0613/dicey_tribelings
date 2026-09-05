@@ -2,6 +2,7 @@ import React from 'react';
 import { Enemy } from '../../types/game';
 import { Shield, Swords, Sparkles, Skull, Crown } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
+import { describeEnemyIntent, previewEnemyIntent } from '../../service/battle/enemies/enemyDescription';
 
 interface EnemyCardProps {
   enemy: Enemy | null;
@@ -9,12 +10,15 @@ interface EnemyCardProps {
 }
 
 export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) => {
-  const { damagePops, attackingStage } = useGameStore();
+  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex } = useGameStore();
   if (!enemy) return null;
 
   const isImpacted = isHit || attackingStage === 'impact';
   const hpPercent = Math.max(0, Math.min(100, (enemy.hp / enemy.maxHp) * 100));
   const currentIntent = enemy.intents[enemy.currentIntentIndex] || enemy.intents[0];
+  const description = describeEnemyIntent(enemy);
+  const preview = combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null && comboSummary
+    ? previewEnemyIntent(enemy, comboSummary.totalDamage) : '';
 
   const cardClass = [
     'enemy-card',
@@ -97,14 +101,16 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
             <span>已擊敗</span>
           </div>
         ) : currentIntent ? (
-          <div className={intentClass} title={currentIntent.description}>
+          <div className={intentClass} title={description}>
             {currentIntent.type === 'attack' && <Swords style={{ width: '14px', height: '14px' }} />}
             {currentIntent.type === 'heavy_attack' && (
               <Swords style={{ width: '14px', height: '14px', color: '#fb7185' }} />
             )}
             {currentIntent.type === 'defend' && <Shield style={{ width: '14px', height: '14px' }} />}
-            {currentIntent.type === 'buff' && <Sparkles style={{ width: '14px', height: '14px' }} />}
-            <span>{currentIntent.description}</span>
+            {(currentIntent.type === 'charge' || currentIntent.type === 'rest') && (
+              <Sparkles style={{ width: '14px', height: '14px' }} />
+            )}
+            <span>{description}{preview && `（${preview}）`}</span>
           </div>
         ) : null}
       </div>

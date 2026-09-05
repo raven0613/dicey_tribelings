@@ -21,6 +21,7 @@ export interface CalculatedRollItem {
 export interface BattleComboSummary {
   items: CalculatedRollItem[];
   bonusDice: BonusEquipmentDice[];
+  triggeredEquipmentIds: string[];
   totalDamage: number;
   totalShield: number;
   bonusControlGranted: number;
@@ -45,6 +46,7 @@ export function calculateRollResolution(
 ): BattleComboSummary {
   const activeCombos: { title: string; description: string; bonusValue: number }[] = [];
   const bonusDice: BonusEquipmentDice[] = [];
+  const triggeredEquipmentIds: string[] = [];
   let totalMultiplier = 1.0;
   let bonusControl = 0;
 
@@ -79,6 +81,7 @@ export function calculateRollResolution(
   const firePairEq = equipments.find((e) => e.ruleId === 'FIRE_3_5_COMBO');
   let fireComboBonus = 0;
   if (firePairEq && hasFire3 && hasFire5) {
+    triggeredEquipmentIds.push(firePairEq.id);
     fireComboBonus = firePairEq.value || 15;
     activeCombos.push({
       title: '雙炎共鳴 (Pyro Resonance)',
@@ -97,10 +100,11 @@ export function calculateRollResolution(
   }
 
   // Rule: DUAL_SIX_OVERLOAD (Two or more 6s)
-  const sixCount = rolledFaces.filter((f) => f.baseValue >= 6).length;
+  const sixCount = rolledFaces.filter((f) => f.baseValue === 6).length;
   const dualSixEq = equipments.find((e) => e.ruleId === 'DUAL_SIX_OVERLOAD');
   let dualSixBonus = 0;
   if (dualSixEq && sixCount >= 2) {
+    triggeredEquipmentIds.push(dualSixEq.id);
     dualSixBonus = dualSixEq.value || 12;
     bonusControl += 1;
     activeCombos.push({
@@ -127,6 +131,7 @@ export function calculateRollResolution(
   const hasThunder = elementsPresent.has('thunder') || hasWild;
   const triElemEq = equipments.find((e) => e.ruleId === 'TRI_ELEMENT_HARMONY');
   if (triElemEq && hasFire && hasWind && hasThunder) {
+    triggeredEquipmentIds.push(triElemEq.id);
     totalMultiplier += (triElemEq.value || 30) / 100;
     activeCombos.push({
       title: '三相元素交響 (Tri-Element Symphony)',
@@ -140,6 +145,7 @@ export function calculateRollResolution(
   const oddEq = equipments.find((e) => e.ruleId === 'ODD_STREAK');
   let oddBonus = 0;
   if (oddEq && oddCount >= 3) {
+    triggeredEquipmentIds.push(oddEq.id);
     oddBonus = oddEq.value || 8;
     activeCombos.push({
       title: '奇數狂潮 (Odd Surge)',
@@ -261,6 +267,7 @@ export function calculateRollResolution(
   return {
     items: calculatedItems,
     bonusDice,
+    triggeredEquipmentIds,
     totalDamage,
     totalShield: accumulatedShield,
     bonusControlGranted: bonusControl,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { Swords, RotateCcw, Zap, Sparkles, Shield } from 'lucide-react';
+import { Swords, RotateCcw, Shield } from 'lucide-react';
 
 interface BattleControlsProps {
   onResolve: () => void;
@@ -8,11 +8,15 @@ interface BattleControlsProps {
 }
 
 export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isResolving }) => {
-  const { combatPhase, control, maxControl, comboSummary } = useGameStore();
+  const { combatPhase, control, maxControl, comboSummary, activeRerollingIndex } = useGameStore();
 
   const isControlPhase = combatPhase === 'CONTROL_PHASE';
+  const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving;
   const totalForecastDamage = comboSummary?.totalDamage || 0;
   const totalForecastShield = comboSummary?.totalShield || 0;
+  let resolveLabel = '鎖定結果 • 結算攻擊';
+  if (isResolving) resolveLabel = '結算連續撞擊中...';
+  else if (activeRerollingIndex !== null) resolveLabel = '等待重骰落定...';
 
   return (
     <div className="battle-controls">
@@ -70,11 +74,11 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
         <button
           id="btn-resolve-battle"
           onClick={onResolve}
-          disabled={!isControlPhase || isResolving}
-          className={`btn-resolve ${isControlPhase && !isResolving ? 'ready' : 'disabled'}`}
+          disabled={!canResolve}
+          className={`btn-resolve ${canResolve ? 'ready' : 'disabled'}`}
         >
           <Swords style={{ width: '16px', height: '16px' }} />
-          <span>{isResolving ? '結算連續撞擊中...' : '鎖定結果 • 結算攻擊'}</span>
+          <span>{resolveLabel}</span>
         </button>
       </div>
     </div>

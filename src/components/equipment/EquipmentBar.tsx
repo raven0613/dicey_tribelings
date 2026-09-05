@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../store/gameStore';
-import { Equipment } from '../../types/game';
+import type { Equipment, EquipmentRarity } from '../../types/game';
 import { INITIAL_PLAYER_STATS } from '../../configs/gameConfig';
-import { Sparkles, Flame, Zap, RotateCcw, Layers, ShieldAlert, Wind } from 'lucide-react';
+import { Sparkles, Zap } from 'lucide-react';
+import { getEquipmentIcon } from './equipmentIcons';
 
-const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
-  Flame,
-  RotateCcw,
-  Zap,
-  Sparkles,
-  FlameKindling: Flame,
-  Wind,
-  ShieldAlert,
-  Layers,
-};
-
-const RARITY_MAP: Record<string, { label: string; badge: string }> = {
-  common: { label: '普通', badge: 'bg-slate-800 text-slate-300 border-slate-600' },
-  rare: { label: '稀有', badge: 'bg-blue-950/80 text-blue-300 border-blue-500/60' },
-  epic: { label: '史詩', badge: 'bg-purple-950/80 text-purple-300 border-purple-500/60' },
-  legendary: { label: '傳奇', badge: 'bg-amber-950/80 text-amber-300 border-amber-500/80' },
+const RARITY_LABELS: Record<EquipmentRarity, string> = {
+  common: '普通',
+  rare: '稀有',
+  legendary: '傳奇',
 };
 
 export const EquipmentBar: React.FC = () => {
-  const { equipments } = useGameStore();
+  const {
+    equipments,
+    comboSummary,
+    combatPhase,
+    currentEnemy,
+    activeRerollingIndex,
+    equipmentSlotFeedback,
+  } = useGameStore();
   const maxSlots = INITIAL_PLAYER_STATS.maxEquipmentSlots;
+  const [receivedSlotIndex, setReceivedSlotIndex] = useState<number | null>(null);
 
   const [hoveredEquip, setHoveredEquip] = useState<{
     equip: Equipment;
@@ -42,6 +39,24 @@ export const EquipmentBar: React.FC = () => {
       window.removeEventListener('resize', handleDismiss);
     };
   }, []);
+
+  useEffect(() => {
+    if (!equipmentSlotFeedback) return;
+    setReceivedSlotIndex(equipmentSlotFeedback.slotIndex);
+    const timerId = window.setTimeout(() => setReceivedSlotIndex(null), 850);
+    return () => window.clearTimeout(timerId);
+  }, [equipmentSlotFeedback]);
+
+  const showPatternTriggers = currentEnemy !== null
+    && activeRerollingIndex === null
+    && (
+      combatPhase === 'CONTROL_PHASE'
+      || combatPhase === 'RESOLVING_CALCULATION'
+      || combatPhase === 'RESOLVING_ATTACK'
+    );
+  const triggeredEquipmentIds = showPatternTriggers
+    ? new Set(comboSummary?.triggeredEquipmentIds ?? [])
+    : new Set<string>();
 
   return (
     <div className="equipment-bar">
@@ -69,8 +84,10 @@ export const EquipmentBar: React.FC = () => {
             );
           }
 
-          const IconComponent = ICON_MAP[equip.iconName] || Sparkles;
+          const IconComponent = getEquipmentIcon(equip.iconName);
           const isSelected = hoveredEquip?.equip.id === equip.id;
+          const isTriggered = equip.type === 'pattern' && triggeredEquipmentIds.has(equip.id);
+          const isJustReceived = receivedSlotIndex === idx;
 
           return (
             <div
@@ -85,7 +102,7 @@ export const EquipmentBar: React.FC = () => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 setHoveredEquip((prev) => (prev?.equip.id === equip.id ? null : { equip, rect }));
               }}
-              className={`slot-occupied ${isSelected ? 'selected' : ''}`}
+              className={`slot-occupied ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
             >
               {/* Type color accent */}
               <div className={`accent-stripe ${equip.type}`} />
@@ -100,6 +117,13 @@ export const EquipmentBar: React.FC = () => {
                   {equip.type === 'pattern' ? '組合' : equip.type === 'control' ? '控制' : '被動'} 遺物
                 </div>
               </div>
+
+              {isTriggered && (
+                <span className="equipment-trigger-badge">
+                  <Zap size={9} />
+                  發動
+                </span>
+              )}
             </div>
           );
         })}
@@ -118,8 +142,8 @@ export const EquipmentBar: React.FC = () => {
           const bottom = Math.max(10, window.innerHeight - rect.top + 10);
           const maxHeight = Math.max(160, rect.top - 20);
 
-          const rarityLabel = RARITY_MAP[equip.rarity]?.label || equip.rarity;
-          const IconComponent = ICON_MAP[equip.iconName] || Sparkles;
+          const rarityLabel = RARITY_LABELS[equip.rarity];
+          const IconComponent = getEquipmentIcon(equip.iconName);
 
           return createPortal(
             <div

@@ -1,119 +1,40 @@
 import { create } from 'zustand';
+import { ConsumableSticker, Dice, StickerItem, TemporaryStickerPlacement } from '../types/game';
 import {
-  Dice,
-  Equipment,
-  StickerItem,
-  Enemy,
-  MapNode,
-  CombatPhase,
-  TemporarySticker,
-  DamagePop,
-  AttackStage,
-} from '../types/game';
-import {
-  INITIAL_PLAYER_STATS,
+  ALL_EQUIPMENT_CATALOG,
   INITIAL_DICE_POOL,
   INITIAL_EQUIPMENT,
   INITIAL_MAP_NODES,
-  INITIAL_ENEMIES,
-  ALL_STICKERS_CATALOG,
-  ALL_EQUIPMENT_CATALOG,
+  INITIAL_PLAYER_STATS,
 } from '../configs/gameConfig';
-import {
-  processOpenPack,
-  checkProgressionDiceReward,
-  PackOpenResult,
-} from '../service/stickers/packService';
-import { handleBuyShopItem } from '../service/shop/shopService';
-import {
-  computeMaxControl,
-  getEnemyForNode,
-  generateShopStock,
-} from '../service/battle/nodeService';
-import { BattleComboSummary } from '../service/battle/battleEngine';
-import { performStartBattleRoll, performControlReroll } from '../service/battle/rollService';
+import { REWARD_CONFIG } from '../configs/rewardConfig';
+import { INVENTORY_CONFIG } from '../configs/inventoryConfig';
+import { STICKER_PACKS_CATALOG } from '../configs/stickerPacksConfig';
+import { checkProgressionDiceReward, openStickerPack } from '../service/stickers/packService';
+import { computeMaxControl, generateShopStock, getEnemyForNode } from '../service/battle/nodeService';
+import { performControlReroll, performStartBattleRoll } from '../service/battle/rollService';
 import { runBattleSettlement } from '../service/battle/battleSettlement';
+import {
+  applyPermanentSticker,
+  applyTemporaryPlacements,
+  createConsumableSticker,
+  removeConsumables,
+  replaceConsumable,
+} from '../service/inventory/inventoryService';
+import { generateChestRewardOptions } from '../service/rewards/rewardService';
+import { calculateHealPurchase, getEquipmentOffer, getStickerOffer } from '../service/shop/shopService';
 import { soundService } from '../service/audio/soundService';
+import { FlowCompletion, GameState } from './gameStore.types';
 
-interface GameState {
-  playerHp: number;
-  maxHp: number;
-  gold: number;
-  control: number;
-  maxControl: number;
-  playerShield: number;
+let consumableSequence = 0;
 
-  dicePool: Dice[];
-  equipments: Equipment[];
-  stickers: StickerItem[];
+function clone<T>(value: T): T {
+  return structuredClone(value);
+}
 
-  mapNodes: MapNode[];
-  currentNodeIndex: number;
-  currentEnemy: Enemy | null;
-  combatPhase: CombatPhase;
-
-  // Dice battle state
-  rolledIndices: number[];
-  comboSummary: BattleComboSummary | null;
-  activeRerollingIndex: number | null; // index of die currently being re-rolled
-  attackingDieIndex: number | null;
-  attackingBonusIndex: number | null;
-  attackingStage: AttackStage;
-  damagePops: DamagePop[];
-  showBonusDice: boolean;
-  diceSlotStates: Record<number, { displayValue: number; isSpinning: boolean; isLocked: boolean; isBuffed: boolean }>;
-  bonusSlotStates: Record<string, { displayValue: number; isSpinning: boolean; isLocked: boolean }>;
-
-  // UI / VFX flags
-  screenShakeIntensity: number;
-  soundMuted: boolean;
-  selectedDiceForInspect: Dice | null;
-  stickerToApply: StickerItem | null;
-
-  // Consumable Stickers (max 3, active for whole battle)
-  consumableStickers: StickerItem[];
-
-  // Progression & Pack Unwrapping Modals
-  unlockedDiceNotification: Dice | null;
-  openedPackResult: PackOpenResult | null;
-
-  // Reward / Shop states
-  rewardStickerOptions: StickerItem[];
-  victoryRewardClaimed: boolean;
-  shopStickers: StickerItem[];
-  shopEquipments: Equipment[];
-  shopDice: Dice[];
-
-  // Actions
-  toggleSound: () => void;
-  triggerScreenShake: (intensity?: number) => void;
-  startNode: (nodeIndex: number) => void;
-  startBattleRoll: () => void;
-  finishRollPhysics: () => void;
-  useControlReroll: (dieIndex: number) => void;
-  finishRerollPhysics: (dieIndex: number) => void;
-  executeBattleSettlement: (onStepProgress?: (step: number) => void) => Promise<void>;
-  addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
-  removeDamagePop: (id: number) => void;
-  applyStickerToFace: (diceId: string, faceIndex: number, sticker: StickerItem) => void;
-  removeTemporarySticker: (diceId: string, faceIndex: number) => void;
-  addEquipment: (equipment: Equipment) => boolean;
-  removeEquipment: (equipmentId: string) => void;
-  addDiceToPool: (dice: Dice) => void;
-  addConsumableSticker: (sticker: StickerItem) => boolean;
-  useConsumableSticker: (sticker: StickerItem) => void;
-  discardConsumableSticker: (stickerId: string) => void;
-  openPackAction: (packId: string) => void;
-  closeOpenedPackModal: () => void;
-  dismissDiceNotification: () => void;
-  selectStickerReward: (sticker: StickerItem) => void;
-  claimChestReward: (chosenEquip?: Equipment) => void;
-  buyShopItem: (type: 'sticker' | 'equipment' | 'dice' | 'heal', id: string) => boolean;
-  advanceToNextNode: () => void;
-  restartGame: () => void;
-  openDiceInspect: (dice: Dice) => void;
-  closeDiceInspect: () => void;
-  setStickerToApply: (sticker: StickerItem | null) => void;
+function createConsumableInstance(sticker: StickerItem): ConsumableSticker {
+  consumableSequence += 1;
+  return createConsumableSticker(sticker, `consumable-${Date.now()}-${consumableSequence}`);
 }
 
 function getInitialValues() {
@@ -124,90 +45,165 @@ function getInitialValues() {
     control: INITIAL_PLAYER_STATS.maxControl,
     maxControl: INITIAL_PLAYER_STATS.maxControl,
     playerShield: 0,
-    dicePool: JSON.parse(JSON.stringify(INITIAL_DICE_POOL)) as Dice[],
-    equipments: JSON.parse(JSON.stringify(INITIAL_EQUIPMENT)) as Equipment[],
-    stickers: [] as StickerItem[],
-    consumableStickers: [] as StickerItem[],
-    unlockedDiceNotification: null as Dice | null,
-    openedPackResult: null as PackOpenResult | null,
-    mapNodes: JSON.parse(JSON.stringify(INITIAL_MAP_NODES)),
+    dicePool: clone(INITIAL_DICE_POOL),
+    equipments: clone(INITIAL_EQUIPMENT),
+    consumableStickers: [] as ConsumableSticker[],
+    mapNodes: clone(INITIAL_MAP_NODES),
     currentNodeIndex: 0,
     currentEnemy: null,
-    combatPhase: 'ROLLING' as CombatPhase,
+    combatPhase: 'PREPARATION' as const,
     rolledIndices: [] as number[],
     comboSummary: null,
     activeRerollingIndex: null,
     attackingDieIndex: null,
     attackingBonusIndex: null,
-    attackingStage: 'idle' as AttackStage,
-    damagePops: [] as DamagePop[],
+    attackingStage: 'idle' as const,
+    damagePops: [],
     showBonusDice: false,
     diceSlotStates: {},
     bonusSlotStates: {},
     screenShakeIntensity: 0,
     soundMuted: false,
     selectedDiceForInspect: null,
-    stickerToApply: null,
-    rewardStickerOptions: [] as StickerItem[],
-    victoryRewardClaimed: false,
-    shopStickers: [] as StickerItem[],
-    shopEquipments: [] as Equipment[],
-    shopDice: [] as Dice[],
+    unlockedDiceNotification: null,
+    openedPackResult: null,
+    stickerFlow: null,
+    pendingShopSticker: null,
+    pendingEquipment: null,
+    equipmentSlotFeedback: null,
+    battleRewardOptions: [],
+    chestRewardOptions: [],
+    shopStickers: [],
+    shopEquipments: [],
   };
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
-  ...getInitialValues(),
+export const useGameStore = create<GameState>((set, get) => {
+  const completeFlow = (completion: FlowCompletion) => {
+    set({ stickerFlow: null });
+    if (completion === 'advance') get().advanceToNextNode();
+  };
 
-  toggleSound: () => {
-    const nextMuted = !get().soundMuted;
-    soundService.isMuted = nextMuted;
-    set({ soundMuted: nextMuted });
-  },
+  const moveStickerFlowForward = () => {
+    const flow = get().stickerFlow;
+    if (!flow) return;
+    const nextIndex = flow.index + 1;
+    if (nextIndex >= flow.items.length) {
+      completeFlow(flow.completion);
+      return;
+    }
+    set({ stickerFlow: { ...flow, index: nextIndex } });
+  };
 
-  triggerScreenShake: (intensity = 8) => {
-    set({ screenShakeIntensity: intensity });
-    setTimeout(() => {
-      set({ screenShakeIntensity: 0 });
-    }, 280);
-  },
+  const startStickerFlow = (items: StickerItem[], completion: FlowCompletion) => {
+    if (items.length === 0) {
+      if (completion === 'advance') get().advanceToNextNode();
+      return;
+    }
+    set({ stickerFlow: { items, index: 0, completion } });
+  };
 
-  addDamagePop: (pop) => {
-    const id = Date.now() + Math.random();
-    set((state) => ({
-      damagePops: [...state.damagePops.slice(-6), { ...pop, id, xOffset: (Math.random() - 0.5) * 44 }],
-    }));
-    setTimeout(() => {
-      get().removeDamagePop(id);
-    }, 850);
-  },
+  const completeEquipmentChoice = () => {
+    const pending = get().pendingEquipment;
+    if (!pending) return;
+    set({ pendingEquipment: null });
+    if (pending.source === 'chest') get().advanceToNextNode();
+  };
 
-  removeDamagePop: (id) => {
-    set((state) => ({
-      damagePops: state.damagePops.filter((p) => p.id !== id),
-    }));
-  },
+  return {
+    ...getInitialValues(),
 
-  startNode: (nodeIndex: number) => {
-    const nodes = get().mapNodes;
-    const targetNode = nodes[nodeIndex];
-    if (!targetNode) return;
+    toggleSound: () => {
+      const soundMuted = !get().soundMuted;
+      soundService.isMuted = soundMuted;
+      set({ soundMuted });
+    },
 
-    const totalMaxControl = computeMaxControl(get().equipments);
+    triggerScreenShake: (intensity = 8) => {
+      set({ screenShakeIntensity: intensity });
+      setTimeout(() => set({ screenShakeIntensity: 0 }), 280);
+    },
 
-    if (targetNode.type === 'fight' || targetNode.type === 'elite' || targetNode.type === 'boss') {
-      const enemyTemplate = getEnemyForNode(targetNode, nodeIndex);
+    addDamagePop: (pop) => {
+      const id = Date.now() + Math.random();
+      set((state) => ({
+        damagePops: [...state.damagePops.slice(-6), { ...pop, id, xOffset: (Math.random() - 0.5) * 44 }],
+      }));
+      setTimeout(() => get().removeDamagePop(id), 850);
+    },
+
+    removeDamagePop: (id) => set((state) => ({
+      damagePops: state.damagePops.filter((pop) => pop.id !== id),
+    })),
+
+    startNode: (nodeIndex) => {
+      const targetNode = get().mapNodes[nodeIndex];
+      if (!targetNode) return;
+
+      const common = {
+        currentNodeIndex: nodeIndex,
+        battleRewardOptions: [],
+        chestRewardOptions: [],
+        openedPackResult: null,
+        stickerFlow: null,
+        pendingShopSticker: null,
+        pendingEquipment: null,
+      };
+
+      if (targetNode.type === 'fight' || targetNode.type === 'elite' || targetNode.type === 'boss') {
+        const maxControl = computeMaxControl(get().equipments);
+        set({
+          ...common,
+          currentEnemy: clone(getEnemyForNode(targetNode, nodeIndex)),
+          control: maxControl,
+          maxControl,
+          playerShield: 0,
+          combatPhase: 'PREPARATION',
+          rolledIndices: [],
+          comboSummary: null,
+          damagePops: [],
+          attackingDieIndex: null,
+          attackingBonusIndex: null,
+          attackingStage: 'idle',
+          showBonusDice: false,
+          diceSlotStates: {},
+          bonusSlotStates: {},
+        });
+        return;
+      }
+
+      if (targetNode.type === 'shop') {
+        const stock = generateShopStock(get().equipments);
+        set({ ...common, currentEnemy: null, combatPhase: 'CONTROL_PHASE', ...stock });
+        return;
+      }
+
+      set({ ...common, currentEnemy: null, combatPhase: 'CONTROL_PHASE' });
+    },
+
+    confirmBattlePreparation: (placements: TemporaryStickerPlacement[]) => {
+      if (get().combatPhase !== 'PREPARATION') return;
+      const distinctFaces = new Set(placements.map((item) => `${item.diceId}:${item.faceIndex}`));
+      const ownedIds = new Set(get().consumableStickers.map((item) => item.instanceId));
+      const valid = distinctFaces.size === placements.length
+        && placements.every((item) => ownedIds.has(item.consumable.instanceId));
+      if (!valid) return;
 
       set({
-        currentNodeIndex: nodeIndex,
-        currentEnemy: JSON.parse(JSON.stringify(enemyTemplate)),
-        control: totalMaxControl,
-        maxControl: totalMaxControl,
-        playerShield: 0,
-        combatPhase: 'ROLLING',
-        rewardStickerOptions: [],
-        victoryRewardClaimed: false,
-        damagePops: [],
+        dicePool: applyTemporaryPlacements(get().dicePool, placements),
+        consumableStickers: removeConsumables(
+          get().consumableStickers,
+          placements.map((item) => item.consumable.instanceId)
+        ),
+      });
+      get().startBattleRoll();
+    },
+
+    startBattleRoll: () => {
+      const result = performStartBattleRoll(get().dicePool, get().equipments);
+      set({
+        ...result,
+        activeRerollingIndex: null,
         attackingDieIndex: null,
         attackingBonusIndex: null,
         attackingStage: 'idle',
@@ -215,291 +211,239 @@ export const useGameStore = create<GameState>((set, get) => ({
         diceSlotStates: {},
         bonusSlotStates: {},
       });
+    },
 
-      get().startBattleRoll();
-    } else if (targetNode.type === 'shop') {
-      const { shopStickers, shopEquipments } = generateShopStock(get().equipments);
+    finishRollPhysics: () => {
+      if (get().combatPhase === 'ROLLING') set({ combatPhase: 'CONTROL_PHASE' });
+    },
+
+    useControlReroll: (dieIndex) => {
+      if (get().activeRerollingIndex !== null) return;
+      const result = performControlReroll(dieIndex, get());
+      if (!result.success) return;
       set({
-        currentNodeIndex: nodeIndex,
-        currentEnemy: null,
-        combatPhase: 'CONTROL_PHASE',
-        rewardStickerOptions: [],
-        stickerToApply: null,
-        shopStickers,
-        shopEquipments,
-        shopDice: [],
+        control: result.newControl,
+        rolledIndices: result.newRolledIndices,
+        comboSummary: result.newSummary,
+        activeRerollingIndex: dieIndex,
+        showBonusDice: false,
+        diceSlotStates: {},
+        bonusSlotStates: {},
       });
-    } else if (targetNode.type === 'chest') {
-      set({ currentNodeIndex: nodeIndex, currentEnemy: null, combatPhase: 'CONTROL_PHASE', rewardStickerOptions: [], stickerToApply: null });
-    }
-  },
+    },
 
-  startBattleRoll: () => {
-    const { rolledIndices, comboSummary, combatPhase } = performStartBattleRoll(get().dicePool, get().equipments);
-    set({
-      rolledIndices,
-      comboSummary,
-      combatPhase,
-      activeRerollingIndex: null,
-      attackingDieIndex: null,
-      attackingBonusIndex: null,
-      attackingStage: 'idle',
-      showBonusDice: false,
-      diceSlotStates: {},
-      bonusSlotStates: {},
-    });
-  },
+    finishRerollPhysics: (dieIndex) => {
+      if (get().activeRerollingIndex === dieIndex) set({ activeRerollingIndex: null });
+    },
 
-  finishRollPhysics: () => {
-    if (get().combatPhase === 'ROLLING') {
-      set({ combatPhase: 'CONTROL_PHASE' });
-    }
-  },
-
-  useControlReroll: (dieIndex: number) => {
-    const { control, dicePool, rolledIndices, equipments, combatPhase } = get();
-    const res = performControlReroll(dieIndex, { control, dicePool, rolledIndices, equipments, combatPhase });
-    if (!res.success) return;
-
-    set({
-      control: res.newControl!,
-      rolledIndices: res.newRolledIndices!,
-      comboSummary: res.newSummary!,
-      activeRerollingIndex: dieIndex,
-      showBonusDice: false,
-      diceSlotStates: {},
-      bonusSlotStates: {},
-    });
-  },
-
-  finishRerollPhysics: (dieIndex: number) => {
-    if (get().activeRerollingIndex === dieIndex) {
-      set({ activeRerollingIndex: null });
-    }
-  },
-
-  executeBattleSettlement: async (onStepProgress?: (step: number) => void) => {
-    await runBattleSettlement(
-      {
+    executeBattleSettlement: async (onStepProgress) => {
+      await runBattleSettlement({
         get,
         set,
         triggerScreenShake: get().triggerScreenShake,
         startBattleRoll: get().startBattleRoll,
         addDamagePop: get().addDamagePop,
-      },
-      onStepProgress
-    );
-  },
+      }, onStepProgress);
+    },
 
-  applyStickerToFace: (diceId: string, faceIndex: number, sticker: StickerItem) => {
-    soundService.playStickerApply();
-    const updated = get().dicePool.map((die) => {
-      if (die.id !== diceId) return die;
-      const newFaces = [...die.faces];
-      const oldFace = newFaces[faceIndex];
-      if (!oldFace) return die;
-
-      if (sticker.isDisposable) {
-        // Apply temporary sticker on top of current face (lasts whole battle!)
-        const temp: TemporarySticker = {
-          name: sticker.name,
-          baseValue: sticker.baseValue,
-          element: sticker.element,
-          special: sticker.special,
-          description: sticker.description,
-        };
-        newFaces[faceIndex] = { ...oldFace, temporarySticker: temp };
-      } else {
-        // Permanently overwrite base face
-        newFaces[faceIndex] = {
-          ...oldFace,
-          baseValue: sticker.baseValue,
-          element: sticker.element,
-          special: sticker.special,
-          temporarySticker: null,
-        };
-      }
-      return { ...die, faces: newFaces };
-    });
-
-    // If it was applied from consumables, consume it from consumableStickers!
-    const newConsumables = get().consumableStickers.filter((s) => s.id !== sticker.id);
-
-    set({ dicePool: updated, stickerToApply: null, consumableStickers: newConsumables });
-  },
-
-  removeTemporarySticker: (diceId: string, faceIndex: number) => {
-    const updated = get().dicePool.map((die) => {
-      if (die.id !== diceId) return die;
-      const newFaces = [...die.faces];
-      if (newFaces[faceIndex]) {
-        newFaces[faceIndex] = { ...newFaces[faceIndex], temporarySticker: null };
-      }
-      return { ...die, faces: newFaces };
-    });
-    set({ dicePool: updated });
-  },
-
-  addConsumableSticker: (sticker: StickerItem) => {
-    const { consumableStickers } = get();
-    if (consumableStickers.length >= 3) return false;
-    soundService.playCoin();
-    set({ consumableStickers: [...consumableStickers, sticker] });
-    return true;
-  },
-
-  useConsumableSticker: (sticker: StickerItem) => {
-    set({ stickerToApply: sticker });
-  },
-
-  discardConsumableSticker: (stickerId: string) => {
-    set({ consumableStickers: get().consumableStickers.filter((s) => s.id !== stickerId) });
-  },
-
-  openPackAction: (packId: string) => {
-    soundService.playVictory();
-    const { consumableStickers } = get();
-    const { result, updatedConsumables } = processOpenPack(packId, consumableStickers, 3);
-    set({
-      openedPackResult: result,
-      consumableStickers: updatedConsumables,
-    });
-  },
-
-  closeOpenedPackModal: () => {
-    set({ openedPackResult: null });
-    // If was in chest or victory, can advance
-    if (get().mapNodes[get().currentNodeIndex]?.type === 'chest') {
-      get().advanceToNextNode();
-    }
-  },
-
-  dismissDiceNotification: () => {
-    set({ unlockedDiceNotification: null });
-  },
-
-  addEquipment: (equipment: Equipment) => {
-    const { equipments } = get();
-    if (equipments.length >= INITIAL_PLAYER_STATS.maxEquipmentSlots) return false;
-    soundService.playCoin();
-    set({ equipments: [...equipments, equipment] });
-    return true;
-  },
-
-  removeEquipment: (equipmentId: string) => {
-    set({ equipments: get().equipments.filter((e) => e.id !== equipmentId) });
-  },
-
-  addDiceToPool: (dice: Dice) => {
-    soundService.playCoin();
-    set({ dicePool: [...get().dicePool, dice] });
-  },
-
-  selectStickerReward: (sticker: StickerItem) => {
-    if (sticker.isPack) {
-      get().openPackAction(sticker.packId || 'pack_elemental');
-      set({ rewardStickerOptions: [], victoryRewardClaimed: true });
-      return;
-    }
-
-    if (sticker.isDisposable) {
-      get().addConsumableSticker(sticker);
-      set({ rewardStickerOptions: [], victoryRewardClaimed: true });
-      get().advanceToNextNode();
-      return;
-    }
-
-    // Permanent sticker
-    set({
-      stickerToApply: sticker,
-      rewardStickerOptions: [],
-      victoryRewardClaimed: true,
-    });
-  },
-
-  claimChestReward: (chosenEquip?: Equipment) => {
-    soundService.playVictory();
-    if (chosenEquip) {
-      get().addEquipment(chosenEquip);
-    } else {
-      const avail = ALL_EQUIPMENT_CATALOG.filter((eq) => !get().equipments.some((e) => e.id === eq.id));
-      if (avail.length > 0) get().addEquipment(avail[0]);
-    }
-    set({ gold: get().gold + 25 });
-    get().advanceToNextNode();
-  },
-
-  buyShopItem: (type, id) => {
-    const { gold, playerHp, maxHp, equipments, shopEquipments, shopStickers } = get();
-    const res = handleBuyShopItem(type, id, { gold, playerHp, maxHp, equipments, shopEquipments, shopStickers });
-    if (!res.success) return false;
-
-    soundService.playCoin();
-    const partial: Partial<GameState> = {};
-    if (res.newGold !== undefined) partial.gold = res.newGold;
-    if (res.newPlayerHp !== undefined) partial.playerHp = res.newPlayerHp;
-    if (res.newEquipments) partial.equipments = res.newEquipments;
-    if (res.newShopEquipments) partial.shopEquipments = res.newShopEquipments;
-    if (res.newShopStickers) partial.shopStickers = res.newShopStickers;
-
-    if (res.purchasedSticker) {
-      if (res.purchasedSticker.isDisposable) {
-        get().addConsumableSticker(res.purchasedSticker);
-      } else {
-        partial.stickerToApply = res.purchasedSticker;
-      }
-    }
-
-    set(partial);
-    return true;
-  },
-
-  advanceToNextNode: () => {
-    const { mapNodes, currentNodeIndex, dicePool } = get();
-
-    // Check level progression dice reward!
-    const rewardDie = checkProgressionDiceReward(currentNodeIndex, dicePool);
-    let nextDicePool = [...dicePool];
-    if (rewardDie) {
-      nextDicePool.push(rewardDie);
-      set({ unlockedDiceNotification: rewardDie });
+    openPackAction: (packId, completion) => {
+      const result = openStickerPack(packId);
       soundService.playVictory();
-    }
+      set({ openedPackResult: { ...result, completion } });
+    },
 
-    // Reset any temporary battle stickers for next stage
-    nextDicePool = nextDicePool.map((die) => ({
-      ...die,
-      faces: die.faces.map((f) => ({ ...f, temporarySticker: null })),
-    }));
+    beginOpenedPack: () => {
+      const result = get().openedPackResult;
+      if (!result) return;
+      set({ openedPackResult: null });
+      startStickerFlow(result.stickers, result.completion);
+    },
 
-    const updatedNodes = mapNodes.map((n, idx) => {
-      if (idx === currentNodeIndex) return { ...n, completed: true, current: false };
-      if (idx === currentNodeIndex + 1) return { ...n, current: true };
-      return n;
-    });
+    applyCurrentPermanentSticker: (diceId, faceIndex) => {
+      const flow = get().stickerFlow;
+      const sticker = flow?.items[flow.index];
+      if (!flow || !sticker || sticker.isDisposable) return;
+      soundService.playStickerApply();
+      set({ dicePool: applyPermanentSticker(get().dicePool, diceId, faceIndex, sticker) });
+      moveStickerFlowForward();
+    },
 
-    const nextIdx = currentNodeIndex + 1;
-    set({
-      dicePool: nextDicePool,
-      rewardStickerOptions: [],
-      stickerToApply: null,
-      victoryRewardClaimed: true,
-    });
+    storeCurrentConsumable: () => {
+      const flow = get().stickerFlow;
+      const sticker = flow?.items[flow.index];
+      if (!flow || !sticker?.isDisposable || get().consumableStickers.length >= INVENTORY_CONFIG.consumableCapacity) return;
+      set({ consumableStickers: [...get().consumableStickers, createConsumableInstance(sticker)] });
+      soundService.playCoin();
+      moveStickerFlowForward();
+    },
 
-    if (nextIdx < updatedNodes.length) {
-      set({ mapNodes: updatedNodes });
-      get().startNode(nextIdx);
-    } else {
-      set({ combatPhase: 'VICTORY' });
-    }
-  },
+    replaceCurrentConsumable: (instanceId) => {
+      const flow = get().stickerFlow;
+      const sticker = flow?.items[flow.index];
+      if (!flow || !sticker?.isDisposable) return;
+      set({
+        consumableStickers: replaceConsumable(
+          get().consumableStickers,
+          instanceId,
+          createConsumableInstance(sticker)
+        ),
+      });
+      soundService.playCoin();
+      moveStickerFlowForward();
+    },
 
-  restartGame: () => {
-    set(getInitialValues());
-    get().startNode(0);
-  },
+    discardCurrentSticker: () => moveStickerFlowForward(),
 
-  openDiceInspect: (dice: Dice) => set({ selectedDiceForInspect: dice }),
-  closeDiceInspect: () => set({ selectedDiceForInspect: null }),
-  setStickerToApply: (sticker: StickerItem | null) => set({ stickerToApply: sticker }),
-}));
+    selectBattleReward: (option) => {
+      set({ battleRewardOptions: [] });
+      if (option.kind === 'stickerPack') get().openPackAction(option.pack.id, 'advance');
+      else startStickerFlow([option.sticker], 'advance');
+    },
+
+    skipBattleReward: () => {
+      set({ battleRewardOptions: [] });
+      get().advanceToNextNode();
+    },
+
+    openChest: () => {
+      const ownedIds = new Set(get().equipments.map((equipment) => equipment.id));
+      const equipmentPool = ALL_EQUIPMENT_CATALOG.filter((equipment) => !ownedIds.has(equipment.id));
+      set({ chestRewardOptions: generateChestRewardOptions(equipmentPool, STICKER_PACKS_CATALOG) });
+      soundService.playCoin();
+    },
+
+    claimChestReward: (option) => {
+      if (option.kind === 'stickerPack') {
+        set({ chestRewardOptions: [], gold: get().gold + REWARD_CONFIG.chestGold });
+        soundService.playVictory();
+        get().openPackAction(option.pack.id, 'advance');
+        return;
+      }
+      if (get().equipments.length < INITIAL_PLAYER_STATS.maxEquipmentSlots) {
+        const slotIndex = get().equipments.length;
+        set({
+          chestRewardOptions: [],
+          gold: get().gold + REWARD_CONFIG.chestGold,
+          equipments: [...get().equipments, option.equipment],
+          equipmentSlotFeedback: { slotIndex },
+        });
+        soundService.playVictory();
+        soundService.playEquip();
+        get().advanceToNextNode();
+        return;
+      }
+      set({ pendingEquipment: { equipment: option.equipment, source: 'chest', cost: 0 } });
+    },
+
+    buyShopSticker: (stickerId) => {
+      const offer = getStickerOffer(get().shopStickers, stickerId, get().gold);
+      if (!offer) return false;
+      set({ pendingShopSticker: { sticker: offer.item, cost: offer.cost } });
+      return true;
+    },
+
+    confirmShopSticker: () => {
+      const pending = get().pendingShopSticker;
+      if (!pending || get().consumableStickers.length >= INVENTORY_CONFIG.consumableCapacity) return;
+      set({
+        gold: get().gold - pending.cost,
+        consumableStickers: [...get().consumableStickers, createConsumableInstance(pending.sticker)],
+        shopStickers: get().shopStickers.filter((item) => item.id !== pending.sticker.id),
+        pendingShopSticker: null,
+      });
+      soundService.playCoin();
+    },
+
+    replaceShopSticker: (instanceId) => {
+      const pending = get().pendingShopSticker;
+      if (!pending) return;
+      set({
+        gold: get().gold - pending.cost,
+        consumableStickers: replaceConsumable(
+          get().consumableStickers,
+          instanceId,
+          createConsumableInstance(pending.sticker)
+        ),
+        shopStickers: get().shopStickers.filter((item) => item.id !== pending.sticker.id),
+        pendingShopSticker: null,
+      });
+      soundService.playCoin();
+    },
+
+    cancelShopSticker: () => set({ pendingShopSticker: null }),
+
+    buyShopEquipment: (equipmentId) => {
+      const offer = getEquipmentOffer(get().shopEquipments, equipmentId, get().gold);
+      if (!offer) return false;
+      if (get().equipments.length >= INITIAL_PLAYER_STATS.maxEquipmentSlots) {
+        set({ pendingEquipment: { equipment: offer.item, source: 'shop', cost: offer.cost } });
+        return true;
+      }
+      set({
+        gold: get().gold - offer.cost,
+        equipments: [...get().equipments, offer.item],
+        shopEquipments: get().shopEquipments.filter((item) => item.id !== equipmentId),
+      });
+      soundService.playCoin();
+      return true;
+    },
+
+    replacePendingEquipment: (equipmentId) => {
+      const pending = get().pendingEquipment;
+      if (!pending) return;
+      const slotIndex = get().equipments.findIndex((item) => item.id === equipmentId);
+      if (slotIndex < 0) return;
+      set({
+        gold: get().gold - pending.cost
+          + (pending.source === 'chest' ? REWARD_CONFIG.chestGold : 0),
+        equipments: get().equipments.map((item) => item.id === equipmentId ? pending.equipment : item),
+        chestRewardOptions: pending.source === 'chest' ? [] : get().chestRewardOptions,
+        shopEquipments: pending.source === 'shop'
+          ? get().shopEquipments.filter((item) => item.id !== pending.equipment.id)
+          : get().shopEquipments,
+        equipmentSlotFeedback: pending.source === 'chest'
+          ? { slotIndex }
+          : get().equipmentSlotFeedback,
+      });
+      soundService.playEquip();
+      completeEquipmentChoice();
+    },
+
+    cancelPendingEquipment: () => set({ pendingEquipment: null }),
+
+    buyHeal: () => {
+      const result = calculateHealPurchase(get().gold, get().playerHp, get().maxHp);
+      if (!result) return false;
+      set(result);
+      soundService.playCoin();
+      return true;
+    },
+
+    advanceToNextNode: () => {
+      const { currentNodeIndex, dicePool, mapNodes } = get();
+      const rewardDie = checkProgressionDiceReward(currentNodeIndex, dicePool);
+      const nextDicePool: Dice[] = rewardDie ? [...dicePool, rewardDie] : dicePool;
+      const nextIndex = currentNodeIndex + 1;
+      const nextNodes = mapNodes.map((node, index) => ({
+        ...node,
+        completed: index === currentNodeIndex ? true : node.completed,
+        current: index === nextIndex,
+      }));
+
+      set({ dicePool: nextDicePool, mapNodes: nextNodes, unlockedDiceNotification: rewardDie });
+      if (rewardDie) soundService.playVictory();
+      if (nextIndex < nextNodes.length) get().startNode(nextIndex);
+      else set({ combatPhase: 'VICTORY' });
+    },
+
+    restartGame: () => {
+      consumableSequence = 0;
+      set(getInitialValues());
+      get().startNode(0);
+    },
+
+    openDiceInspect: (dice) => set({ selectedDiceForInspect: dice }),
+    closeDiceInspect: () => set({ selectedDiceForInspect: null }),
+    dismissDiceNotification: () => set({ unlockedDiceNotification: null }),
+  };
+});
