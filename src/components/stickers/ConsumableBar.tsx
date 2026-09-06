@@ -2,7 +2,7 @@ import React from 'react';
 import { PackageOpen } from 'lucide-react';
 import { INVENTORY_CONFIG } from '../../configs/inventoryConfig';
 import { useGameStore } from '../../store/gameStore';
-import { StickerElementBadge } from './StickerElementBadge';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const ConsumableBar: React.FC = () => {
   const consumables = useGameStore((state) => state.consumableStickers);
@@ -19,7 +19,7 @@ export const ConsumableBar: React.FC = () => {
           return item ? (
             <div className="consumable-slot occupied" key={item.instanceId}>
               <strong>{item.baseValue}</strong>
-              <div><span>{item.name}</span><StickerElementBadge element={item.element} size={11} /></div>
+              <div><span>{item.name}</span><CreatureBadge creature={item.creature} size={11} /></div>
             </div>
           ) : (
             <div className="consumable-slot empty" key={index}>空欄位</div>

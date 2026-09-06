@@ -1,200 +1,27 @@
 @use '../variables' as *;
 
-// Sticker Applier Modal
 .sticker-applier-card {
-  width: 100%;
-  max-width: 42rem; // 672px
-  margin: auto;
-  background-color: $slate-900;
-  border: 2px solid rgba($amber-500, 0.7);
-  border-radius: $radius-2xl;
-  padding: 1rem 1.25rem;
-  box-shadow: $shadow-2xl;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  color: $slate-100;
-  position: relative;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-
-  .banner-overview {
-    background: linear-gradient(to right, rgba($amber-950, 0.6), rgba($slate-800, 0.8));
-    border: 1px solid rgba($amber-500, 0.5);
-    border-radius: $radius-2xl;
-    padding: 1rem;
+  .sticker-overview {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-
-    .banner-left {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-
-      .val-tile {
-        width: 3.5rem;
-        height: 3.5rem;
-        border-radius: $radius-2xl;
-        background-color: $slate-900;
-        border: 2px solid rgba($amber-400, 0.8);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        font-weight: 900;
-        font-size: 1.25rem;
-        font-family: monospace;
-        color: $amber-300;
-        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
-      }
-
-      .banner-info {
-        .title-row {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-
-          .sticker-name {
-            font-weight: 900;
-            font-size: 1rem;
-            color: $slate-100;
-          }
-          .tag-pill {
-            font-size: 10px;
-            font-weight: 900;
-            padding: 0.125rem 0.5rem;
-            border-radius: $radius-full;
-
-            &.disposable {
-              background-color: $rose-950;
-              color: $rose-300;
-              border: 1px solid rgba($rose-500, 0.6);
-            }
-            &.perm {
-              background-color: $emerald-950;
-              color: $emerald-300;
-              border: 1px solid rgba($emerald-500, 0.6);
-            }
-          }
-        }
-
-        .sticker-desc {
-          font-size: 0.75rem;
-          color: $slate-300;
-          margin-top: 0.25rem;
-          line-height: 1.5;
-        }
-      }
-    }
-  }
-
-  .step-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: $slate-400;
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-
-  .dice-tabs-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.625rem;
-
-    .dice-tab-btn {
-      padding: 0.625rem;
-      border-radius: $radius-xl;
-      border: 2px solid $slate-700;
-      background-color: rgba($slate-800, 0.8);
-      color: $slate-300;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.25rem;
-      transition: all $transition-fast;
-
-      &.selected {
-        border-color: $amber-400;
-        background-color: rgba($amber-500, 0.15);
-        color: $amber-300;
-        font-weight: 900;
-        box-shadow: 0 4px 10px rgba($amber-500, 0.2);
-      }
-      &:hover:not(.selected) {
-        background-color: $slate-750;
-      }
-    }
-  }
-
-  .faces-apply-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
-
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .face-apply-card {
-      padding: 0.75rem;
-      border-radius: $radius-2xl;
-      border: 2px solid $slate-700;
-      background-color: rgba($slate-800, 0.9);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 7rem;
-      transition: all $transition-fast;
-      cursor: pointer;
-
-      &:hover {
-        border-color: $amber-400;
-        background-color: $slate-750;
-      }
-
-      &.hovered {
-        border-color: $amber-400;
-        box-shadow: 0 0 15px rgba($amber-400, 0.3);
-      }
-
-      .face-card-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: $slate-400;
-        font-weight: 700;
-      }
-
-      .face-val-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin: 0.25rem 0;
-
-        .num {
-          font-size: 1.875rem;
-          font-weight: 900;
-          font-family: monospace;
-          color: $slate-100;
-        }
-
-        .replacement-preview {
-          font-size: 1.125rem;
-          font-weight: 900;
-          color: $amber-400;
-          font-family: monospace;
-        }
-      }
-
-      .face-sub-info {
-        font-size: 10px;
-        color: $slate-400;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-    }
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgba($amber-500, 0.6);
+    border-radius: $radius-md;
+    background: rgba($amber-950, 0.5);
   }
+
+  .sticker-overview-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+
+    .creature-badge { font-size: 1rem; }
+  }
+
+  .sticker-overview-value { font: 800 1.75rem monospace; color: $amber-300; }
+  .sticker-overview-info { min-width: 0; font-size: 0.875rem; line-height: 1.4; }
+  .sticker-overview-info > strong { color: $amber-300; font-size: 1rem; }
+  .sticker-overview-info p { color: $slate-200; overflow-wrap: anywhere; }
 }

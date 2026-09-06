@@ -44,9 +44,9 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
 
         <div className="tactics-tip">
           {control > 0 ? (
-            <span>可單顆骰子重骰，調整組合追 Pattern 裝備！</span>
+            <span>重骰、老師與裝備操作，連接土人組合</span>
           ) : (
-            <span className="exhausted">本場 Control 已用盡，準備鎖定結算</span>
+            <span className="exhausted">可使用免費能力，或鎖定本輪結果</span>
           )}
         </div>
       </div>
@@ -62,12 +62,10 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
               {totalForecastDamage} 傷
             </span>
           </div>
-          {totalForecastShield > 0 && (
-            <div className="forecast-shield">
+          <div className="forecast-shield" style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>
               <Shield style={{ width: '12px', height: '12px', marginRight: '2px' }} />
               +{totalForecastShield} 護盾
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Primary Action Button */}

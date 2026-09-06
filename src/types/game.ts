@@ -1,22 +1,18 @@
-export type ElementType = 'normal' | 'fire' | 'wind' | 'thunder' | 'ice';
-
-export type SpecialEffect = 'none' | 'echo' | 'chain' | 'wild' | 'crit' | 'shield';
+import type { CreatureId } from './creatures';
 
 export type RewardTier = 'early' | 'mid' | 'late' | 'boss';
 
 export interface TemporarySticker {
   name: string;
   baseValue: number;
-  element: ElementType;
-  special?: SpecialEffect;
+  creature: CreatureId;
   description: string;
 }
 
 export interface DiceFace {
   id: string;
   baseValue: number;
-  element: ElementType;
-  special?: SpecialEffect;
+  creature: CreatureId;
   temporarySticker?: TemporarySticker;
 }
 
@@ -42,11 +38,11 @@ export interface Equipment {
   value?: number;
 }
 
-export interface BonusEquipmentDice {
+export interface BonusAttackDice {
   id: string;
-  sourceEquipmentId: string;
-  sourceEquipmentName: string;
-  element: ElementType;
+  source: { kind: 'creature'; diceId: string; ability: string } | { kind: 'equipment'; equipmentId: string };
+  sourceName: string;
+  creature?: CreatureId;
   bonusDamage: number;
   label: string;
   description: string;
@@ -57,8 +53,7 @@ export interface StickerItem {
   name: string;
   isDisposable: boolean;
   baseValue: number;
-  element: ElementType;
-  special?: SpecialEffect;
+  creature: CreatureId;
   description: string;
   rarity: EquipmentRarity;
   cost?: number;
@@ -70,8 +65,7 @@ export interface ConsumableSticker {
   stickerId: string;
   name: string;
   baseValue: number;
-  element: ElementType;
-  special?: SpecialEffect;
+  creature: CreatureId;
   description: string;
   rarity: EquipmentRarity;
 }
@@ -114,32 +108,6 @@ export interface MapNode {
   current: boolean;
 }
 
-export interface ActiveRollState {
-  diceId: string;
-  faceIndex: number; // 0 to 5 for d6
-  resolvedFace: {
-    baseValue: number;
-    element: ElementType;
-    special: SpecialEffect;
-    isTemporary: boolean;
-  };
-  // Animation coordinates & fake physics parameters
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  rotX: number;
-  rotY: number;
-  rotZ: number;
-  targetRotX: number;
-  targetRotY: number;
-  targetRotZ: number;
-  isRolling: boolean;
-  // Calculation details during settlement
-  calculatedValue: number;
-  bonusDetails: string[];
-}
-
 export type CombatPhase =
   | 'PREPARATION'
   | 'ROLLING'
@@ -155,8 +123,7 @@ export type AttackStage = 'idle' | 'windup' | 'dash' | 'impact' | 'recoil';
 export interface DamagePop {
   id: number;
   value: number;
-  element: ElementType;
-  isCrit?: boolean;
+  creature?: CreatureId;
   isShield?: boolean;
   label?: string;
   xOffset?: number;

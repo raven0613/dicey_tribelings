@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { ArrowRight, Coins, Gift, Trophy } from 'lucide-react';
 import { BattleRewardOption } from '../../types/game';
 import { useGameStore } from '../../store/gameStore';
-import { StickerElementBadge } from '../stickers/StickerElementBadge';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const RewardModal: React.FC = () => {
   const {
@@ -62,7 +62,7 @@ export const RewardModal: React.FC = () => {
             return (
               <button type="button" key={option.id} onClick={() => choose(option)} className={`reward-option-card ${hasClaimed ? 'disabled' : ''}`} disabled={hasClaimed}>
                 <div className="card-tag-row"><span className="type-badge permanent">永久改造</span><span className="rarity-label">{sticker.rarity}</span></div>
-                <div className="card-value-box"><div className="main-number">{sticker.baseValue}</div><StickerElementBadge element={sticker.element} /></div>
+                <div className="card-value-box"><div className="main-number">{sticker.baseValue}</div><CreatureBadge creature={sticker.creature} /></div>
                 <div><div className="sticker-name">{sticker.name}</div><div className="sticker-desc">{sticker.description}</div></div>
                 <div className="btn-pick-reward">選擇並處理 →</div>
               </button>

@@ -1,3 +1,8 @@
+import type { NumberDisplay, SkillFeedback } from '../types/battle';
+import type { DiceAction } from '../service/battle/rollService';
+import type { RerollStep } from '../service/battle/creatures/rerollResolution';
+import type { CreatureId, CreatureTag } from '../types/creatures';
+import type { CreatureBattleState } from '../types/creatures';
 import {
   AttackStage,
   BattleRewardOption,
@@ -50,6 +55,7 @@ export interface GameState {
   maxControl: number;
   playerShield: number;
   dicePool: Dice[];
+  creatureBattleState: CreatureBattleState;
   equipments: Equipment[];
   consumableStickers: ConsumableSticker[];
   mapNodes: MapNode[];
@@ -63,9 +69,20 @@ export interface GameState {
   attackingBonusIndex: number | null;
   attackingStage: AttackStage;
   damagePops: DamagePop[];
-  showBonusDice: boolean;
-  diceSlotStates: Record<number, { displayValue: number; isSpinning: boolean; isLocked: boolean; isBuffed: boolean }>;
-  bonusSlotStates: Record<string, { displayValue: number; isSpinning: boolean; isLocked: boolean }>;
+  visibleBonusIds: string[];
+  skillFeedback: SkillFeedback[];
+  displayedIdentities: Record<string, { creature: CreatureId; tags: CreatureTag[] }>;
+  displayedShields: Record<string, NumberDisplay>;
+  displayedFood: Record<string, NumberDisplay>;
+  playerShieldDisplay: number | null;
+  diceAction: DiceAction;
+  pendingRerolls: RerollStep[];
+  rerollAnimationId: number;
+  storedRations: number;
+  princessPackCount: number;
+  princessGuaranteed: boolean;
+  diceSlotStates: Record<number, NumberDisplay>;
+  bonusSlotStates: Record<string, NumberDisplay>;
   screenShakeIntensity: number;
   soundMuted: boolean;
   selectedDiceForInspect: Dice | null;
@@ -84,10 +101,11 @@ export interface GameState {
   startNode: (nodeIndex: number) => void;
   confirmBattlePreparation: (placements: TemporaryStickerPlacement[]) => void;
   startBattleRoll: () => void;
-  finishRollPhysics: () => void;
+  finishRollAnimation: () => void;
   useControlReroll: (dieIndex: number) => void;
-  finishRerollPhysics: (dieIndex: number) => void;
-  executeBattleSettlement: (onStepProgress?: (step: number) => void) => Promise<void>;
+  setDiceAction: (action: DiceAction) => void;
+  finishRerollAnimation: (dieIndex: number) => void;
+  executeBattleSettlement: () => Promise<void>;
   addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
   removeDamagePop: (id: number) => void;
   openPackAction: (packId: string, completion: FlowCompletion) => void;

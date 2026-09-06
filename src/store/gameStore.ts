@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createCreatureBattleState } from '../service/battle/creatures/creatureState';
 import { ConsumableSticker, Dice, StickerItem, TemporaryStickerPlacement } from '../types/game';
 import {
   ALL_EQUIPMENT_CATALOG,
@@ -12,7 +13,9 @@ import { INVENTORY_CONFIG } from '../configs/inventoryConfig';
 import { STICKER_PACKS_CATALOG } from '../configs/stickerPacksConfig';
 import { checkProgressionDiceReward, openStickerPack } from '../service/stickers/packService';
 import { computeMaxControl, generateShopStock, getEnemyForNode } from '../service/battle/nodeService';
-import { performControlReroll, performStartBattleRoll } from '../service/battle/rollService';
+import { createBattleActions } from './battleActions';
+import { CREATURE_BALANCE } from '../configs/creatures/creatureBalanceConfig';
+import { ALL_STICKERS_CATALOG } from '../configs/creatures/creatureStickerConfig';
 import { runBattleSettlement } from '../service/battle/battleSettlement';
 import {
   applyPermanentSticker,
@@ -46,6 +49,7 @@ function getInitialValues() {
     maxControl: INITIAL_PLAYER_STATS.maxControl,
     playerShield: 0,
     dicePool: clone(INITIAL_DICE_POOL),
+    creatureBattleState: createCreatureBattleState(),
     equipments: clone(INITIAL_EQUIPMENT),
     consumableStickers: [] as ConsumableSticker[],
     mapNodes: clone(INITIAL_MAP_NODES),
@@ -59,7 +63,10 @@ function getInitialValues() {
     attackingBonusIndex: null,
     attackingStage: 'idle' as const,
     damagePops: [],
-    showBonusDice: false,
+    visibleBonusIds: [],
+    skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null,
+    diceAction: 'reroll' as const, pendingRerolls: [], rerollAnimationId: 0,
+    storedRations: 0, princessPackCount: 0, princessGuaranteed: false,
     diceSlotStates: {},
     bonusSlotStates: {},
     screenShakeIntensity: 0,
@@ -151,21 +158,24 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       if (targetNode.type === 'fight' || targetNode.type === 'elite' || targetNode.type === 'boss') {
-        const maxControl = computeMaxControl(get().equipments);
+        const maxControl = computeMaxControl(get().equipments, get().gold);
         set({
           ...common,
           currentEnemy: clone(getEnemyForNode(targetNode, nodeIndex)),
           control: maxControl,
           maxControl,
           playerShield: 0,
+          creatureBattleState: createCreatureBattleState(),
           combatPhase: 'PREPARATION',
           rolledIndices: [],
+          skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null,
+          pendingRerolls: [], diceAction: 'reroll', activeRerollingIndex: null,
           comboSummary: null,
           damagePops: [],
           attackingDieIndex: null,
           attackingBonusIndex: null,
           attackingStage: 'idle',
-          showBonusDice: false,
+          visibleBonusIds: [],
           diceSlotStates: {},
           bonusSlotStates: {},
         });
@@ -199,55 +209,16 @@ export const useGameStore = create<GameState>((set, get) => {
       get().startBattleRoll();
     },
 
-    startBattleRoll: () => {
-      const result = performStartBattleRoll(get().dicePool, get().equipments);
-      set({
-        ...result,
-        activeRerollingIndex: null,
-        attackingDieIndex: null,
-        attackingBonusIndex: null,
-        attackingStage: 'idle',
-        showBonusDice: false,
-        diceSlotStates: {},
-        bonusSlotStates: {},
-      });
-    },
+    ...createBattleActions(set, get),
 
-    finishRollPhysics: () => {
-      if (get().combatPhase === 'ROLLING') set({ combatPhase: 'CONTROL_PHASE' });
-    },
-
-    useControlReroll: (dieIndex) => {
-      if (get().activeRerollingIndex !== null) return;
-      const result = performControlReroll(dieIndex, get());
-      if (!result.success) return;
-      set({
-        control: result.newControl,
-        rolledIndices: result.newRolledIndices,
-        comboSummary: result.newSummary,
-        activeRerollingIndex: dieIndex,
-        showBonusDice: false,
-        diceSlotStates: {},
-        bonusSlotStates: {},
-      });
-    },
-
-    finishRerollPhysics: (dieIndex) => {
-      if (get().activeRerollingIndex === dieIndex) set({ activeRerollingIndex: null });
-    },
-
-    executeBattleSettlement: async (onStepProgress) => {
-      await runBattleSettlement({
-        get,
-        set,
-        triggerScreenShake: get().triggerScreenShake,
-        startBattleRoll: get().startBattleRoll,
-        addDamagePop: get().addDamagePop,
-      }, onStepProgress);
+    executeBattleSettlement: async () => {
+      await runBattleSettlement({ get, set, triggerScreenShake: get().triggerScreenShake,
+        startBattleRoll: get().startBattleRoll, addDamagePop: get().addDamagePop });
     },
 
     openPackAction: (packId, completion) => {
-      const result = openStickerPack(packId);
+      const result = openStickerPack(packId, Math.random, get().princessPackCount);
+      set({ princessPackCount: get().princessPackCount + result.stickers.filter((item) => item.creature === 'princess').length });
       soundService.playVictory();
       set({ openedPackResult: { ...result, completion } });
     },
@@ -421,6 +392,11 @@ export const useGameStore = create<GameState>((set, get) => {
 
     advanceToNextNode: () => {
       const { currentNodeIndex, dicePool, mapNodes } = get();
+      if (currentNodeIndex === CREATURE_BALANCE.princess.guaranteedNode && !get().princessGuaranteed) {
+        set({ princessGuaranteed: true });
+        startStickerFlow([ALL_STICKERS_CATALOG.find((item) => item.creature === 'princess')!], 'advance');
+        return;
+      }
       const rewardDie = checkProgressionDiceReward(currentNodeIndex, dicePool);
       const nextDicePool: Dice[] = rewardDie ? [...dicePool, rewardDie] : dicePool;
       const nextIndex = currentNodeIndex + 1;

@@ -2,7 +2,7 @@ import React from 'react';
 import { PackagePlus } from 'lucide-react';
 import { INVENTORY_CONFIG } from '../../configs/inventoryConfig';
 import { useGameStore } from '../../store/gameStore';
-import { StickerElementBadge } from './StickerElementBadge';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const ConsumableReplacementModal: React.FC = () => {
   const {
@@ -43,7 +43,7 @@ export const ConsumableReplacementModal: React.FC = () => {
 
         <div className="incoming-item-card">
           <strong>{sticker.baseValue}</strong>
-          <div><h3>{sticker.name}</h3><StickerElementBadge element={sticker.element} /></div>
+          <div><h3>{sticker.name}</h3><CreatureBadge creature={sticker.creature} /></div>
           <p>{sticker.description}</p>
           {pendingShopSticker && <span className="price-note">確認後支付 {pendingShopSticker.cost} 金幣</span>}
         </div>

@@ -1,8 +1,9 @@
+import { getDiceGeometry } from '../../service/dice/diceGeometry';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Play, Sparkles, X } from 'lucide-react';
 import { TemporaryStickerPlacement } from '../../types/game';
 import { useGameStore } from '../../store/gameStore';
-import { StickerElementBadge } from '../stickers/StickerElementBadge';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const BattlePreparationModal: React.FC = () => {
   const {
@@ -71,7 +72,7 @@ export const BattlePreparationModal: React.FC = () => {
                   <button type="button" onClick={() => setSelectedInstanceId(item.instanceId)}>
                     <strong>{item.baseValue}</strong>
                     <span>{item.name}</span>
-                    <StickerElementBadge element={item.element} />
+                    <CreatureBadge creature={item.creature} />
                   </button>
                   {assigned && (
                     <button type="button" className="unassign-button" onClick={() => unassign(item.instanceId)} aria-label={`取消配置 ${item.name}`}>
@@ -102,7 +103,8 @@ export const BattlePreparationModal: React.FC = () => {
                         >
                           <span>第 {faceIndex + 1} 面</span>
                           <strong>{placement?.consumable.baseValue ?? face.baseValue}</strong>
-                          <StickerElementBadge element={placement?.consumable.element ?? face.element} size={10} />
+                          <CreatureBadge creature={placement?.consumable.creature ?? face.creature} size={10} />
+                          <small>相鄰面：{getDiceGeometry(die.dieType)[faceIndex].neighbors.map((index) => index + 1).join("、")}</small>
                           {placement && <small>{placement.consumable.name}</small>}
                         </button>
                       );

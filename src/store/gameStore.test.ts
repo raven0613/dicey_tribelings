@@ -53,3 +53,24 @@ test('a full shop consumable purchase charges only after one instance is replace
   assert.equal(result.consumableStickers[2].instanceId, existing[2].instanceId);
   assert.equal(result.consumableStickers[1].stickerId, incoming.id);
 });
+
+test('rations enter the next battle first round once and round food then clears', () => {
+  useGameStore.getState().restartGame();
+  useGameStore.setState({ storedRations: 9, equipments: ALL_EQUIPMENT_CATALOG.filter((item) => item.ruleId === 'RATIONS') });
+  useGameStore.getState().confirmBattlePreparation([]);
+  assert.equal(useGameStore.getState().creatureBattleState.virtualFood, 9);
+  assert.equal(useGameStore.getState().storedRations, 0);
+  useGameStore.getState().startBattleRoll();
+  assert.equal(useGameStore.getState().creatureBattleState.virtualFood, 0);
+});
+
+test('guaranteed princess is offered once before advancing its milestone', () => {
+  useGameStore.getState().restartGame();
+  useGameStore.setState({ currentNodeIndex: 5 });
+  useGameStore.getState().advanceToNextNode();
+  assert.equal(useGameStore.getState().stickerFlow?.items[0].creature, 'princess');
+  assert.equal(useGameStore.getState().princessGuaranteed, true);
+  useGameStore.getState().discardCurrentSticker();
+  assert.equal(useGameStore.getState().currentNodeIndex, 6);
+  assert.equal(useGameStore.getState().stickerFlow, null);
+});

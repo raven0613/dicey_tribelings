@@ -11,6 +11,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenDiceBag }) => {
     playerHp,
     maxHp,
     playerShield,
+    playerShieldDisplay,
     gold,
     control,
     maxControl,
@@ -22,6 +23,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenDiceBag }) => {
     combatPhase,
   } = useGameStore();
 
+  const shownShield = playerShieldDisplay ?? playerShield;
   const currentNode = mapNodes[currentNodeIndex];
   const hpPercent = Math.max(0, Math.min(100, (playerHp / maxHp) * 100));
 
@@ -33,10 +35,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenDiceBag }) => {
         <div className="hp-stat-group">
           <div className="heart-icon-wrapper">
             <Heart className="heart-icon animate-pulse" />
-            {playerShield > 0 && (
+            {shownShield > 0 && (
               <span className="shield-badge">
                 <Shield style={{ width: '10px', height: '10px', marginRight: '2px', display: 'inline' }} />
-                {playerShield}
+                {shownShield}
               </span>
             )}
           </div>

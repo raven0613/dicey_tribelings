@@ -1,0 +1,139 @@
+@use '../variables' as *;
+
+.dice-net {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  gap: 0.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+
+  .dice-net-status {
+    flex: 0 0 auto;
+    min-height: 1.5em;
+    color: $slate-300;
+    font-size: 0.875rem;
+  }
+
+  .dice-net-viewport {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid $slate-700;
+    border-radius: $radius-md;
+    background: $slate-950;
+  }
+
+  .dice-net-stage {
+    position: relative;
+    margin: auto;
+    overflow: clip;
+  }
+
+  .dice-net-canvas {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+  }
+
+  .dice-net-outlines {
+    position: absolute;
+    overflow: visible;
+    pointer-events: none;
+
+    polygon {
+      fill: $slate-900;
+      stroke: $slate-500;
+      stroke-width: 2;
+
+      &.is-neighbor { fill: #18343f; stroke: #67e8f9; stroke-width: 3; }
+      &.is-current { fill: #352b20; stroke: $amber-300; stroke-width: 4; }
+    }
+
+    .dice-net-fold {
+      stroke: $slate-400;
+      stroke-width: 2;
+      stroke-dasharray: 6 6;
+    }
+  }
+
+  .dice-net-face {
+    position: absolute;
+    display: block;
+    text-align: left;
+    font: inherit;
+    color: $slate-100;
+    overflow: hidden;
+
+    // The polygon supplies the outline; the inner ring remains visible after clipping.
+    &:focus-visible { outline: none; }
+    &:focus-visible .dice-net-content { outline: 2px solid $amber-300; outline-offset: 6px; }
+  }
+
+  .dice-net-content {
+    position: absolute;
+    width: 13.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transform: translate(-50%, -50%);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+
+  .dice-net-copies {
+    display: grid;
+
+    > span { grid-area: 1 / 1; }
+    > .is-hidden { visibility: hidden; pointer-events: none; }
+  }
+
+  .dice-net-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .dice-net-face-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    color: $slate-300;
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .dice-net-relation { min-height: 1.4em; }
+  .is-current .dice-net-relation { color: $amber-300; }
+  .is-neighbor .dice-net-relation { color: #a5f3fc; }
+
+  .dice-net-creature {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.375rem;
+  }
+
+  .dice-net-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--face-color);
+    font-size: 1.125rem;
+    font-weight: 800;
+
+    > span { font-size: 1.5rem; }
+  }
+
+  .dice-net-attack { font-family: monospace; font-size: 1.5rem; line-height: 1.2; color: #fff; }
+  .dice-net-ability { color: $slate-100; }
+  .dice-net-ability strong { color: var(--face-color); }
+  .dice-net-tags { color: $slate-300; font-size: 0.875rem; }
+  .dice-net-sticker { color: $rose-300; font-size: 0.875rem; }
+}

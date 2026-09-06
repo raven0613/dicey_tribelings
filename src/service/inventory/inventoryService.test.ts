@@ -11,23 +11,23 @@ import {
 import { Dice, StickerItem } from '../../types/game';
 
 const permanentSticker: StickerItem = {
-  id: 'permanent-fire',
-  name: '火焰貼紙',
+  id: 'permanent-boss',
+  name: '孩子王貼紙',
   isDisposable: false,
   baseValue: 12,
-  element: 'fire',
-  description: '火12',
+  creature: 'boss',
+  description: '孩子王12',
   rarity: 'rare',
   rewardTier: 'late',
 };
 
 const disposableSticker: StickerItem = {
-  id: 'disposable-fire',
-  name: '戰術火焰',
+  id: 'disposable-boss',
+  name: '戰術孩子王',
   isDisposable: true,
   baseValue: 15,
-  element: 'fire',
-  description: '本場火15',
+  creature: 'boss',
+  description: '本場孩子王15',
   rarity: 'rare',
 };
 
@@ -38,10 +38,10 @@ const dicePool: Dice[] = [
     dieType: 'd4',
     colorTheme: 'ruby',
     faces: [
-      { id: 'face-1', baseValue: 1, element: 'normal' },
-      { id: 'face-2', baseValue: 2, element: 'normal' },
-      { id: 'face-3', baseValue: 3, element: 'normal' },
-      { id: 'face-4', baseValue: 4, element: 'normal' },
+      { id: 'face-1', baseValue: 1, creature: 'food' },
+      { id: 'face-2', baseValue: 2, creature: 'food' },
+      { id: 'face-3', baseValue: 3, creature: 'food' },
+      { id: 'face-4', baseValue: 4, creature: 'food' },
     ],
   },
 ];
@@ -58,9 +58,9 @@ test('replaces exactly one consumable instance', () => {
   const current = [
     createConsumableSticker(disposableSticker, 'instance-1'),
     createConsumableSticker(disposableSticker, 'instance-2'),
-    createConsumableSticker({ ...disposableSticker, id: 'ice' }, 'instance-3'),
+    createConsumableSticker({ ...disposableSticker, id: 'elephporter' }, 'instance-3'),
   ];
-  const incoming = createConsumableSticker({ ...disposableSticker, id: 'wind' }, 'incoming');
+  const incoming = createConsumableSticker({ ...disposableSticker, id: 'follower' }, 'incoming');
 
   const result = replaceConsumable(current, 'instance-2', incoming);
 
@@ -93,6 +93,6 @@ test('permanent stickers replace base face data without retaining a temporary st
   const result = applyPermanentSticker(dicePool, 'die-1', 1, permanentSticker);
 
   assert.equal(result[0].faces[1].baseValue, 12);
-  assert.equal(result[0].faces[1].element, 'fire');
+  assert.equal(result[0].faces[1].creature, 'boss');
   assert.equal(result[0].faces[1].temporarySticker, undefined);
 });

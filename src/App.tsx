@@ -34,7 +34,6 @@ export default function App() {
   } = useGameStore();
 
   const [isDiceBagOpen, setIsDiceBagOpen] = useState(false);
-  const [calculationStep, setCalculationStep] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
   const initializedRef = React.useRef(false);
 
@@ -53,9 +52,7 @@ export default function App() {
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
     setIsResolving(true);
-    await executeBattleSettlement((step) => {
-      setCalculationStep(step);
-    });
+    await executeBattleSettlement();
     setIsResolving(false);
   };
 
@@ -88,8 +85,8 @@ export default function App() {
             {/* Active Combo Synergies Banner */}
             <ComboBanner summary={comboSummary} />
 
-            {/* 3D Fake Physics Dice Board Arena */}
-            <DiceBoard currentStepIndex={calculationStep} />
+            {/* Dice Board Arena */}
+            <DiceBoard />
 
             {/* Tactical Control Bar & Resolve Action */}
             <BattleControls onResolve={handleResolveBattle} isResolving={isResolving} />

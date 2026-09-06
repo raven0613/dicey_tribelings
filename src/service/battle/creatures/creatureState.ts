@@ -1,0 +1,22 @@
+import type { CreatureBattleState } from '../../../types/creatures';
+
+export const createCreatureBattleState = (): CreatureBattleState => ({
+  storedFood: {}, cowardShields: {}, priestAttacks: {}, teacherBonuses: {},
+  teachersAvailable: [], prankstersUsed: [], faceVersions: {}, authorityTargets: {},
+  lockedDice: [], rerollCount: 0, controlSpent: 0, formationUsed: false,
+  whistleUsed: false, pipeUsed: false, seed: 1, virtualFood: 0,
+});
+
+export function startCreatureRound(state: CreatureBattleState, seed: number): CreatureBattleState {
+  return { ...createCreatureBattleState(), storedFood: { ...state.storedFood }, seed };
+}
+
+/** Stable choices are derived from the committed roll seed; previews consume no randomness. */
+export function choose<T>(items: readonly T[], seed: number, key: string): T | undefined {
+  if (!items.length) return undefined;
+  let value = seed >>> 0;
+  for (const char of key) value = Math.imul(value ^ char.charCodeAt(0), 16777619) >>> 0;
+  value ^= value >>> 16;
+  return items[(value >>> 0) % items.length];
+}
+export const combatNumber = (value: number) => Math.round(value * 100) / 100;

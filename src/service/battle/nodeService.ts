@@ -1,3 +1,4 @@
+import { EQUIPMENT_BALANCE, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { Enemy, MapNode, Equipment, StickerItem } from '../../types/game';
 import {
   INITIAL_PLAYER_STATS,
@@ -38,9 +39,9 @@ export function generateShopStock(equipments: Equipment[], random: () => number 
   return { shopStickers, shopEquipments };
 }
 
-export function computeMaxControl(equipments: Equipment[]): number {
-  const extraControl = equipments
-    .filter((e) => e.ruleId === 'EXTRA_CONTROL')
-    .reduce((acc, e) => acc + (e.value || 1), 0);
-  return INITIAL_PLAYER_STATS.maxControl + extraControl;
+export function computeMaxControl(equipments: Equipment[], gold = 0): number {
+  const pipe = hasEquipment(equipments, 'PIPE') ? EQUIPMENT_BALANCE.pipeControl : 0;
+  const piggy = hasEquipment(equipments, 'PIGGY')
+    ? EQUIPMENT_BALANCE.goldThresholds.filter((threshold) => gold > threshold).length : 0;
+  return INITIAL_PLAYER_STATS.maxControl + pipe + piggy;
 }

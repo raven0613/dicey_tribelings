@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import type { Equipment, EquipmentRarity } from '../../types/game';
 import { INITIAL_PLAYER_STATS } from '../../configs/gameConfig';
 import { Sparkles, Zap } from 'lucide-react';
+import { SkillFeedback } from '../battle/SkillFeedback';
 import { getEquipmentIcon } from './equipmentIcons';
 
 const RARITY_LABELS: Record<EquipmentRarity, string> = {
@@ -16,6 +17,7 @@ export const EquipmentBar: React.FC = () => {
   const {
     equipments,
     comboSummary,
+    skillFeedback,
     combatPhase,
     currentEnemy,
     activeRerollingIndex,
@@ -47,16 +49,10 @@ export const EquipmentBar: React.FC = () => {
     return () => window.clearTimeout(timerId);
   }, [equipmentSlotFeedback]);
 
-  const showPatternTriggers = currentEnemy !== null
-    && activeRerollingIndex === null
-    && (
-      combatPhase === 'CONTROL_PHASE'
-      || combatPhase === 'RESOLVING_CALCULATION'
-      || combatPhase === 'RESOLVING_ATTACK'
-    );
-  const triggeredEquipmentIds = showPatternTriggers
-    ? new Set(comboSummary?.triggeredEquipmentIds ?? [])
-    : new Set<string>();
+  const triggeredEquipmentIds = new Set(currentEnemy && activeRerollingIndex === null
+    ? combatPhase === 'CONTROL_PHASE' ? comboSummary?.triggeredEquipmentIds ?? []
+      : skillFeedback.flatMap(({ event }) => event.equipmentId ? [event.equipmentId] : [])
+    : []);
 
   return (
     <div className="equipment-bar">
@@ -86,7 +82,7 @@ export const EquipmentBar: React.FC = () => {
 
           const IconComponent = getEquipmentIcon(equip.iconName);
           const isSelected = hoveredEquip?.equip.id === equip.id;
-          const isTriggered = equip.type === 'pattern' && triggeredEquipmentIds.has(equip.id);
+          const isTriggered = triggeredEquipmentIds.has(equip.id);
           const isJustReceived = receivedSlotIndex === idx;
 
           return (
@@ -104,6 +100,7 @@ export const EquipmentBar: React.FC = () => {
               }}
               className={`slot-occupied ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
             >
+              <SkillFeedback diceId={equip.id} feedback={skillFeedback} />
               {/* Type color accent */}
               <div className={`accent-stripe ${equip.type}`} />
 
@@ -179,7 +176,7 @@ export const EquipmentBar: React.FC = () => {
                   <span>
                     類型：
                     {equip.type === 'pattern'
-                      ? '骰面 Pattern 組合'
+                      ? '骰面組合'
                       : equip.type === 'control'
                       ? 'Control 補救與戰術機制'
                       : '全局共鳴被動'}

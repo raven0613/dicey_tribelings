@@ -48,19 +48,6 @@ html, body {
   }
 }
 
-// 3D Transforms
-.preserve-3d {
-  transform-style: preserve-3d;
-}
-
-.backface-hidden {
-  backface-visibility: hidden;
-}
-
-.perspective-800 {
-  perspective: 800px;
-}
-
 button {
   font-family: inherit;
   cursor: pointer;

@@ -1,3 +1,5 @@
+import { SKILL_AUDIO as audio } from '../../configs/battleConfig';
+
 /**
  * Procedural Web Audio API sound synthesizer for juicy indie game feedback.
  * No external asset loading required, zero latency, guaranteed to work offline.
@@ -156,32 +158,6 @@ class SoundService {
     this.triggerHaptic(30);
   }
 
-  public playNumberPump(stepIndex = 0) {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    const baseFrequencies = [440, 523.25, 659.25, 783.99, 880, 1046.5];
-    const freq = baseFrequencies[Math.min(stepIndex, baseFrequencies.length - 1)];
-
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + 0.08);
-
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.09);
-    this.triggerHaptic(12);
-  }
-
   public playEnemyHit(isHeavy = false) {
     if (this.isMuted) return;
     this.initCtx();
@@ -223,93 +199,28 @@ class SoundService {
     this.triggerHaptic(isHeavy ? [40, 30, 40] : 35);
   }
 
-  public playComboTrigger() {
+  private skillTone(frequency: number, duration: number, volume: number) {
     if (this.isMuted) return;
     this.initCtx();
     if (!this.ctx) return;
-
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    notes.forEach((freq, idx) => {
-      setTimeout(() => {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.18);
-      }, idx * 45);
-    });
-    this.triggerHaptic([20, 20, 35]);
-  }
-
-  public playSlotTick() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-
-    osc.type = 'triangle';
-    const freq = 650 + Math.random() * 150;
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, now + 0.035);
-
-    gain.gain.setValueAtTime(0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.035);
-    this.triggerHaptic(8);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, now);
+    osc.frequency.exponentialRampToValueAtTime(frequency * 1.15, now + duration);
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(now); osc.stop(now + duration);
   }
 
-  public playSlotLock() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-
-    // Sub-bass heavy thump
-    const subOsc = this.ctx.createOscillator();
-    const subGain = this.ctx.createGain();
-    subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(220, now);
-    subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.28);
-    subGain.gain.setValueAtTime(0.5, now);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-    subOsc.connect(subGain);
-    subGain.connect(this.ctx.destination);
-    subOsc.start(now);
-    subOsc.stop(now + 0.28);
-
-    // Resonant metallic chime
-    [880, 1320].forEach((freq, idx) => {
-      if (!this.ctx) return;
-      const chimeOsc = this.ctx.createOscillator();
-      const chimeGain = this.ctx.createGain();
-      chimeOsc.type = 'triangle';
-      chimeOsc.frequency.setValueAtTime(freq, now + idx * 0.03);
-      chimeOsc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + idx * 0.03 + 0.35);
-      chimeGain.gain.setValueAtTime(0.25, now + idx * 0.03);
-      chimeGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.03 + 0.35);
-      chimeOsc.connect(chimeGain);
-      chimeGain.connect(this.ctx.destination);
-      chimeOsc.start(now + idx * 0.03);
-      chimeOsc.stop(now + idx * 0.03 + 0.35);
-    });
-
-    this.triggerHaptic([30, 20, 45]);
+  public playSkillPulse(large: boolean) {
+    const tone = large ? audio.largePulse : audio.smallPulse;
+    this.skillTone(tone.frequency, tone.duration, tone.volume);
   }
+  public playNumberRoll() { this.skillTone(audio.roll.frequency, audio.roll.duration, audio.roll.volume); }
+  public playNumberSettle() { this.skillTone(audio.settle.frequency, audio.settle.duration, audio.settle.volume); }
 
   public playStickerApply() {
     if (this.isMuted) return;

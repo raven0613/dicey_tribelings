@@ -1,3 +1,4 @@
+import { combatNumber } from '../creatures/creatureState';
 import type { Enemy } from '../../../types/enemy';
 
 /** 各段傷害先消耗護盾；累計值採實際扣除量，包含擊破護盾的傷害。 */
@@ -5,10 +6,10 @@ export function applyEnemyDamage(enemy: Enemy, damage: number): { enemy: Enemy; 
   if (enemy.hp <= 0) return { enemy: { ...enemy }, damageTaken: 0 };
   const incoming = Math.max(0, damage);
   const shieldLoss = Math.min(enemy.shield, incoming);
-  const hpLoss = Math.min(enemy.hp, incoming - shieldLoss);
+  const hpLoss = Math.min(enemy.hp, combatNumber(incoming - shieldLoss));
   return {
-    enemy: { ...enemy, hp: enemy.hp - hpLoss, shield: enemy.shield - shieldLoss },
-    damageTaken: shieldLoss + hpLoss,
+    enemy: { ...enemy, hp: combatNumber(enemy.hp - hpLoss), shield: combatNumber(enemy.shield - shieldLoss) },
+    damageTaken: combatNumber(shieldLoss + hpLoss),
   };
 }
 

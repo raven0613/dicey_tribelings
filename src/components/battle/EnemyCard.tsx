@@ -1,4 +1,5 @@
 import React from 'react';
+import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { Enemy } from '../../types/game';
 import { Shield, Swords, Sparkles, Skull, Crown } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -44,7 +45,7 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
     .join(' ');
 
   return (
-    <div className={cardClass}>
+    <div id="battle-enemy-target" className={cardClass}>
       {/* Floating Damage Pops */}
       <div className="damage-pops-layer">
         {damagePops.map((pop) => (
@@ -53,16 +54,7 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
             className="damage-pop-item animate-float-damage"
             style={{
               left: `calc(50% + ${pop.xOffset || 0}px)`,
-              color:
-                pop.element === 'fire'
-                  ? '#fb923c'
-                  : pop.element === 'ice'
-                  ? '#38bdf8'
-                  : pop.element === 'thunder'
-                  ? '#fde047'
-                  : pop.element === 'wind'
-                  ? '#4ade80'
-                  : '#fb7185',
+              color: pop.creature ? CREATURE_CONFIG[pop.creature].color : '#e9d5ff',
             }}
           >
             <span>-{pop.value}</span>
@@ -101,7 +93,7 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
             <span>已擊敗</span>
           </div>
         ) : currentIntent ? (
-          <div className={intentClass} title={description}>
+          <div className={intentClass} title={[description, preview].filter(Boolean).join('・')}>
             {currentIntent.type === 'attack' && <Swords style={{ width: '14px', height: '14px' }} />}
             {currentIntent.type === 'heavy_attack' && (
               <Swords style={{ width: '14px', height: '14px', color: '#fb7185' }} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Gift, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { StickerElementBadge } from './StickerElementBadge';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const StickerPackModal: React.FC = () => {
   const { openedPackResult, beginOpenedPack } = useGameStore();
@@ -29,7 +29,7 @@ export const StickerPackModal: React.FC = () => {
                 <span className="rarity-label">{sticker.rarity}</span>
               </div>
               <strong className="pack-sticker-value">{sticker.baseValue}</strong>
-              <StickerElementBadge element={sticker.element} />
+              <CreatureBadge creature={sticker.creature} />
               <h3>{sticker.name}</h3>
               <p>{sticker.description}</p>
             </article>

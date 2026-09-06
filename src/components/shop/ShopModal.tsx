@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowRight, Coins, Heart, Sparkles, Store } from 'lucide-react';
 import { SHOP_CONFIG } from '../../configs/shopConfig';
 import { useGameStore } from '../../store/gameStore';
-import { StickerElementBadge } from '../stickers/StickerElementBadge';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const ShopModal: React.FC = () => {
   const {
@@ -46,7 +46,7 @@ export const ShopModal: React.FC = () => {
               <article key={sticker.id} className="shop-sticker-card">
                 <div>
                   <div className="card-top"><span className="disposable-tag">整場戰鬥</span><span className="rarity-tag">{sticker.rarity}</span></div>
-                  <div className="card-val-row"><span className="card-val">{sticker.baseValue}</span><StickerElementBadge element={sticker.element} /></div>
+                  <div className="card-val-row"><span className="card-val">{sticker.baseValue}</span><CreatureBadge creature={sticker.creature} /></div>
                   <div className="card-name">{sticker.name}</div>
                   <p className="card-desc">{sticker.description}</p>
                 </div>

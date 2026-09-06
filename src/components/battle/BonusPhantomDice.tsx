@@ -1,51 +1,52 @@
+import { ceilDamage } from '../../service/battle/damageValue';
+import { SkillFeedback } from './SkillFeedback';
+import type { SkillFeedback as Feedback } from '../../types/battle';
+import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import React from 'react';
-import { BonusEquipmentDice, AttackStage } from '../../types/game';
-import { Flame, Zap, Wind, Snowflake, Sparkles } from 'lucide-react';
+import { BonusAttackDice, AttackStage } from '../../types/game';
+import { Sparkles } from 'lucide-react';
+import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
+import { CreatureBadge } from '../dice/CreatureBadge';
 
 interface BonusPhantomDiceProps {
-  dice: BonusEquipmentDice;
-  index: number;
+  dice: BonusAttackDice;
+  sourceLabel: string;
+  feedback: Feedback[];
   isAttacking: boolean;
   attackingStage: AttackStage;
   slotState?: {
     displayValue: number;
+    scale: number;
     isSpinning: boolean;
     isLocked: boolean;
   };
   x: number;
   y: number;
+  scale?: number;
+  attackOffset: { x: number; y: number };
 }
 
 export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   dice,
-  index,
+  sourceLabel,
+  feedback,
   isAttacking,
   attackingStage,
   slotState,
   x,
   y,
+  scale = 1,
+  attackOffset,
 }) => {
   // Determine display number
-  const displayNum = slotState ? slotState.displayValue : dice.bonusDamage;
+  const displayNum = ceilDamage(slotState ? slotState.displayValue : dice.bonusDamage);
   const isSpinning = slotState?.isSpinning ?? false;
   const isLocked = slotState?.isLocked ?? false;
 
-  // Element Icon
-  const renderElementIcon = () => {
-    const iconProps = { className: 'slot-icon', style: { width: '16px', height: '16px' } };
-    switch (dice.element) {
-      case 'fire':
-        return <Flame {...iconProps} />;
-      case 'thunder':
-        return <Zap {...iconProps} />;
-      case 'wind':
-        return <Wind {...iconProps} />;
-      case 'ice':
-        return <Snowflake {...iconProps} />;
-      default:
-        return <Sparkles {...iconProps} />;
-    }
-  };
+  const color = dice.creature ? CREATURE_CONFIG[dice.creature].color : '#d8b4fe';
+  const renderCreatureIcon = () => dice.creature
+    ? <CreatureBadge creature={dice.creature} iconOnly size={18} />
+    : <Sparkles size={16} />;
 
   // Attack forward-dash motion calculations
   let transformStyle = 'translate(-50%, -50%)';
@@ -54,103 +55,96 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   if (isAttacking) {
     if (attackingStage === 'windup') {
       transformStyle = 'translate(-50%, calc(-50% + 12px)) scale(0.9)';
-      transitionStyle = 'transform 0.03s ease-out';
+      transitionStyle = `transform ${timing.windupMs}ms ease-out`;
     } else if (attackingStage === 'dash') {
-      transformStyle = 'translate(-50%, calc(-50% - 280px)) scale(1.45)';
-      transitionStyle = 'transform 0.05s cubic-bezier(0.1, 0.9, 0.2, 1.25)';
+      transformStyle = `translate(calc(-50% + ${attackOffset.x}px), calc(-50% + ${attackOffset.y}px)) scale(1.45)`;
+      transitionStyle = `transform ${timing.dashMs}ms cubic-bezier(0.1, 0.9, 0.2, 1.25)`;
     } else if (attackingStage === 'impact') {
-      transformStyle = 'translate(-50%, calc(-50% - 290px)) scale(1.6)';
-      transitionStyle = 'transform 0.035s ease-out';
+      transformStyle = `translate(calc(-50% + ${attackOffset.x}px), calc(-50% + ${attackOffset.y}px)) scale(1.6)`;
+      transitionStyle = `transform ${timing.recoilMs}ms ease-out`;
     } else if (attackingStage === 'recoil') {
       transformStyle = 'translate(-50%, -50%) scale(1)';
-      transitionStyle = 'transform 0.035s ease-out';
+      transitionStyle = `transform ${timing.recoilMs}ms ease-out`;
     }
   }
-
-  const cubeAnimationClass = isSpinning
-    ? 'slot-spinning'
-    : isLocked
-    ? 'slot-locked'
-    : isAttacking
-    ? ''
-    : 'idle-float';
 
   return (
     <div
       id={`phantom-die-${dice.id}`}
+      title={`${sourceLabel}・${dice.label}：追加攻擊 ${ceilDamage(dice.bonusDamage)}`}
       className={`phantom-die-anchor ${isAttacking ? 'is-attacking' : ''}`}
       style={{
+        '--creature-color': color,
+        color,
         left: `${x}px`,
         top: `${y}px`,
-        transform: transformStyle,
+        transform: `${transformStyle} scale(${scale})`,
         transition: transitionStyle,
-      }}
+      } as React.CSSProperties}
     >
+      <SkillFeedback diceId={dice.id} feedback={feedback} />
       {/* Radiant pedestal aura */}
-      <div className={`phantom-pedestal ${dice.element}`} />
+      <div className="phantom-pedestal" />
 
       {/* Speed trail during dash */}
       {isAttacking && (attackingStage === 'dash' || attackingStage === 'impact') && (
-        <div className={`phantom-speed-trail ${dice.element}`} />
+        <div className="phantom-speed-trail" />
       )}
 
       {/* Impact shockwave ring */}
       {isAttacking && attackingStage === 'impact' && (
-        <div className={`phantom-impact-shockwave animate-ping border-${dice.element}`} />
+        <div className="phantom-impact-shockwave animate-ping" />
       )}
 
-      {/* 3D Translucent Cube */}
-      <div className={`phantom-cube-container ${cubeAnimationClass}`}>
-        {/* Front Face (Hero face showing slot machine number) */}
-        <div className={`phantom-face face-front elem-${dice.element}`}>
-          <div className="slot-number-box">
-            {renderElementIcon()}
-            <div className={`slot-number ${isSpinning ? 'spinning' : ''} ${isLocked ? 'locked' : ''}`}>
-              {displayNum}
+      {/* Only the outer spawn layer starts once; the stable cube keeps its six faces. */}
+      <div className="phantom-spawn">
+        <div className="phantom-float" style={{ animationPlayState: isAttacking ? 'paused' : 'running' }}>
+          <div className="phantom-cube-container">
+            {/* Front Face (Hero face showing slot machine number) */}
+            <div className="phantom-face face-front">
+              <div className="slot-number-box">
+                {renderCreatureIcon()}
+                <div style={{ transform: `scale(${slotState?.scale ?? 1})` }} className={`slot-number ${isSpinning ? 'spinning' : ''} ${isLocked ? 'locked' : ''}`}>
+                  {displayNum}
+                </div>
+              </div>
+            </div>
+
+            {/* Back Face */}
+            <div className="phantom-face face-back">
+              <div className="slot-number-box">
+                {renderCreatureIcon()}
+                <div className="slot-number">{displayNum}</div>
+              </div>
+            </div>
+
+            {/* Right Face */}
+            <div className="phantom-face face-right">
+              <div className="slot-number-box">
+                {renderCreatureIcon()}
+              </div>
+            </div>
+
+            {/* Left Face */}
+            <div className="phantom-face face-left">
+              <div className="slot-number-box">
+                {renderCreatureIcon()}
+              </div>
+            </div>
+
+            {/* Top Face */}
+            <div className="phantom-face face-top">
+              <div className="slot-number-box">
+                <Sparkles style={{ width: '14px', height: '14px', opacity: 0.8 }} />
+              </div>
+            </div>
+
+            {/* Bottom Face */}
+            <div className="phantom-face face-bottom">
+              <div className="slot-number-box" />
             </div>
           </div>
         </div>
-
-        {/* Back Face */}
-        <div className={`phantom-face face-back elem-${dice.element}`}>
-          <div className="slot-number-box">
-            {renderElementIcon()}
-            <div className="slot-number">{dice.bonusDamage}</div>
-          </div>
-        </div>
-
-        {/* Right Face */}
-        <div className={`phantom-face face-right elem-${dice.element}`}>
-          <div className="slot-number-box">
-            {renderElementIcon()}
-          </div>
-        </div>
-
-        {/* Left Face */}
-        <div className={`phantom-face face-left elem-${dice.element}`}>
-          <div className="slot-number-box">
-            {renderElementIcon()}
-          </div>
-        </div>
-
-        {/* Top Face */}
-        <div className={`phantom-face face-top elem-${dice.element}`}>
-          <div className="slot-number-box">
-            <Sparkles style={{ width: '14px', height: '14px', opacity: 0.8 }} />
-          </div>
-        </div>
-
-        {/* Bottom Face */}
-        <div className={`phantom-face face-bottom elem-${dice.element}`}>
-          <div className="slot-number-box" />
-        </div>
-      </div>
-
-      {/* Source Equipment Tag Capsule */}
-      <div className={`phantom-tag-capsule ${dice.element}`}>
-        <span className="badge-sub">追加</span>
-        <span>{dice.label}</span>
-        <span>+{dice.bonusDamage}</span>
       </div>
     </div>
   );

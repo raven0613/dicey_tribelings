@@ -4,14 +4,14 @@ import { openStickerPack } from './packService';
 import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
 
 test('opens the configured number of distinct stickers', () => {
-  const result = openStickerPack('pack_elemental', () => 0);
+  const result = openStickerPack('pack_tribe', () => 0);
 
   assert.equal(result.stickers.length, 3);
   assert.equal(new Set(result.stickers.map((sticker) => sticker.id)).size, 3);
 });
 
 test('sticker packs contain both permanent and disposable stickers', () => {
-  const result = openStickerPack('pack_mythic', () => 0.5);
+  const result = openStickerPack('pack_royal', () => 0.5);
 
   assert.ok(result.stickers.some((sticker) => sticker.isDisposable));
   assert.ok(result.stickers.some((sticker) => !sticker.isDisposable));
@@ -23,4 +23,11 @@ test('draws every sticker from the selected pack configured pool', () => {
 
   assert.ok(pack);
   assert.ok(result.stickers.every((sticker) => pack.stickerIds.includes(sticker.id)));
+});
+
+test('royal packs stop issuing princesses at the run allocation and standard packs exclude them', () => {
+  assert.equal(openStickerPack('pack_royal', () => 0, 0).stickers.filter((item) => item.creature === 'princess').length, 1);
+  assert.equal(openStickerPack('pack_royal', () => 0, 1).stickers.filter((item) => item.creature === 'princess').length, 1);
+  assert.equal(openStickerPack('pack_royal', () => 0, 2).stickers.filter((item) => item.creature === 'princess').length, 0);
+  assert.equal(openStickerPack('pack_tribe', () => 0).stickers.filter((item) => item.creature === 'princess').length, 0);
 });

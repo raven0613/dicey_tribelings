@@ -8,8 +8,8 @@ const sticker: StickerItem = {
   name: '戰術貼紙',
   isDisposable: true,
   baseValue: 15,
-  element: 'fire',
-  description: '本場火15',
+  creature: 'boss',
+  description: '本場孩子王15',
   rarity: 'rare',
   cost: 22,
 };

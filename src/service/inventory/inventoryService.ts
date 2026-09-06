@@ -12,8 +12,7 @@ export function createConsumableSticker(sticker: StickerItem, instanceId: string
     stickerId: sticker.id,
     name: sticker.name,
     baseValue: sticker.baseValue,
-    element: sticker.element,
-    special: sticker.special,
+    creature: sticker.creature,
     description: sticker.description,
     rarity: sticker.rarity,
   };
@@ -47,8 +46,7 @@ export function applyPermanentSticker(
     faces[faceIndex] = {
       ...faces[faceIndex],
       baseValue: sticker.baseValue,
-      element: sticker.element,
-      special: sticker.special,
+      creature: sticker.creature,
       temporarySticker: undefined,
     };
     return { ...die, faces };
@@ -71,8 +69,7 @@ export function applyTemporaryPlacements(
       const temporarySticker: TemporarySticker = {
         name: placement.consumable.name,
         baseValue: placement.consumable.baseValue,
-        element: placement.consumable.element,
-        special: placement.consumable.special,
+        creature: placement.consumable.creature,
         description: placement.consumable.description,
       };
       return { ...face, temporarySticker };

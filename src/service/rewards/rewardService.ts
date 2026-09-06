@@ -31,8 +31,8 @@ export function generateBattleRewardOptions(
   allowStickerPack = true
 ): BattleRewardOption[] {
   const hasJackpot = allowStickerPack && packs.length > 0 && random() < REWARD_CONFIG.normalFightStickerPackChance;
-  const tierPool = stickers.filter((sticker) => !sticker.isDisposable && sticker.rewardTier === tier);
-  const fallbackPool = stickers.filter((sticker) => !sticker.isDisposable);
+  const tierPool = stickers.filter((sticker) => !sticker.isDisposable && sticker.creature !== 'princess' && sticker.rewardTier === tier);
+  const fallbackPool = stickers.filter((sticker) => !sticker.isDisposable && sticker.creature !== 'princess');
   const available = [...(tierPool.length >= REWARD_CONFIG.normalFightOptionCount ? tierPool : fallbackPool)];
   const options: BattleRewardOption[] = [];
 

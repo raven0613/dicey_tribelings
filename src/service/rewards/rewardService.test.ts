@@ -9,10 +9,10 @@ import { Equipment, StickerItem, StickerPack } from '../../types/game';
 import { REWARD_CONFIG } from '../../configs/rewardConfig';
 
 const stickers: StickerItem[] = [
-  { id: 'early-1', name: '早期1', isDisposable: false, baseValue: 4, element: 'normal', description: '', rarity: 'common', rewardTier: 'early' },
-  { id: 'early-2', name: '早期2', isDisposable: false, baseValue: 6, element: 'fire', description: '', rarity: 'common', rewardTier: 'early' },
-  { id: 'early-3', name: '早期3', isDisposable: false, baseValue: 8, element: 'wind', description: '', rarity: 'rare', rewardTier: 'early' },
-  { id: 'mid-1', name: '中期1', isDisposable: false, baseValue: 10, element: 'thunder', description: '', rarity: 'rare', rewardTier: 'mid' },
+  { id: 'early-1', name: '早期1', isDisposable: false, baseValue: 4, creature: 'food', description: '', rarity: 'common', rewardTier: 'early' },
+  { id: 'early-2', name: '早期2', isDisposable: false, baseValue: 6, creature: 'boss', description: '', rarity: 'common', rewardTier: 'early' },
+  { id: 'early-3', name: '早期3', isDisposable: false, baseValue: 8, creature: 'follower', description: '', rarity: 'rare', rewardTier: 'early' },
+  { id: 'mid-1', name: '中期1', isDisposable: false, baseValue: 10, creature: 'porter', description: '', rarity: 'rare', rewardTier: 'mid' },
 ];
 
 const packs: StickerPack[] = [
