@@ -2,9 +2,10 @@ import type { Dice, Equipment, BonusAttackDice } from '../../../types/game';
 import type { CreatureBattleState, CreatureId } from '../../../types/creatures';
 import type { BattleContext, CalculatedRollItem, SkillEvent, RepeatAttack } from '../../../types/battle';
 import { CREATURE_CONFIG } from '../../../configs/creatures/creatureConfig';
-import { getEffectiveFace } from '../../dice/diceFaces';
+import { getAdjacentFaces, getEffectiveFace } from '../../dice/diceFaces';
 import { ceilDamage } from '../damageValue';
 import { combatNumber } from './creatureState';
+import { findPranksterTargets, findTeacherTargets } from './rerollTargets';
 
 export function createResolutionContext(dice: Dice[], indices: number[], equipment: Equipment[],
   state: CreatureBattleState, battle: BattleContext) {
@@ -14,16 +15,26 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
     return { diceId: die.id, diceName: die.name, faceIndex: indices[index],
       rolledCreature: face.creature, rolledBaseValue: face.baseValue, creature: face.creature,
       baseValue: face.baseValue, finalDamage: face.baseValue, tags: [...CREATURE_CONFIG[face.creature].tags],
-      bonusTags: [], shieldGranted: 0 };
+      bonusTags: [], shieldGranted: 0, skillInputs: {} };
   });
   const events: SkillEvent[] = [];
+  for (const [index, item] of items.entries()) {
+    if (item.creature === 'teacher') {
+      const targets = findTeacherTargets(items, state, item.diceId);
+      item.skillInputs = { count: targets.length, value: targets.length ? items[targets[0]].baseValue : 0 };
+    }
+    if (item.creature === 'prankster') item.skillInputs = {
+      count: state.prankstersUsed.includes(item.diceId) ? 0 : findPranksterTargets(items, state, index).length,
+    };
+  }
   const bonusDice: BonusAttackDice[] = [];
   const repeatAttacks: RepeatAttack[] = [];
   const nextStoredFood = { ...state.storedFood };
   const virtualFaces: { sourceDiceId: string; creature: CreatureId; tags: CalculatedRollItem['tags'] }[] = [];
   const triggeredEquipmentIds = new Set<string>();
-  const event = (stage: number, source: CalculatedRollItem | undefined, ability?: string, participants: CalculatedRollItem[] = []) => {
-    const result: SkillEvent = { id: `skill-${events.length}`, stage, sourceDiceId: source?.diceId,
+  const event = (stage: number, source: CalculatedRollItem | undefined, ability?: string, participants: CalculatedRollItem[] = [],
+    relation: SkillEvent['relation'] = 'support', skill: SkillEvent['skill'] = source?.creature ?? 'equipment') => {
+    const result: SkillEvent = { id: `skill-${events.length}`, stage, relation, skill, activated: false, sourceDiceId: source?.diceId,
       ability: ability ?? (source ? CREATURE_CONFIG[source.creature].ability : ''),
       participantDiceIds: [...new Set([...(source ? [source.diceId] : []), ...participants.map((item) => item.diceId)])],
       changes: [], identities: [], bonusIds: [], repeatDiceIds: [] };
@@ -73,8 +84,9 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
     + virtualFaces.filter((face) => face.tags.includes(tag)).length;
   const neighbors = (index: number) => items.filter((_, other) => Math.abs(index - other) === 1);
   const faceCount = (index: number, creature: CreatureId) => faces[index].filter((face) => face.creature === creature).length;
-  return { dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, nextStoredFood,
+  const adjacentFaces = (index: number) => getAdjacentFaces(dice[index], items[index].faceIndex);
+  return { dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, nextStoredFood, virtualFood: state.virtualFood,
     virtualFaces, countParticipants, triggeredEquipmentIds, event, equipmentEvent, attack, shield, bonus,
-    identify, speciesCount, tagCount, neighbors, faceCount };
+    identify, speciesCount, tagCount, neighbors, faceCount, adjacentFaces };
 }
 export type ResolutionContext = ReturnType<typeof createResolutionContext>;

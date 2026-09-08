@@ -26,14 +26,12 @@ export function calculateRollResolution(dicePool: Dice[], rolledIndices: number[
   if (goldGranted) c.triggeredEquipmentIds.add(equipments.find((item) => item.ruleId === 'PURSE')!.id);
   const totalDamage = combatNumber(buildAttackPlan(c, battle.currentEnemy?.shield ?? 0, equipments)
     .reduce((sum, attack) => sum + attack.value, 0));
+  for (const event of c.events) event.activated ||= Boolean(event.changes.length || event.identities.length || event.repeatDiceIds.length);
   return { items: c.items, bonusDice: c.bonusDice, repeatAttacks: c.repeatAttacks,
-    events: c.events.filter((event) => event.changes.length || event.identities.length || event.repeatDiceIds.length
-      || event.ability.startsWith('混入人群')),
+    events: c.events.filter((event) => event.activated),
     triggeredEquipmentIds: [...c.triggeredEquipmentIds], totalDamage,
     totalShield: combatNumber(c.items.reduce((sum, item) => sum + item.shieldGranted, 0)),
     bonusControlGranted, goldGranted, nextStoredFood: c.nextStoredFood,
-    leftoverFood: combatNumber(c.items.filter((item) => item.creature === 'food').reduce((sum, item) => sum + item.baseValue, 0) + state.virtualFood),
-    activeCombos: c.items.filter((item) => item.bonusTags.length > 0).map((item) => ({
-      title: item.diceName, description: item.bonusTags.join('・'), bonusValue: combatNumber(item.finalDamage - item.rolledBaseValue),
-    })) };
+    leftoverFood: combatNumber(c.items.filter((item) => item.creature === 'food').reduce((sum, item) => sum + item.baseValue, 0) + c.virtualFood),
+  };
 }

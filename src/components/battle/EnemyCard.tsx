@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { Enemy } from '../../types/game';
 import { Shield, Swords, Sparkles, Skull, Crown } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { describeEnemyIntent, previewEnemyIntent } from '../../service/battle/enemies/enemyDescription';
+import { SkillText } from '../common/SkillText';
+import { useSkillTooltip } from '../common/useSkillTooltip';
 
 interface EnemyCardProps {
   enemy: Enemy | null;
@@ -11,21 +14,32 @@ interface EnemyCardProps {
 }
 
 export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) => {
-  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex } = useGameStore();
+  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack } = useGameStore();
+  const enemyRef = useRef<HTMLDivElement>(null);
+  const [attackDistance, setAttackDistance] = useState(0);
+  const intentDescription = enemy ? describeEnemyIntent(enemy) : '';
+  const intentPreview = enemy && combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null && comboSummary
+    ? previewEnemyIntent(enemy, comboSummary.totalDamage) : '';
+  const { tooltip, tooltipProps } = useSkillTooltip([intentDescription, intentPreview].filter(Boolean).join('・'));
+  useLayoutEffect(() => {
+    if (enemyAttack?.stage !== 'windup') return;
+    const origin = enemyRef.current!.getBoundingClientRect();
+    const target = document.getElementById('battle-player-target')!.getBoundingClientRect();
+    setAttackDistance(Math.max(0, target.top - origin.bottom) + (enemyAttack.heavy ? 8 : 4));
+  }, [enemyAttack?.stage]);
   if (!enemy) return null;
 
   const isImpacted = isHit || attackingStage === 'impact';
   const hpPercent = Math.max(0, Math.min(100, (enemy.hp / enemy.maxHp) * 100));
   const currentIntent = enemy.intents[enemy.currentIntentIndex] || enemy.intents[0];
-  const description = describeEnemyIntent(enemy);
-  const preview = combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null && comboSummary
-    ? previewEnemyIntent(enemy, comboSummary.totalDamage) : '';
 
   const cardClass = [
-    'enemy-card',
+    'enemy-card enemy-strike',
     enemy.isBoss ? 'boss' : '',
     enemy.isElite ? 'elite' : '',
     isImpacted ? 'impacted animate-flinch' : '',
+    enemyAttack ? 'is-attacking-player' : '',
+    enemyAttack?.heavy ? 'is-heavy' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -45,7 +59,12 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
     .join(' ');
 
   return (
-    <div id="battle-enemy-target" className={cardClass}>
+    <div ref={enemyRef} id="battle-enemy-target" className={cardClass}
+      data-stage={enemyAttack?.stage ?? 'idle'} style={{
+        '--strike-y': `${attackDistance}px`,
+        '--windup-duration': `${timing.enemyWindupMs}ms`, '--dash-duration': `${timing.enemyDashMs}ms`,
+        '--impact-duration': `${timing.enemyImpactMs}ms`, '--recoil-duration': `${timing.enemyRecoilMs}ms`,
+      } as React.CSSProperties}>
       {/* Floating Damage Pops */}
       <div className="damage-pops-layer">
         {damagePops.map((pop) => (
@@ -93,7 +112,8 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
             <span>已擊敗</span>
           </div>
         ) : currentIntent ? (
-          <div className={intentClass} title={[description, preview].filter(Boolean).join('・')}>
+          <div className={intentClass} {...tooltipProps} tabIndex={0}>
+            {tooltip}
             {currentIntent.type === 'attack' && <Swords style={{ width: '14px', height: '14px' }} />}
             {currentIntent.type === 'heavy_attack' && (
               <Swords style={{ width: '14px', height: '14px', color: '#fb7185' }} />
@@ -102,7 +122,7 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
             {(currentIntent.type === 'charge' || currentIntent.type === 'rest') && (
               <Sparkles style={{ width: '14px', height: '14px' }} />
             )}
-            <span>{description}{preview && `（${preview}）`}</span>
+            <span><SkillText text={`${intentDescription}${intentPreview ? `（${intentPreview}）` : ''}`} /></span>
           </div>
         ) : null}
       </div>

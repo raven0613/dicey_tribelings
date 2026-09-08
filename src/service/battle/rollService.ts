@@ -3,6 +3,7 @@ import { predetermineRollResults, calculateRollResolution } from './battleEngine
 import type { CreatureBattleState } from '../../types/creatures';
 import { createCreatureBattleState, startCreatureRound } from './creatures/creatureState';
 import { refreshAuthorityTargets, resolveRerollChain } from './creatures/rerollResolution';
+import { findTeacherTargets } from './creatures/rerollTargets';
 import { getEffectiveFace } from '../dice/diceFaces';
 import { EQUIPMENT_BALANCE as eq, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { getDiceGeometry } from '../dice/diceGeometry';
@@ -35,14 +36,11 @@ export function getOppositeFace(die: Dice, faceIndex: number): number | null {
 }
 
 export function teacherTargets(state: RollState, teacherId: string): number[] {
-  if (!state.creatureBattleState.teachersAvailable.includes(teacherId)) return [];
-  const candidates = state.dicePool.flatMap((die, index) => {
+  const items = state.dicePool.map((die, index) => {
     const face = getEffectiveFace(die.faces[state.rolledIndices[index]]);
-    return face.creature !== 'food' ? [{ index, value: face.baseValue }] : [];
+    return { diceId: die.id, creature: face.creature, baseValue: face.baseValue };
   });
-  const minimum = Math.min(...candidates.map((entry) => entry.value));
-  return candidates.filter((entry) => entry.value === minimum
-    && !state.creatureBattleState.lockedDice.includes(state.dicePool[entry.index].id)).map((entry) => entry.index);
+  return findTeacherTargets(items, state.creatureBattleState, teacherId);
 }
 
 export function performControlReroll(dieIndex: number, state: RollState, random = Math.random, teacherId?: string) {

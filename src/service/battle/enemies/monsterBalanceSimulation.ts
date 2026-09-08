@@ -1,5 +1,5 @@
 import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
-import { MONSTER_BALANCE_CONFIG } from '../../../configs/monsters/monsterBalanceConfig';
+import { MONSTER_BALANCE_CONFIG, getEncounterDamageBudget } from '../../../configs/monsters/monsterBalanceConfig';
 import { createEnemy } from './enemyFactory';
 import { applyEnemyDamage, resolveEnemyIntent } from './enemyIntent';
 
@@ -45,7 +45,7 @@ export function simulateMonsterBalance(): MonsterBalanceResult[] {
         let turn = 0;
         while (enemy.hp > 0 && turn < config.maxTurns) {
           const variance = config.rollRange[0] + rolls[turn] * (config.rollRange[1] - config.rollRange[0]);
-          const damage = Math.max(1, Math.round(config.regions[monster.region].damagePerTurn
+          const damage = Math.max(1, Math.ceil(getEncounterDamageBudget(monster.id)
             * config.scenarios[scenario] * variance));
           turn++;
           const damaged = applyEnemyDamage(enemy, damage);

@@ -1,3 +1,4 @@
+import { SkillText } from '../common/SkillText';
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -10,7 +11,7 @@ export const StickerApplierModal: React.FC = () => {
   const [selectedDiceId, setSelectedDiceId] = useState(dicePool[0]?.id ?? '');
   const sticker = stickerFlow?.items[stickerFlow.index];
 
-  if (!stickerFlow || !sticker || sticker.isDisposable) return null;
+  if (!stickerFlow || !sticker || sticker.isDisposable === true) return null;
   const currentDie = dicePool.find((die) => die.id === selectedDiceId) ?? dicePool[0];
 
   return (
@@ -35,7 +36,7 @@ export const StickerApplierModal: React.FC = () => {
             <strong className="sticker-overview-value">{sticker.baseValue}</strong>
           </div>
           <div className="sticker-overview-info">
-            <strong>{sticker.name}</strong><p>{sticker.description}</p>
+            <strong>{sticker.name}</strong><p><SkillText text={sticker.description} /></p>
           </div>
         </div>
 

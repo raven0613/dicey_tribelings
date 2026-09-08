@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { Swords, RotateCcw, Shield } from 'lucide-react';
+import { Play, Swords, RotateCcw, Shield } from 'lucide-react';
 
 interface BattleControlsProps {
   onResolve: () => void;
@@ -8,7 +8,14 @@ interface BattleControlsProps {
 }
 
 export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isResolving }) => {
-  const { combatPhase, control, maxControl, comboSummary, activeRerollingIndex } = useGameStore();
+  const { combatPhase, control, maxControl, comboSummary, activeRerollingIndex,
+    confirmBattlePreparation, unlockedDiceNotification, stickerFlow } = useGameStore();
+
+  if (combatPhase === 'PREPARATION') return <div className="battle-controls first-roll-controls">
+    <span>擲出骰子，開始救援！</span>
+    <button type="button" className="btn-resolve" disabled={!!unlockedDiceNotification || !!stickerFlow}
+      onClick={() => confirmBattlePreparation([])}><Play size={20} />擲骰</button>
+  </div>;
 
   const isControlPhase = combatPhase === 'CONTROL_PHASE';
   const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving;
@@ -44,9 +51,9 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
 
         <div className="tactics-tip">
           {control > 0 ? (
-            <span>重骰、老師與裝備操作，連接土人組合</span>
+            <span>點擊骰子重骰，調整本輪組合</span>
           ) : (
-            <span className="exhausted">可使用免費能力，或鎖定本輪結果</span>
+            <span className="exhausted">確認本輪結果，準備攻擊</span>
           )}
         </div>
       </div>
@@ -56,15 +63,15 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
         {/* Forecast Badges */}
         <div className="forecast-group">
           <div className="forecast-dmg">
-            <span>預估輸出:</span>
+            <span>總傷害:</span>
             <span className="dmg-number">
               <Swords style={{ width: '16px', height: '16px', marginRight: '2px' }} />
               {totalForecastDamage} 傷
             </span>
           </div>
           <div className="forecast-shield" style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>
-              <Shield style={{ width: '12px', height: '12px', marginRight: '2px' }} />
-              +{totalForecastShield} 護盾
+            <Shield style={{ width: '12px', height: '12px', marginRight: '2px' }} />
+            +{totalForecastShield} 護盾
           </div>
         </div>
 
@@ -73,7 +80,7 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
           id="btn-resolve-battle"
           onClick={onResolve}
           disabled={!canResolve}
-          className={`btn-resolve ${canResolve ? 'ready' : 'disabled'}`}
+          className="btn-resolve"
         >
           <Swords style={{ width: '16px', height: '16px' }} />
           <span>{resolveLabel}</span>

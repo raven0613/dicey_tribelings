@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createCreatureBattleState } from '../service/battle/creatures/creatureState';
-import { ConsumableSticker, Dice, StickerItem, TemporaryStickerPlacement } from '../types/game';
+import { ConsumableSticker, Dice, DisposableSticker, StickerItem, TemporaryStickerPlacement } from '../types/game';
 import {
   ALL_EQUIPMENT_CATALOG,
   INITIAL_DICE_POOL,
@@ -8,7 +8,6 @@ import {
   INITIAL_MAP_NODES,
   INITIAL_PLAYER_STATS,
 } from '../configs/gameConfig';
-import { REWARD_CONFIG } from '../configs/rewardConfig';
 import { INVENTORY_CONFIG } from '../configs/inventoryConfig';
 import { STICKER_PACKS_CATALOG } from '../configs/stickerPacksConfig';
 import { checkProgressionDiceReward, openStickerPack } from '../service/stickers/packService';
@@ -20,6 +19,7 @@ import { runBattleSettlement } from '../service/battle/battleSettlement';
 import {
   applyPermanentSticker,
   applyTemporaryPlacements,
+  validateTemporaryPlacements,
   createConsumableSticker,
   removeConsumables,
   replaceConsumable,
@@ -27,7 +27,7 @@ import {
 import { generateChestRewardOptions } from '../service/rewards/rewardService';
 import { calculateHealPurchase, getEquipmentOffer, getStickerOffer } from '../service/shop/shopService';
 import { soundService } from '../service/audio/soundService';
-import { FlowCompletion, GameState } from './gameStore.types';
+import { FlowCompletion, GameState, StickerFlow } from './gameStore.types';
 
 let consumableSequence = 0;
 
@@ -35,7 +35,7 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function createConsumableInstance(sticker: StickerItem): ConsumableSticker {
+function createConsumableInstance(sticker: DisposableSticker): ConsumableSticker {
   consumableSequence += 1;
   return createConsumableSticker(sticker, `consumable-${Date.now()}-${consumableSequence}`);
 }
@@ -62,6 +62,7 @@ function getInitialValues() {
     attackingDieIndex: null,
     attackingBonusIndex: null,
     attackingStage: 'idle' as const,
+    enemyAttack: null,
     damagePops: [],
     visibleBonusIds: [],
     skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null,
@@ -79,6 +80,7 @@ function getInitialValues() {
     pendingEquipment: null,
     equipmentSlotFeedback: null,
     battleRewardOptions: [],
+    battleRewardPickCount: 0,
     chestRewardOptions: [],
     shopStickers: [],
     shopEquipments: [],
@@ -91,24 +93,25 @@ export const useGameStore = create<GameState>((set, get) => {
     if (completion === 'advance') get().advanceToNextNode();
   };
 
+  const processStickerFlow = (flow: StickerFlow) => {
+    let index = flow.index;
+    const inventory = [...get().consumableStickers];
+    while (index < flow.items.length && inventory.length < INVENTORY_CONFIG.consumableCapacity) {
+      const sticker = flow.items[index];
+      if (!sticker.isDisposable) break;
+      inventory.push(createConsumableInstance(sticker));
+      index++;
+    }
+    set({ consumableStickers: inventory });
+    if (index === flow.items.length) completeFlow(flow.completion);
+    else set({ stickerFlow: { ...flow, index } });
+  };
   const moveStickerFlowForward = () => {
     const flow = get().stickerFlow;
-    if (!flow) return;
-    const nextIndex = flow.index + 1;
-    if (nextIndex >= flow.items.length) {
-      completeFlow(flow.completion);
-      return;
-    }
-    set({ stickerFlow: { ...flow, index: nextIndex } });
+    if (flow) processStickerFlow({ ...flow, index: flow.index + 1 });
   };
-
-  const startStickerFlow = (items: StickerItem[], completion: FlowCompletion) => {
-    if (items.length === 0) {
-      if (completion === 'advance') get().advanceToNextNode();
-      return;
-    }
-    set({ stickerFlow: { items, index: 0, completion } });
-  };
+  const startStickerFlow = (items: StickerItem[], completion: FlowCompletion) =>
+    processStickerFlow({ items, index: 0, completion });
 
   const completeEquipmentChoice = () => {
     const pending = get().pendingEquipment;
@@ -148,8 +151,10 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!targetNode) return;
 
       const common = {
+        enemyAttack: null,
         currentNodeIndex: nodeIndex,
         battleRewardOptions: [],
+        battleRewardPickCount: 0,
         chestRewardOptions: [],
         openedPackResult: null,
         stickerFlow: null,
@@ -189,18 +194,17 @@ export const useGameStore = create<GameState>((set, get) => {
       }
 
       set({ ...common, currentEnemy: null, combatPhase: 'CONTROL_PHASE' });
+      if (targetNode.type === 'pack') get().openPackAction(targetNode.packId!, 'advance');
     },
 
     confirmBattlePreparation: (placements: TemporaryStickerPlacement[]) => {
       if (get().combatPhase !== 'PREPARATION') return;
-      const distinctFaces = new Set(placements.map((item) => `${item.diceId}:${item.faceIndex}`));
-      const ownedIds = new Set(get().consumableStickers.map((item) => item.instanceId));
-      const valid = distinctFaces.size === placements.length
-        && placements.every((item) => ownedIds.has(item.consumable.instanceId));
-      if (!valid) return;
+      if (!validateTemporaryPlacements(get().dicePool, get().consumableStickers, placements)) return;
+      const ownedPlacements = placements.map((placement) => ({ ...placement,
+        consumable: get().consumableStickers.find((item) => item.instanceId === placement.consumable.instanceId)! }));
 
       set({
-        dicePool: applyTemporaryPlacements(get().dicePool, placements),
+        dicePool: applyTemporaryPlacements(get().dicePool, ownedPlacements),
         consumableStickers: removeConsumables(
           get().consumableStickers,
           placements.map((item) => item.consumable.instanceId)
@@ -217,7 +221,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     openPackAction: (packId, completion) => {
-      const result = openStickerPack(packId, Math.random, get().princessPackCount);
+      const result = openStickerPack(packId, get().mapNodes[get().currentNodeIndex].region, Math.random, get().princessPackCount);
       set({ princessPackCount: get().princessPackCount + result.stickers.filter((item) => item.creature === 'princess').length });
       soundService.playVictory();
       set({ openedPackResult: { ...result, completion } });
@@ -233,18 +237,9 @@ export const useGameStore = create<GameState>((set, get) => {
     applyCurrentPermanentSticker: (diceId, faceIndex) => {
       const flow = get().stickerFlow;
       const sticker = flow?.items[flow.index];
-      if (!flow || !sticker || sticker.isDisposable) return;
+      if (!flow || !sticker || sticker.isDisposable === true) return;
       soundService.playStickerApply();
       set({ dicePool: applyPermanentSticker(get().dicePool, diceId, faceIndex, sticker) });
-      moveStickerFlowForward();
-    },
-
-    storeCurrentConsumable: () => {
-      const flow = get().stickerFlow;
-      const sticker = flow?.items[flow.index];
-      if (!flow || !sticker?.isDisposable || get().consumableStickers.length >= INVENTORY_CONFIG.consumableCapacity) return;
-      set({ consumableStickers: [...get().consumableStickers, createConsumableInstance(sticker)] });
-      soundService.playCoin();
       moveStickerFlowForward();
     },
 
@@ -265,14 +260,20 @@ export const useGameStore = create<GameState>((set, get) => {
 
     discardCurrentSticker: () => moveStickerFlowForward(),
 
-    selectBattleReward: (option) => {
-      set({ battleRewardOptions: [] });
-      if (option.kind === 'stickerPack') get().openPackAction(option.pack.id, 'advance');
-      else startStickerFlow([option.sticker], 'advance');
+    selectBattleRewards: (options) => {
+      const available = get().battleRewardOptions;
+      if (!options.length || options.length !== get().battleRewardPickCount
+        || new Set(options.map((item) => item.id)).size !== options.length
+        || options.some((item) => !available.some((candidate) => candidate.id === item.id))) return;
+      const selected = options.map((item) => available.find((candidate) => candidate.id === item.id)!);
+      set({ battleRewardOptions: [], battleRewardPickCount: 0 });
+      const pack = selected.find((item) => item.kind === 'stickerPack');
+      if (pack?.kind === 'stickerPack') get().openPackAction(pack.pack.id, 'advance');
+      else startStickerFlow(selected.flatMap((item) => item.kind === 'sticker' ? [item.sticker] : []), 'advance');
     },
 
     skipBattleReward: () => {
-      set({ battleRewardOptions: [] });
+      set({ battleRewardOptions: [], battleRewardPickCount: 0 });
       get().advanceToNextNode();
     },
 
@@ -285,7 +286,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
     claimChestReward: (option) => {
       if (option.kind === 'stickerPack') {
-        set({ chestRewardOptions: [], gold: get().gold + REWARD_CONFIG.chestGold });
+        set({ chestRewardOptions: [] });
         soundService.playVictory();
         get().openPackAction(option.pack.id, 'advance');
         return;
@@ -294,7 +295,6 @@ export const useGameStore = create<GameState>((set, get) => {
         const slotIndex = get().equipments.length;
         set({
           chestRewardOptions: [],
-          gold: get().gold + REWARD_CONFIG.chestGold,
           equipments: [...get().equipments, option.equipment],
           equipmentSlotFeedback: { slotIndex },
         });
@@ -308,21 +308,16 @@ export const useGameStore = create<GameState>((set, get) => {
 
     buyShopSticker: (stickerId) => {
       const offer = getStickerOffer(get().shopStickers, stickerId, get().gold);
-      if (!offer) return false;
-      set({ pendingShopSticker: { sticker: offer.item, cost: offer.cost } });
+      if (!offer || !offer.item.isDisposable) return false;
+      if (get().consumableStickers.length === INVENTORY_CONFIG.consumableCapacity) {
+        set({ pendingShopSticker: { sticker: offer.item, cost: offer.cost } });
+      } else {
+        set({ gold: get().gold - offer.cost,
+          consumableStickers: [...get().consumableStickers, createConsumableInstance(offer.item)],
+          shopStickers: get().shopStickers.filter((item) => item.id !== stickerId) });
+        soundService.playCoin();
+      }
       return true;
-    },
-
-    confirmShopSticker: () => {
-      const pending = get().pendingShopSticker;
-      if (!pending || get().consumableStickers.length >= INVENTORY_CONFIG.consumableCapacity) return;
-      set({
-        gold: get().gold - pending.cost,
-        consumableStickers: [...get().consumableStickers, createConsumableInstance(pending.sticker)],
-        shopStickers: get().shopStickers.filter((item) => item.id !== pending.sticker.id),
-        pendingShopSticker: null,
-      });
-      soundService.playCoin();
     },
 
     replaceShopSticker: (instanceId) => {
@@ -365,8 +360,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const slotIndex = get().equipments.findIndex((item) => item.id === equipmentId);
       if (slotIndex < 0) return;
       set({
-        gold: get().gold - pending.cost
-          + (pending.source === 'chest' ? REWARD_CONFIG.chestGold : 0),
+        gold: get().gold - pending.cost,
         equipments: get().equipments.map((item) => item.id === equipmentId ? pending.equipment : item),
         chestRewardOptions: pending.source === 'chest' ? [] : get().chestRewardOptions,
         shopEquipments: pending.source === 'shop'

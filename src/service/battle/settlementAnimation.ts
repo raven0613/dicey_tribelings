@@ -48,7 +48,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   const valueFor = (change: SkillChange) => {
     if (change.kind === 'attack') return dice[diceIndex.get(change.targetId)!];
     if (change.kind === 'shield') return shields[change.targetId];
-    if (change.kind === 'food') return food[change.targetId];
+    if (change.kind === 'food') return food[change.targetId] ??= still(change.before);
     return bonuses[change.targetId] ??= still(0);
   };
   set({ diceSlotStates: dice, bonusSlotStates: {}, displayedShields: shields, displayedFood: food,

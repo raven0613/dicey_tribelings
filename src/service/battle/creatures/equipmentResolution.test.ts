@@ -1,3 +1,4 @@
+import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ALL_EQUIPMENT_CATALOG, EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentConfig';
@@ -68,14 +69,15 @@ test('slot match grants one base contribution and retains other support bonuses'
 test('warhammer shares exact preview and sequential normal, bonus and repeat damage after shield breaks', () => {
   const pool = [die('a', 'gang', 4), die('b', 'elder', 4), die('c', 'princess', 0)];
   const gear = equipment('WARHAMMER');
-  const enemy = createEnemy('rock_goblin'); enemy.hp = enemy.maxHp = 1000; enemy.shield = 6;
+  const enemy = createEnemy('r1_slinger'); enemy.hp = enemy.maxHp = 1000; enemy.shield = 6;
   const summary = calculateRollResolution(pool, [0, 0, 0], gear, createCreatureBattleState(),
     { control: 0, maxControl: 3, gold: 0, currentEnemy: enemy });
   const plan = buildAttackPlan(summary, enemy.shield, gear);
   assert.equal(plan[0].value, Math.ceil(combatNumber(summary.items[0].finalDamage * eq.shieldDamageMultiplier)));
   assert.equal(plan[1].value, Math.ceil(combatNumber(summary.items[1].finalDamage * eq.shieldDamageMultiplier)));
   assert.equal(plan[2].value, summary.bonusDice[0].bonusDamage);
-  assert.equal(plan[3].value, summary.repeatAttacks[0].damage);
+  assert.deepEqual(plan.filter((hit) => hit.bonus).map((hit) => hit.value), summary.bonusDice.map((bonus) => bonus.bonusDamage));
+  assert.equal(plan.at(-1)!.value, summary.repeatAttacks[0].damage);
   const remaining = plan.reduce((target, attack) => applyEnemyDamage(target, attack.value).enemy, enemy);
   assert.equal(combatNumber(enemy.hp + enemy.shield - remaining.hp - remaining.shield), summary.totalDamage);
 });
@@ -92,11 +94,12 @@ test('normal, bonus and repeated attacks round up individually after fractional 
   const summary = calculateRollResolution(pool, [0, 0, 0], gear);
   assert.equal(summary.items[0].finalDamage, 3.3);
   assert.equal(summary.items[1].finalDamage, 12.1);
-  assert.equal(summary.bonusDice[0].bonusDamage, 3.3);
+  assert.deepEqual(summary.bonusDice.map((bonus) => bonus.bonusDamage), Array(4).fill(combatNumber(b.gang.damagePerNeighbor * eq.frugalMultiplier)));
   assert.equal(summary.repeatAttacks[0].damage, 12.1);
   const plan = buildAttackPlan(summary, 0, gear);
-  assert.deepEqual(plan.map((hit) => hit.value), [4, 13, 4, 13]);
-  assert.equal(summary.totalDamage, 34);
+  const bonusDamage = Math.ceil(combatNumber(b.gang.damagePerNeighbor * eq.frugalMultiplier));
+  assert.deepEqual(plan.map((hit) => hit.value), [4, 13, ...Array(4).fill(bonusDamage), 13]);
+  assert.equal(summary.totalDamage, 30 + 4 * bonusDamage);
 });
 
 test('fractional normal hit rounds up to break shield before evaluating later warhammer hits', () => {
@@ -118,10 +121,10 @@ test('robbery halves odd attack values precisely and zero attacks stay out of th
   assert.equal(summary.totalDamage, 13);
 });
 
-test('food split conserves the fixed budget while each resulting hit rounds up separately', () => {
+test('nearest food receives the full farmer boost in the attack plan', () => {
   const pool = [die('a', 'farmer', 1), ...['b', 'c', 'd', 'e'].map((id) => die(id, 'food', 1))];
   const summary = calculateRollResolution(pool, pool.map(() => 0), []);
-  assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [1.75, 1.75, 1.75, 1.75]);
-  assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 2, 2, 2, 2]);
-  assert.equal(summary.totalDamage, 9);
+  assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [4, 1, 1, 1]);
+  assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 4, 1, 1, 1]);
+  assert.equal(summary.totalDamage, 8);
 });

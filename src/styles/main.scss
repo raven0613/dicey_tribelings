@@ -8,3 +8,11 @@
 @use 'equipment';
 @use 'consumables';
 @use 'modals';
+@use 'battle/preparation';
+@use 'rarity';
+@use 'buttons';
+@use 'footbar';
+@use 'skill_text';
+@use 'battle/player_vitals';
+@use 'battle/enemy_attack';
+@use 'battle/dice_hover';

@@ -1,6 +1,7 @@
 @use '../variables' as *;
 
 .modal-overlay.dice-net-overlay { padding: 0.5rem; }
+.modal-overlay.dice-inspect-overlay { z-index: 60; }
 
 .dice-net-dialog {
   width: 100%;

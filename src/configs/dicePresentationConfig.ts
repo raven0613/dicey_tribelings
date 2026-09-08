@@ -16,7 +16,7 @@ export const DICE_ROLL_PRESENTATION = {
 
 export const DICE_TRAY_PRESENTATION = {
   maxSize: 84, maxSpacing: 116, slotGap: 18, sidePadding: 12,
-  topPadding: 8, detailsHeight: 44, phantomGap: 12,
+  topPadding: 8, detailsHeight: 64, phantomGap: 12,
   // Match the projected cube silhouette to the visible SVG body, including bevels.
   normalBodyRatio: 0.84, phantomBodySize: 100, phantomExtent: 104,
 } as const;

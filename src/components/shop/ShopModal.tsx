@@ -1,3 +1,5 @@
+import { SkillText } from '../common/SkillText';
+import { RarityBadge } from '../dice/RarityBadge';
 import React from 'react';
 import { ArrowRight, Coins, Heart, Sparkles, Store } from 'lucide-react';
 import { SHOP_CONFIG } from '../../configs/shopConfig';
@@ -38,17 +40,17 @@ export const ShopModal: React.FC = () => {
       </div>
 
       <section>
-        <div className="section-title"><Sparkles size={14} color="#fbbf24" /><span>戰術貼紙（確認收納或替換後扣款）</span></div>
+        <div className="section-title"><Sparkles size={14} color="#fbbf24" /><span>本場組合貼紙（空格直接收納）</span></div>
         <div className="stickers-shop-grid">
           {shopStickers.map((sticker) => {
-            const cost = sticker.cost ?? SHOP_CONFIG.defaultStickerCost;
+            const cost = sticker.cost ?? SHOP_CONFIG.disposableCost;
             return (
               <article key={sticker.id} className="shop-sticker-card">
                 <div>
-                  <div className="card-top"><span className="disposable-tag">整場戰鬥</span><span className="rarity-tag">{sticker.rarity}</span></div>
-                  <div className="card-val-row"><span className="card-val">{sticker.baseValue}</span><CreatureBadge creature={sticker.creature} /></div>
+                  <div className="card-top"><span className="disposable-tag">整場戰鬥</span><RarityBadge rarity={sticker.rarity} /></div>
+                  <div className="card-val-row"><span className="card-val">{'baseValue' in sticker ? sticker.baseValue : '沿用原值'}</span><CreatureBadge creature={sticker.creature} /></div>
                   <div className="card-name">{sticker.name}</div>
-                  <p className="card-desc">{sticker.description}</p>
+                  <p className="card-desc"><SkillText text={sticker.description} /></p>
                 </div>
                 <button type="button" onClick={() => buyShopSticker(sticker.id)} disabled={gold < cost} className={`btn-buy-sticker ${gold >= cost ? 'can-buy' : 'cannot-buy'}`}>
                   <Coins size={14} />{cost} 金幣
@@ -64,7 +66,7 @@ export const ShopModal: React.FC = () => {
           <div className="section-title"><Sparkles size={14} color="#818cf8" /><span>裝備遺物（{SHOP_CONFIG.equipmentCost} 金幣）</span></div>
           {shopEquipments.map((equipment) => (
             <article key={equipment.id} className="shop-item-card">
-              <div><div className="item-name">{equipment.name}</div><p className="item-desc">{equipment.description}</p></div>
+              <div><div className="item-name">{equipment.name}</div><p className="item-desc"><SkillText text={equipment.description} /></p></div>
               <button type="button" onClick={() => buyShopEquipment(equipment.id)} disabled={gold < SHOP_CONFIG.equipmentCost} className={`btn-buy-action equip-buy ${gold < SHOP_CONFIG.equipmentCost ? 'disabled' : ''}`}>
                 <Coins size={14} />購買（{SHOP_CONFIG.equipmentCost} 金幣）
               </button>

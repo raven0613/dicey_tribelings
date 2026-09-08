@@ -1,3 +1,5 @@
+import { SkillText } from '../common/SkillText';
+import { RarityBadge } from './RarityBadge';
 import React, { type CSSProperties } from 'react';
 import type { DiceFace, StickerItem } from '../../types/game';
 import type { DiceNetFace as NetFace } from '../../service/dice/diceNet';
@@ -20,14 +22,15 @@ interface DiceNetFaceProps {
 
 const FaceContent: React.FC<{ face: DiceFace; sticker?: StickerItem }> = ({ face, sticker }) => {
   const original = getEffectiveFace(face);
-  const effective = sticker ?? original;
+  const effective = sticker ? { creature: sticker.creature, baseValue: sticker.isDisposable ? face.baseValue : sticker.baseValue } : original;
   const creature = CREATURE_CONFIG[effective.creature];
   return <span className="dice-net-copy" style={{ '--face-color': creature.color } as CSSProperties}>
     <span className="dice-net-creature">
       <span className="dice-net-identity"><span aria-hidden="true">{creature.emoji}</span>{creature.name}</span>
-      <strong className="dice-net-attack">{sticker ? `${original.baseValue} → ${sticker.baseValue}` : effective.baseValue}</strong>
+      <strong className="dice-net-attack">{sticker ? sticker.isDisposable ? `${face.baseValue}（沿用）` : `${original.baseValue} → ${sticker.baseValue}` : effective.baseValue}</strong>
     </span>
-    <span className="dice-net-ability"><strong>{creature.ability}：</strong>{creature.description}</span>
+    <span className="dice-net-ability"><strong><SkillText text={creature.ability} />：</strong><SkillText text={creature.description} /></span>
+    <RarityBadge rarity={creature.rarity} />
     <span className="dice-net-tags">{creature.tags.map((tag) => CREATURE_TAG_NAMES[tag]).join('・')}</span>
     {!sticker && face.temporarySticker && <span className="dice-net-sticker">
       本場覆蓋・原面 {CREATURE_CONFIG[face.creature].name} {face.baseValue}
@@ -38,7 +41,7 @@ const FaceContent: React.FC<{ face: DiceFace; sticker?: StickerItem }> = ({ face
 export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry, scale, relation, neighbors,
   onHover, onFocus, sticker, previewing, onApply }) => {
   const showPreview = !!sticker && previewing;
-  const effective = showPreview ? sticker : getEffectiveFace(face);
+  const effective = showPreview ? { creature: sticker.creature, baseValue: sticker.isDisposable ? face.baseValue : sticker.baseValue } : getEffectiveFace(face);
   const creature = CREATURE_CONFIG[effective.creature];
   const { bounds, contentBounds } = geometry;
   const polygon = geometry.points.map(([x, y]) =>

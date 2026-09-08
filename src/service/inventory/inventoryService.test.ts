@@ -1,3 +1,4 @@
+import { getEffectiveFace } from '../dice/diceFaces';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
@@ -8,9 +9,9 @@ import {
   replaceConsumable,
   restoreTemporaryStickers,
 } from './inventoryService';
-import { Dice, StickerItem } from '../../types/game';
+import { Dice, PermanentSticker, DisposableSticker } from '../../types/game';
 
-const permanentSticker: StickerItem = {
+const permanentSticker: PermanentSticker = {
   id: 'permanent-boss',
   name: '孩子王貼紙',
   isDisposable: false,
@@ -18,16 +19,15 @@ const permanentSticker: StickerItem = {
   creature: 'boss',
   description: '孩子王12',
   rarity: 'rare',
-  rewardTier: 'late',
+  region: 5,
 };
 
-const disposableSticker: StickerItem = {
+const disposableSticker: DisposableSticker = {
   id: 'disposable-boss',
   name: '戰術孩子王',
   isDisposable: true,
-  baseValue: 15,
   creature: 'boss',
-  description: '本場孩子王15',
+  description: '本場孩子王',
   rarity: 'rare',
 };
 
@@ -85,7 +85,9 @@ test('temporary placements override faces for the battle and restore the permane
   ]);
 
   assert.equal(prepared[0].faces[0].baseValue, 1);
-  assert.equal(prepared[0].faces[0].temporarySticker?.baseValue, 15);
+  assert.equal(getEffectiveFace(prepared[0].faces[0]).baseValue, 1);
+  assert.equal(getEffectiveFace(prepared[0].faces[0]).creature, 'boss');
+  assert.deepEqual(restoreTemporaryStickers(prepared), dicePool);
   assert.equal(restoreTemporaryStickers(prepared)[0].faces[0].temporarySticker, undefined);
 });
 

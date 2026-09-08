@@ -24,6 +24,7 @@ interface BonusPhantomDiceProps {
   y: number;
   scale?: number;
   attackOffset: { x: number; y: number };
+  onInspect: (id: string | null) => void;
 }
 
 export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
@@ -37,6 +38,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   y,
   scale = 1,
   attackOffset,
+  onInspect,
 }) => {
   // Determine display number
   const displayNum = ceilDamage(slotState ? slotState.displayValue : dice.bonusDamage);
@@ -45,7 +47,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
 
   const color = dice.creature ? CREATURE_CONFIG[dice.creature].color : '#d8b4fe';
   const renderCreatureIcon = () => dice.creature
-    ? <CreatureBadge creature={dice.creature} iconOnly size={18} />
+    ? <CreatureBadge creature={dice.creature} iconOnly size={18} showTooltip={false} />
     : <Sparkles size={16} />;
 
   // Attack forward-dash motion calculations
@@ -70,8 +72,11 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
 
   return (
     <div
+      tabIndex={0} aria-label={`${sourceLabel}・${dice.label}`} aria-describedby="dice-hover-information"
+      onMouseEnter={() => onInspect(dice.id)} onMouseLeave={() => onInspect(null)}
+      onFocus={() => onInspect(dice.id)} onBlur={() => onInspect(null)}
+      onKeyDown={(event) => { if (event.key === 'Escape') onInspect(null); }}
       id={`phantom-die-${dice.id}`}
-      title={`${sourceLabel}・${dice.label}：追加攻擊 ${ceilDamage(dice.bonusDamage)}`}
       className={`phantom-die-anchor ${isAttacking ? 'is-attacking' : ''}`}
       style={{
         '--creature-color': color,

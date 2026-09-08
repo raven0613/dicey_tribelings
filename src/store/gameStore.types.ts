@@ -1,4 +1,4 @@
-import type { NumberDisplay, SkillFeedback } from '../types/battle';
+import type { EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
 import type { CreatureId, CreatureTag } from '../types/creatures';
@@ -15,6 +15,7 @@ import {
   Equipment,
   MapNode,
   StickerItem,
+  DisposableSticker,
   TemporaryStickerPlacement,
 } from '../types/game';
 import { BattleComboSummary } from '../service/battle/battleEngine';
@@ -33,7 +34,7 @@ export interface PackRevealState extends PackOpenResult {
 }
 
 export interface PendingShopSticker {
-  sticker: StickerItem;
+  sticker: DisposableSticker;
   cost: number;
 }
 
@@ -68,6 +69,7 @@ export interface GameState {
   attackingDieIndex: number | null;
   attackingBonusIndex: number | null;
   attackingStage: AttackStage;
+  enemyAttack: EnemyAttackFeedback | null;
   damagePops: DamagePop[];
   visibleBonusIds: string[];
   skillFeedback: SkillFeedback[];
@@ -93,6 +95,7 @@ export interface GameState {
   pendingEquipment: PendingEquipment | null;
   equipmentSlotFeedback: EquipmentSlotFeedback | null;
   battleRewardOptions: BattleRewardOption[];
+  battleRewardPickCount: number;
   chestRewardOptions: ChestRewardOption[];
   shopStickers: StickerItem[];
   shopEquipments: Equipment[];
@@ -111,15 +114,13 @@ export interface GameState {
   openPackAction: (packId: string, completion: FlowCompletion) => void;
   beginOpenedPack: () => void;
   applyCurrentPermanentSticker: (diceId: string, faceIndex: number) => void;
-  storeCurrentConsumable: () => void;
   replaceCurrentConsumable: (instanceId: string) => void;
   discardCurrentSticker: () => void;
-  selectBattleReward: (option: BattleRewardOption) => void;
+  selectBattleRewards: (options: BattleRewardOption[]) => void;
   skipBattleReward: () => void;
   openChest: () => void;
   claimChestReward: (option: ChestRewardOption) => void;
   buyShopSticker: (stickerId: string) => boolean;
-  confirmShopSticker: () => void;
   replaceShopSticker: (instanceId: string) => void;
   cancelShopSticker: () => void;
   buyShopEquipment: (equipmentId: string) => boolean;

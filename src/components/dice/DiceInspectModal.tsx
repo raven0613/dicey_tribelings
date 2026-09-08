@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { DiceNet } from './DiceNet';
 import { DiceTabs } from './DiceTabs';
@@ -12,12 +12,20 @@ interface DiceInspectModalProps {
 export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onClose }) => {
   const { dicePool, creatureBattleState } = useGameStore();
   const [selectedDiceId, setSelectedDiceId] = useState<string>(dicePool[0]?.id || '');
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const opener = document.activeElement as HTMLElement;
+    closeRef.current?.focus();
+    return () => opener.focus();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const currentDie = dicePool.find((d) => d.id === selectedDiceId) || dicePool[0];
   return (
-    <div className="modal-overlay dice-net-overlay">
+    <div className="modal-overlay dice-net-overlay dice-inspect-overlay"
+      onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } }}>
       <div className="dice-net-dialog" role="dialog" aria-modal="true" aria-labelledby="dice-inspect-title">
         {/* Header */}
         <div className="modal-header">
@@ -31,6 +39,8 @@ export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onCl
             </div>
           </div>
           <button
+            ref={closeRef}
+            type="button"
             onClick={onClose}
             className="modal-close-btn"
             aria-label="關閉骰面檢視"

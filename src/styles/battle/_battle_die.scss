@@ -10,8 +10,8 @@
   flex-shrink: 0;
   user-select: none;
 
-  &:disabled { cursor: default; }
-  &:enabled:hover .battle-die-rim { stroke: $amber-300; stroke-width: 3; }
+  &[aria-disabled="true"] { cursor: default; }
+  &:hover .battle-die-rim { stroke: $amber-300; stroke-width: 3; }
   &:focus-visible { outline: 2px solid $amber-300; outline-offset: 4px; border-radius: 12px; }
   &.is-buffed .battle-die-rim { stroke: #fbbf24; stroke-width: 3; }
 

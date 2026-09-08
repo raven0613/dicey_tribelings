@@ -1,3 +1,5 @@
+import { SkillText } from '../common/SkillText';
+import { RarityBadge } from '../dice/RarityBadge';
 import React from 'react';
 import { Gift, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -26,12 +28,12 @@ export const StickerPackModal: React.FC = () => {
                 <span className={`type-badge ${sticker.isDisposable ? 'disposable' : 'permanent'}`}>
                   {sticker.isDisposable ? '戰術消耗品' : '永久改造'}
                 </span>
-                <span className="rarity-label">{sticker.rarity}</span>
+                <RarityBadge rarity={sticker.rarity} />
               </div>
-              <strong className="pack-sticker-value">{sticker.baseValue}</strong>
+              <strong className="pack-sticker-value">{'baseValue' in sticker ? sticker.baseValue : '沿用原值'}</strong>
               <CreatureBadge creature={sticker.creature} />
               <h3>{sticker.name}</h3>
-              <p>{sticker.description}</p>
+              <p><SkillText text={sticker.description} /></p>
             </article>
           ))}
         </div>

@@ -1,5 +1,5 @@
 export const SHOP_CONFIG = {
-  defaultStickerCost: 20,
+  disposableCost: 12,
   equipmentCost: 35,
   healCost: 20,
   healAmount: 25,

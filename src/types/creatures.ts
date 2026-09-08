@@ -8,6 +8,7 @@ export type CreatureId =
 export type CreatureTag = 'common' | 'warrior' | 'craftsman' | 'noble' | 'mystery' | 'food';
 
 export interface CreatureDefinition {
+  rarity: 'common' | 'rare' | 'legendary';
   name: string;
   emoji: string;
   color: string;

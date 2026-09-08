@@ -13,7 +13,7 @@ export function getStickerOffer(
 ): ShopOffer<StickerItem> | null {
   const item = stock.find((sticker) => sticker.id === stickerId);
   if (!item) return null;
-  const cost = item.cost ?? SHOP_CONFIG.defaultStickerCost;
+  const cost = item.cost ?? SHOP_CONFIG.disposableCost;
   return gold >= cost ? { item, cost } : null;
 }
 

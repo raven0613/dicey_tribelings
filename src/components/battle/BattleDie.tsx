@@ -1,6 +1,5 @@
 import { ceilDamage } from '../../service/battle/damageValue';
-import type { CreatureId, CreatureTag } from '../../types/creatures';
-import { CREATURE_TAG_NAMES } from '../../configs/creatures/creatureConfig';
+import type { CreatureId } from '../../types/creatures';
 import React, { useId } from 'react';
 import type { Dice } from '../../types/game';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
@@ -17,17 +16,17 @@ interface BattleDieProps {
   value?: number;
   numberScale: number;
   effectiveCreature?: CreatureId;
-  tags?: CreatureTag[];
   protectedDie: boolean;
   spinning: boolean;
   buffed: boolean;
   locked: boolean;
   canReroll: boolean;
   onReroll: () => void;
+  onInspect: (id: string | null) => void;
 }
 
 export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rotation, scale,
-  rolling, value, numberScale, effectiveCreature, tags, protectedDie, spinning, buffed, locked, canReroll, onReroll }) => {
+  rolling, value, numberScale, effectiveCreature, protectedDie, spinning, buffed, locked, canReroll, onReroll, onInspect }) => {
   const id = useId();
   const face = dice.faces[faceIndex];
   const effective = getEffectiveFace(face);
@@ -36,8 +35,11 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
   const shownValue = ceilDamage(rolling ? effective.baseValue : value ?? effective.baseValue);
 
   return <button type="button" className={`battle-die ${rolling ? 'is-rolling' : ''} ${buffed && locked ? 'is-buffed' : ''}`}
+    onMouseEnter={() => onInspect(dice.id)} onMouseLeave={() => onInspect(null)}
+    onFocus={() => onInspect(dice.id)} onBlur={() => onInspect(null)}
+    onKeyDown={(event) => { if (event.key === 'Escape') onInspect(null); }} aria-describedby="dice-hover-information"
     aria-label={`${dice.name}，${creature.name} ${shownValue}${canReroll ? '，重骰' : ''}`}
-    title={`${creature.name}｜${(tags ?? creature.tags).map((tag) => CREATURE_TAG_NAMES[tag]).join('、')}｜${creature.description}${protectedDie ? '｜免疫強制重骰' : ''}`} disabled={!canReroll} onClick={onReroll}
+    aria-disabled={!canReroll} onClick={() => { if (canReroll) onReroll(); }}
     style={{ width: size, height: size, '--die-accent': creature.color } as React.CSSProperties}>
     <span className="battle-die-shadow" />
     <svg viewBox="0 0 100 104" aria-hidden="true" className="battle-die-art"

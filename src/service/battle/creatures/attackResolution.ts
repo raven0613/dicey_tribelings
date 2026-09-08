@@ -14,9 +14,10 @@ export function resolveRobbery(c: ResolutionContext) {
         && item.finalDamage > 0 && !stolen.has(item.diceId))
       : c.neighbors(index).filter((item) => item.creature !== 'food' && item.finalDamage > 0);
     const target = choose(candidates, c.state.seed, `steal:${source.diceId}`);
+    source.skillInputs = { count: candidates.length };
     if (!target) continue;
     const craftsman = target.tags.includes('craftsman');
-    const e = c.event(6, source, source.creature === 'bully' && craftsman ? '保護費MAX' : undefined, [target]);
+    const e = c.event(6, source, source.creature === 'bully' && craftsman ? '保護費MAX' : undefined, [target], 'robbery');
     const removed = combatNumber(target.finalDamage * (source.creature === 'boss' ? 1 : b.bully.stolenFraction));
     const multiplier = source.creature === 'boss' ? b.boss.multiplier : craftsman ? b.bully.craftsmanMultiplier : b.bully.multiplier;
     c.attack(e, target, target.finalDamage - removed);
@@ -25,8 +26,12 @@ export function resolveRobbery(c: ResolutionContext) {
     if (target.finalDamage === 0) zeroed.add(target.diceId);
     captures++;
   }
-  if (captures > 0) for (const thief of c.items.filter((item) => item.creature === 'thief' && !zeroed.has(item.diceId))) {
-    c.bonus(c.event(7, thief), thief, thief.baseValue);
+  const robberyIds = new Set(c.events.filter((event) => event.relation === 'robbery').flatMap((event) => event.participantDiceIds));
+  for (const thief of c.items.filter((item) => item.creature === 'thief')) {
+    thief.skillInputs = { count: captures, blockedByRobbery: zeroed.has(thief.diceId) };
+    if (captures > 0 && !thief.skillInputs.blockedByRobbery) {
+      c.bonus(c.event(7, thief, undefined, c.items.filter((item) => robberyIds.has(item.diceId))), thief, thief.baseValue);
+    }
   }
   return captures;
 }
@@ -34,6 +39,7 @@ export function resolveRobbery(c: ResolutionContext) {
 export function resolveFinalAttacks(c: ResolutionContext) {
   const shield = combatNumber(c.items.reduce((sum, item) => sum + item.shieldGranted, 0));
   for (const bulwark of c.items.filter((item) => item.creature === 'bulwark')) {
+    bulwark.skillInputs = { value: shield };
     c.bonus(c.event(8, bulwark, undefined, c.items.filter((item) => item.shieldGranted > 0)), bulwark, shield);
   }
   const resonator = c.equipment.find((item) => item.ruleId === 'RESONATOR');
@@ -46,6 +52,7 @@ export function resolveFinalAttacks(c: ResolutionContext) {
     }
   }
   for (const herald of c.items.filter((item) => item.creature === 'herald')) {
+    herald.skillInputs = { count: c.bonusDice.length };
     if (!c.bonusDice.length) continue;
     const e = c.event(9, herald, undefined, c.items);
     for (const item of c.items) c.attack(e, item, item.finalDamage + c.bonusDice.length * b.herald.bonusPerAttack);
@@ -67,8 +74,9 @@ export function resolveFinalAttacks(c: ResolutionContext) {
   }
   for (const princess of c.items.filter((item) => item.creature === 'princess')) {
     const targets = c.items.filter((item) => item.diceId !== princess.diceId && item.tags.includes('noble') && item.finalDamage > 0);
+    princess.skillInputs = { count: targets.length };
     if (!targets.length) continue;
-    const e = c.event(10, princess, undefined, targets);
+    const e = c.event(10, princess, undefined, targets, 'attack');
     for (const target of targets) {
       c.repeatAttacks.push({ diceId: target.diceId, damage: target.finalDamage, sourceDiceId: princess.diceId });
       e.repeatDiceIds.push(target.diceId);

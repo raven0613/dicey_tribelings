@@ -1,74 +1,49 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  generateBattleRewardOptions,
-  generateChestRewardOptions,
-  getRewardTier,
-} from './rewardService';
-import { Equipment, StickerItem, StickerPack } from '../../types/game';
-import { REWARD_CONFIG } from '../../configs/rewardConfig';
+import { generateBattleRewardOptions, generateChestRewardOptions, getBattleRewardCount } from './rewardService';
+import { createPermanentSticker } from '../../configs/creatures/creatureStickerConfig';
+import { CREATURE_CONFIG, CREATURE_IDS } from '../../configs/creatures/creatureConfig';
+import { REGION_CONFIG, REGION_IDS } from '../../configs/regions/regionConfig';
+import { ALL_EQUIPMENT_CATALOG } from '../../configs/equipment/equipmentConfig';
+import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
 
-const stickers: StickerItem[] = [
-  { id: 'early-1', name: '早期1', isDisposable: false, baseValue: 4, creature: 'food', description: '', rarity: 'common', rewardTier: 'early' },
-  { id: 'early-2', name: '早期2', isDisposable: false, baseValue: 6, creature: 'boss', description: '', rarity: 'common', rewardTier: 'early' },
-  { id: 'early-3', name: '早期3', isDisposable: false, baseValue: 8, creature: 'follower', description: '', rarity: 'rare', rewardTier: 'early' },
-  { id: 'mid-1', name: '中期1', isDisposable: false, baseValue: 10, creature: 'porter', description: '', rarity: 'rare', rewardTier: 'mid' },
-];
-
-const packs: StickerPack[] = [
-  { id: 'pack-1', name: '貼紙包1', rarity: 'rare', description: '', stickerCount: 3, themeName: '測試', stickerIds: [] },
-  { id: 'pack-2', name: '貼紙包2', rarity: 'legendary', description: '', stickerCount: 4, themeName: '測試', stickerIds: [] },
-];
-
-const equipments: Equipment[] = [
-  { id: 'equipment-1', name: '裝備1', type: 'global', rarity: 'common', description: '', iconName: 'Sparkles', ruleId: 'ONE' },
-  { id: 'equipment-2', name: '裝備2', type: 'global', rarity: 'rare', description: '', iconName: 'Sparkles', ruleId: 'TWO' },
-  { id: 'equipment-3', name: '裝備3', type: 'control', rarity: 'rare', description: '', iconName: 'Sparkles', ruleId: 'THREE' },
-];
-
-function sequenceRandom(values: number[]): () => number {
-  let index = 0;
-  return () => values[index++] ?? 0;
-}
-
-test('keeps reward probabilities in config at the agreed values', () => {
-  assert.equal(REWARD_CONFIG.normalFightStickerPackChance, 0.05);
-  assert.equal(REWARD_CONFIG.chestEquipmentWeight, 0.65);
-  assert.equal(REWARD_CONFIG.chestStickerPackWeight, 0.35);
+test('each region supplies distinct permanent choices and elite/boss provide two picks from five', () => {
+  for (const region of REGION_IDS) for (const rank of ['normal', 'elite', 'boss'] as const) {
+    const options = generateBattleRewardOptions(region, rank, () => 0.5);
+    assert.equal(options.length, rank === 'normal' ? 3 : 5);
+    assert.equal(getBattleRewardCount(rank), rank === 'normal' ? 1 : 2);
+    assert.equal(new Set(options.map((item) => item.id)).size, options.length);
+    for (const option of options) {
+      assert.equal(option.kind, 'sticker');
+      if (option.kind === 'sticker' && option.sticker.isDisposable === false) {
+        assert.equal(option.sticker.region, region);
+        assert.notEqual(option.sticker.creature, 'princess');
+      }
+    }
+  }
+  assert.deepEqual(generateBattleRewardOptions(6, 'final_boss'), []);
+  assert.equal(getBattleRewardCount('final_boss'), 0);
 });
 
-test('maps run progress into early, mid and late reward tiers', () => {
-  assert.equal(getRewardTier(0, 9), 'early');
-  assert.equal(getRewardTier(3, 9), 'mid');
-  assert.equal(getRewardTier(6, 9), 'late');
+test('regional quality changes base value while species rarity remains fixed', () => {
+  for (const creature of CREATURE_IDS) {
+    const first = createPermanentSticker(creature, 1), last = createPermanentSticker(creature, 6);
+    assert.equal(first.rarity, CREATURE_CONFIG[creature].rarity);
+    assert.equal(first.rarity, last.rarity);
+    assert.equal(last.baseValue - first.baseValue, creature === 'princess' ? 0
+      : REGION_CONFIG[6].stickerBonus - REGION_CONFIG[1].stickerBonus);
+  }
 });
 
-test('generates three permanent sticker choices from the current tier', () => {
-  const options = generateBattleRewardOptions(stickers, packs, 'early', () => 0.9);
+test('jackpot substitutes one normal choice and advanced rewards remain permanent', () => {
+  assert.equal(generateBattleRewardOptions(1, 'normal', () => 0).filter((item) => item.kind === 'stickerPack').length, 1);
+  for (const rank of ['elite', 'boss'] as const)
+    assert.ok(generateBattleRewardOptions(1, rank, () => 0).every((item) => item.kind === 'sticker'));
+});
 
+test('chests guarantee an equipment candidate even when random draws favor packs', () => {
+  const options = generateChestRewardOptions(ALL_EQUIPMENT_CATALOG, STICKER_PACKS_CATALOG, () => 0.99);
+  assert.equal(options[0].kind, 'equipment');
   assert.equal(options.length, 3);
-  assert.ok(options.every((option) => option.kind === 'sticker'));
-  assert.ok(options.every((option) => option.kind !== 'sticker' || option.sticker.rewardTier === 'early'));
-});
-
-test('replaces one normal reward choice with a sticker pack at the configured jackpot chance', () => {
-  const options = generateBattleRewardOptions(
-    stickers,
-    packs,
-    'early',
-    sequenceRandom([0.01, 0, 0, 0, 0, 0])
-  );
-
-  assert.equal(options.filter((option) => option.kind === 'stickerPack').length, 1);
-});
-
-test('draws each chest slot by equipment and sticker pack weights without duplicate choices', () => {
-  const options = generateChestRewardOptions(
-    equipments,
-    packs,
-    sequenceRandom([0.1, 0, 0.9, 0, 0.1, 0])
-  );
-
-  assert.deepEqual(options.map((option) => option.kind), ['equipment', 'stickerPack', 'equipment']);
-  assert.equal(new Set(options.map((option) => option.id)).size, 3);
+  assert.equal(new Set(options.map((item) => item.id)).size, 3);
 });

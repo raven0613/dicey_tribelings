@@ -1,3 +1,4 @@
+import { SkillText } from '../common/SkillText';
 import React from 'react';
 import type { SkillChange, SkillFeedback as Feedback } from '../../types/battle';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
@@ -19,7 +20,8 @@ export function SkillFeedback({ diceId, feedback }: { diceId: string; feedback: 
   return <div className="skill-feedback" aria-hidden="true">
     {related.map(({ event }) => {
       const source = event.sourceDiceId === diceId || event.equipmentId === diceId;
-      const ownChanges = event.changes.filter((change) => change.targetId === diceId);
+      const ownChanges = event.changes.filter((change) => change.targetId === diceId
+        || (source && change.targetId === 'virtual-food'));
       const spawned = source ? event.changes.filter((change) => event.bonusIds.includes(change.targetId)) : [];
       const changes = spawned.length ? [...ownChanges.filter((change) => change.kind !== 'food'), ...spawned] : ownChanges;
       const labels = changes.map(changeText).filter(Boolean);
@@ -35,7 +37,7 @@ export function SkillFeedback({ diceId, feedback }: { diceId: string; feedback: 
       return <React.Fragment key={event.id}>
         <span style={style} className={`skill-pulse ${source ? 'is-source' : 'is-participant'}`} />
         {(source || ownChanges.length > 0 || labels.length > 0) && <span style={style} className="skill-name">
-          <span className="skill-ability">{event.ability}</span>
+          <span className="skill-ability"><SkillText text={event.ability} /></span>
           {labels.length > 0 && <span className="skill-change">{labels.join('・')}</span>}
         </span>}
       </React.Fragment>;

@@ -7,12 +7,12 @@ import { applyEnemyDamage, resolveEnemyIntent } from './enemyIntent';
 import { describeEnemyIntent, previewEnemyIntent } from './enemyDescription';
 import { getEnemyForNode } from '../nodeService';
 
-test('catalog contains the documented 26 monsters and damaging, nonempty cycles', () => {
-  assert.equal(MONSTER_CONFIG.length, 26);
-  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.id)).size, 26);
-  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.name)).size, 26);
+test('catalog contains the documented 28 monsters and damaging, nonempty cycles', () => {
+  assert.equal(MONSTER_CONFIG.length, 28);
+  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.id)).size, 28);
+  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.name)).size, 28);
   assert.deepEqual([1, 2, 3, 4, 5, 6].map((region) =>
-    MONSTER_CONFIG.filter((enemy) => enemy.region === region).length), [5, 5, 5, 4, 4, 3]);
+    MONSTER_CONFIG.filter((enemy) => enemy.region === region).length), [5, 5, 5, 5, 5, 3]);
   for (const monster of MONSTER_CONFIG) {
     assert.ok(Number.isInteger(monster.maxHp) && monster.maxHp > 0);
     assert.ok(Number.isInteger(monster.initialShield) && monster.initialShield >= 0);
@@ -30,8 +30,8 @@ test('catalog contains the documented 26 monsters and damaging, nonempty cycles'
 });
 
 test('factory isolates battle state and rejects unknown IDs', () => {
-  const a = createEnemy('thorn_boar');
-  const b = createEnemy('thorn_boar');
+  const a = createEnemy('r2_harpoon');
+  const b = createEnemy('r2_harpoon');
   assert.ok(a.shield > 0);
   a.hp = 1;
   a.shield = 0;
@@ -42,7 +42,7 @@ test('factory isolates battle state and rejects unknown IDs', () => {
 });
 
 test('damage threshold is inclusive and cancellation advances the cycle', () => {
-  const enemy = createEnemy('rock_goblin');
+  const enemy = createEnemy('r1_slinger');
   const intent = enemy.intents[0];
   assert.ok('counter' in intent && intent.counter?.type === 'damage_taken');
   assert.ok('value' in intent);
@@ -56,7 +56,7 @@ test('damage threshold is inclusive and cancellation advances the cycle', () => 
 });
 
 test('damage counts actual shield and HP loss once, clamps overkill, and is per round', () => {
-  const enemy = createEnemy('thorn_boar');
+  const enemy = createEnemy('r2_harpoon');
   enemy.hp = 8;
   enemy.shield = 5;
   const first = applyEnemyDamage(enemy, 3);
@@ -71,11 +71,11 @@ test('damage counts actual shield and HP loss once, clamps overkill, and is per 
   assert.equal(last.enemy.hp, 0);
   assert.equal(applyEnemyDamage(last.enemy, 10).damageTaken, 0);
   assert.equal(applyEnemyDamage(enemy, 0).damageTaken, 0);
-  assert.equal(resolveEnemyIntent(createEnemy('rock_goblin'), 0).counterTriggered, false);
+  assert.equal(resolveEnemyIntent(createEnemy('r1_slinger'), 0).counterTriggered, false);
 });
 
 test('shield depleted earlier still halves; odd damage rounds upward', () => {
-  const enemy = createEnemy('thorn_boar');
+  const enemy = createEnemy('r2_harpoon');
   enemy.shield = 0;
   enemy.intents = [{ type: 'heavy_attack', name: '測試衝撞', value: 9,
     counter: { type: 'shield_depleted', effect: 'halve' } }];
@@ -85,14 +85,15 @@ test('shield depleted earlier still halves; odd damage rounds upward', () => {
 });
 
 test('defense can be cancelled; charge and rest consume one action; dead enemies never act', () => {
-  const judge = createEnemy('mirror_judge');
+  const judge = createEnemy('r5_jailer');
+  judge.currentIntentIndex = 1;
   assert.equal(resolveEnemyIntent(judge, 999).shieldGain, 0);
   assert.ok(resolveEnemyIntent(judge, 0).shieldGain > 0);
-  const slime = createEnemy('bubble_slime');
+  const slime = createEnemy('r1_patrol');
   slime.currentIntentIndex = 1;
   assert.equal(resolveEnemyIntent(slime, 0).damage, 0);
   assert.equal(resolveEnemyIntent(slime, 0).nextIntentIndex, 2);
-  const boar = createEnemy('thorn_boar');
+  const boar = createEnemy('r2_harpoon');
   boar.currentIntentIndex = 1;
   assert.equal(resolveEnemyIntent(boar, 0).damage, 0);
   assert.equal(resolveEnemyIntent(boar, 0).shieldGain, 0);
@@ -104,7 +105,7 @@ test('defense can be cancelled; charge and rest consume one action; dead enemies
 });
 
 test('descriptions derive numbers and charge previews from current config', () => {
-  const slime = createEnemy('bubble_slime');
+  const slime = createEnemy('r1_patrol');
   slime.currentIntentIndex = 1;
   slime.intents = [
     { type: 'attack', name: '輕擊', value: 4 },
@@ -112,7 +113,7 @@ test('descriptions derive numbers and charge previews from current config', () =
     { type: 'heavy_attack', name: '重擊', value: 17 },
   ];
   assert.equal(describeEnemyIntent(slime), '膨脹：本次蓄力，下回合造成 17 傷害。');
-  const goblin = createEnemy('rock_goblin');
+  const goblin = createEnemy('r1_slinger');
   const intent = goblin.intents[0];
   assert.ok('counter' in intent && intent.counter?.type === 'damage_taken');
   assert.match(previewEnemyIntent(goblin, intent.counter.threshold - 1), /尚差 1/);
@@ -127,11 +128,11 @@ test('descriptions derive numbers and charge previews from current config', () =
   }
 });
 
-test('current combat nodes explicitly reference first-region monsters of matching rank', () => {
+test('current combat nodes explicitly reference regional monsters of matching rank', () => {
   for (const node of INITIAL_MAP_NODES.filter((node) => ['fight', 'elite', 'boss'].includes(node.type))) {
     const enemy = getEnemyForNode(node, node.id);
     assert.equal(enemy.id, node.enemyId);
-    assert.equal(enemy.region, 1);
+    assert.equal(enemy.region, node.region);
     assert.equal(Boolean(enemy.isBoss), node.type === 'boss');
     assert.equal(Boolean(enemy.isElite), node.type === 'elite');
   }

@@ -1,8 +1,8 @@
+import { SkillText } from '../common/SkillText';
 import React, { useState } from 'react';
-import { ArrowRight, Check, Coins, Gift, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Gift, Sparkles } from 'lucide-react';
 import type { ChestRewardOption } from '../../types/game';
 import { INITIAL_PLAYER_STATS } from '../../configs/gameConfig';
-import { REWARD_CONFIG } from '../../configs/rewardConfig';
 import { useGameStore } from '../../store/gameStore';
 import {
   EquipmentTransferAnimation,
@@ -80,7 +80,7 @@ export const ChestModal: React.FC = () => {
           <div className="card-top-row"><span className={`rarity-tag ${option.pack.rarity}`}>{option.pack.rarity}</span><span className="type-tag">貼紙包</span></div>
           <div className="card-icon-center"><div className="icon-disc"><Gift size={28} /></div></div>
           <div className="card-name">{option.pack.name}</div>
-          <div className="card-description">{option.pack.description}</div>
+          <div className="card-description"><SkillText text={option.pack.description} /></div>
           <span className="btn-select-relic">選擇並開啟</span>
         </button>
       );
@@ -99,7 +99,7 @@ export const ChestModal: React.FC = () => {
         <div className="card-top-row"><span className={`rarity-tag ${equipment.rarity}`}>{equipment.rarity}</span><span className="type-tag">裝備</span></div>
         <div className="card-icon-center"><div className="icon-disc"><Icon size={28} /></div></div>
         <div className="card-name">{equipment.name}</div>
-        <div className="card-description">{equipment.description}</div>
+        <div className="card-description"><SkillText text={equipment.description} /></div>
         <span className="btn-select-relic">
           {isSelected ? <><Check size={14} />移動中</> : '選擇此裝備'}
         </span>
@@ -115,16 +115,14 @@ export const ChestModal: React.FC = () => {
           <div className="chest-title">{currentNode.title}</div>
           <div className="chest-desc">
             {isOpened
-              ? `獲得 ${REWARD_CONFIG.chestGold} 金幣。三個欄位各自依權重生成，請選擇一項。`
-              : '寶箱包含高價值裝備與貼紙包，每個獎勵欄位獨立抽取類型。'}
+              ? '選擇一份補給，接著繼續救援。'
+              : '寶箱提供裝備保證候選與主題貼紙包，三選一。'}
           </div>
         </div>
 
         {!isOpened ? (
           <>
             <div className="chest-rewards-preview">
-              <div className="reward-item gold"><Coins size={18} color="#fbbf24" /><span>+{REWARD_CONFIG.chestGold} 金幣</span></div>
-              <span className="dot-separator">•</span>
               <div className="reward-item equip"><Sparkles size={18} color="#818cf8" /><span>裝備或貼紙包（三選一）</span></div>
             </div>
             <button type="button" onClick={openChest} className="btn-open-chest">

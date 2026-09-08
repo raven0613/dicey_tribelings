@@ -7,7 +7,6 @@ const sticker: StickerItem = {
   id: 'sticker-1',
   name: '戰術貼紙',
   isDisposable: true,
-  baseValue: 15,
   creature: 'boss',
   description: '本場孩子王15',
   rarity: 'rare',

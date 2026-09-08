@@ -1,7 +1,10 @@
+import { generateBattleRewardOptions } from '../service/rewards/rewardService';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ALL_EQUIPMENT_CATALOG, ALL_STICKERS_CATALOG } from '../configs/gameConfig';
+import { ALL_EQUIPMENT_CATALOG } from '../configs/gameConfig';
 import { createConsumableSticker } from '../service/inventory/inventoryService';
+import { DISPOSABLE_STICKERS } from '../configs/creatures/creatureStickerConfig';
+import { CREATURE_BALANCE } from '../configs/creatures/creatureBalanceConfig';
 import { useGameStore } from './gameStore';
 
 test('combat nodes wait for preparation confirmation before the first roll', () => {
@@ -37,8 +40,8 @@ test('cancelling a full chest equipment replacement returns to the same choices'
 
 test('a full shop consumable purchase charges only after one instance is replaced', () => {
   useGameStore.getState().restartGame();
-  const incoming = ALL_STICKERS_CATALOG.find((sticker) => sticker.isDisposable)!;
-  const existing = ALL_STICKERS_CATALOG.filter((sticker) => sticker.isDisposable).slice(1, 4)
+  const incoming = DISPOSABLE_STICKERS[0];
+  const existing = DISPOSABLE_STICKERS.slice(1, 4)
     .map((sticker, index) => createConsumableSticker(sticker, `existing-${index}`));
   useGameStore.setState({ gold: 100, shopStickers: [incoming], consumableStickers: existing });
 
@@ -66,11 +69,83 @@ test('rations enter the next battle first round once and round food then clears'
 
 test('guaranteed princess is offered once before advancing its milestone', () => {
   useGameStore.getState().restartGame();
-  useGameStore.setState({ currentNodeIndex: 5 });
+  useGameStore.setState({ currentNodeIndex: CREATURE_BALANCE.princess.guaranteedNode });
   useGameStore.getState().advanceToNextNode();
   assert.equal(useGameStore.getState().stickerFlow?.items[0].creature, 'princess');
   assert.equal(useGameStore.getState().princessGuaranteed, true);
   useGameStore.getState().discardCurrentSticker();
-  assert.equal(useGameStore.getState().currentNodeIndex, 6);
+  assert.equal(useGameStore.getState().currentNodeIndex, CREATURE_BALANCE.princess.guaranteedNode + 1);
   assert.equal(useGameStore.getState().stickerFlow, null);
+});
+
+test('shop purchases with space settle immediately and cannot buy the same offer twice', () => {
+  useGameStore.getState().restartGame();
+  const sticker = DISPOSABLE_STICKERS[0];
+  useGameStore.setState({ shopStickers: [sticker] });
+  const gold = useGameStore.getState().gold;
+  assert.equal(useGameStore.getState().buyShopSticker(sticker.id), true);
+  assert.equal(useGameStore.getState().pendingShopSticker, null);
+  assert.equal(useGameStore.getState().consumableStickers[0].stickerId, sticker.id);
+  assert.equal(useGameStore.getState().gold, gold - sticker.cost!);
+  assert.equal(useGameStore.getState().buyShopSticker(sticker.id), false);
+});
+
+test('pack flow automatically stores consumables and pauses only for overflow', () => {
+  useGameStore.getState().restartGame();
+  const stickers = DISPOSABLE_STICKERS.slice(0, 4);
+  useGameStore.setState({ openedPackResult: { packName: '測試', stickers, completion: 'stay' } });
+  useGameStore.getState().beginOpenedPack();
+  assert.equal(useGameStore.getState().consumableStickers.length, 3);
+  assert.equal(useGameStore.getState().stickerFlow?.index, 3);
+  useGameStore.getState().discardCurrentSticker();
+  assert.equal(useGameStore.getState().stickerFlow, null);
+});
+
+test('two reward choices apply in order before advancing a regional boss', () => {
+  useGameStore.getState().restartGame();
+  useGameStore.getState().startNode(6);
+  const options = generateBattleRewardOptions(1, 'boss', () => 0.5);
+  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: 2 });
+  useGameStore.getState().selectBattleRewards(options.slice(0, 1));
+  assert.equal(useGameStore.getState().stickerFlow, null);
+  useGameStore.getState().selectBattleRewards(options.slice(0, 2));
+  const die = useGameStore.getState().dicePool[0];
+  useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
+  assert.equal(useGameStore.getState().currentNodeIndex, 6);
+  useGameStore.getState().applyCurrentPermanentSticker(die.id, 1);
+  assert.equal(useGameStore.getState().currentNodeIndex, 7);
+  assert.equal(useGameStore.getState().currentEnemy?.region, 2);
+  assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
+});
+
+test('the complete route awards exactly seven new dice and processes the deep dungeon pack', () => {
+  useGameStore.getState().restartGame();
+  for (let index = 0; index < 39; index++) {
+    assert.equal(useGameStore.getState().currentNodeIndex, index);
+    if (useGameStore.getState().openedPackResult) {
+      useGameStore.getState().beginOpenedPack();
+      while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
+    } else {
+      useGameStore.getState().advanceToNextNode();
+      while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
+    }
+    useGameStore.getState().dismissDiceNotification();
+  }
+  assert.equal(useGameStore.getState().currentEnemy?.id, 'r6_boss');
+  assert.equal(useGameStore.getState().dicePool.length, 10);
+  assert.equal(new Set(useGameStore.getState().dicePool.map((die) => die.id)).size, 10);
+});
+
+test('one consumable can cover only one existing face and commit preserves the target base', () => {
+  useGameStore.getState().restartGame();
+  const sticker = createConsumableSticker(DISPOSABLE_STICKERS[0], 'owned');
+  const die = useGameStore.getState().dicePool[0];
+  useGameStore.setState({ consumableStickers: [sticker] });
+  const placement = { consumable: sticker, diceId: die.id, faceIndex: 0 };
+  useGameStore.getState().confirmBattlePreparation([placement, { ...placement, faceIndex: 1 }]);
+  assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
+  useGameStore.getState().confirmBattlePreparation([placement]);
+  assert.equal(useGameStore.getState().consumableStickers.length, 0);
+  assert.equal(useGameStore.getState().dicePool[0].faces[0].baseValue, die.faces[0].baseValue);
+  assert.equal(useGameStore.getState().combatPhase, 'ROLLING');
 });

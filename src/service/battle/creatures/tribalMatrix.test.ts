@@ -1,17 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { INITIAL_DICE_POOL } from '../../../configs/creatures/initialDiceConfig';
-import { ALL_STICKERS_CATALOG } from '../../../configs/creatures/creatureStickerConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
 import type { CreatureId } from '../../../types/creatures';
-import type { Dice, RewardTier } from '../../../types/game';
+import type { RegionId } from '../../../types/enemy';
+import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
+import type { Dice } from '../../../types/game';
 import { configuredDice } from '../../dice/diceFactory';
 import { calculateRollResolution, predetermineRollResults } from '../battleEngine';
 import { buildAttackPlan } from '../attackPlan';
 import { createCreatureBattleState, combatNumber, startCreatureRound } from './creatureState';
 import { resolveRerollChain } from './rerollResolution';
 
-function build(size: number, tier: RewardTier): Dice[] {
+function build(size: number, region: RegionId): Dice[] {
   const rows: CreatureId[][] = [
     ['sisters', 'sisters', 'gang', 'gang', 'gang', 'family'],
     ['boss', 'thief', 'coward', 'prankster', 'family', 'family'],
@@ -22,11 +23,11 @@ function build(size: number, tier: RewardTier): Dice[] {
   ];
   return Array.from({ length: size }, (_, index) => configuredDice(`matrix-${index}`, `矩陣 ${index}`, 'd6', 'amber',
     rows[index % rows.length].map((creature) => [creature,
-      ALL_STICKERS_CATALOG.find((sticker) => sticker.creature === creature && sticker.rewardTier === tier)!.baseValue])));
+      createPermanentSticker(creature, region).baseValue])));
 }
 
 for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite rerolls, exact attack plans and event continuity`, (context) => {
-  const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size, size === 6 ? 'mid' : 'late');
+  const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size, size === 6 ? 2 : 5);
   const gear = size === 3 ? [] : ALL_EQUIPMENT_CATALOG.filter((item) => ['RESONATOR', 'BARRICADE', 'CROWN', 'WARHAMMER', 'RESERVE'].includes(item.ruleId));
   let seed = 741;
   const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 0x100000000);

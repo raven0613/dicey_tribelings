@@ -5,6 +5,7 @@ import { getEffectiveFace } from '../../dice/diceFaces';
 import { choose, combatNumber } from './creatureState';
 import { createResolutionContext } from './resolutionContext';
 import { resolveIdentities } from './identityResolution';
+import { findPranksterTargets } from './rerollTargets';
 
 export interface RerollStep { dieIndex: number; rolledIndices: number[]; state: CreatureBattleState }
 
@@ -12,7 +13,7 @@ export function refreshAuthorityTargets(dice: Dice[], indices: number[], equipme
   const c = createResolutionContext(dice, indices, equipment, state, { control: 0, maxControl: 3, gold: 0 });
   resolveIdentities(c);
   const authorityTargets: CreatureBattleState['authorityTargets'] = {};
-  for (const event of c.events) if (event.sourceDiceId && event.ability === '賞你個名分') {
+  for (const event of c.events) if (event.sourceDiceId && event.skill === 'authority') {
     const target = event.identities[0];
     if (target) authorityTargets[event.sourceDiceId] = { diceId: target.diceId, version: state.faceVersions[target.diceId] ?? 0 };
   }
@@ -41,8 +42,8 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
     if (previous.creature === 'coward' && next.cowardShields[die.id] === undefined) next.cowardShields[die.id] = previous.baseValue;
     if (previous.creature === 'prankster' && !next.prankstersUsed.includes(die.id)) {
       next.prankstersUsed.push(die.id);
-      const neighbors = dice.flatMap((entry, index) => Math.abs(index - action.index) === 1
-        && getEffectiveFace(entry.faces[rolled[index]]).creature !== 'food' && !next.lockedDice.includes(entry.id) ? [index] : []);
+      const neighbors = findPranksterTargets(dice.map((entry, index) => ({ diceId: entry.id,
+        ...getEffectiveFace(entry.faces[rolled[index]]) })), next, action.index);
       const target = choose(neighbors, next.seed, `prankster:${die.id}`);
       if (target !== undefined) queue.push({ index: target, forced: true, teacher: false });
     }

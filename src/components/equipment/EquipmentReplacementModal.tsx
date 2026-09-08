@@ -1,3 +1,4 @@
+import { SkillText } from '../common/SkillText';
 import React, { useRef, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -61,7 +62,7 @@ export const EquipmentReplacementModal: React.FC = () => {
         </div>
         <div ref={incomingEquipmentRef} className="incoming-item-card">
           <div><h3>{pendingEquipment.equipment.name}</h3><span>{pendingEquipment.equipment.rarity}</span></div>
-          <p>{pendingEquipment.equipment.description}</p>
+          <p><SkillText text={pendingEquipment.equipment.description} /></p>
           {pendingEquipment.source === 'shop' && <span className="price-note">確認後支付 {pendingEquipment.cost} 金幣</span>}
         </div>
         <div className="equipment-replacement-list">
@@ -75,7 +76,7 @@ export const EquipmentReplacementModal: React.FC = () => {
             >
               <span>{transfer?.replacedEquipmentId === equipment.id ? '替換中' : '取代'}</span>
               <strong>{equipment.name}</strong>
-              <small>{equipment.description}</small>
+              <small><SkillText text={equipment.description} /></small>
             </button>
           ))}
         </div>

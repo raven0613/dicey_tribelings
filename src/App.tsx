@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from './store/gameStore';
-import { HeaderBar } from './components/common/HeaderBar';
+import { Footbar } from './components/common/Footbar';
+import { PlayerVitals } from './components/battle/PlayerVitals';
 import { MapProgress } from './components/map/MapProgress';
 import { EnemyCard } from './components/battle/EnemyCard';
 import { DiceBoard } from './components/battle/DiceBoard';
-import { ComboBanner } from './components/battle/ComboBanner';
 import { BattleControls } from './components/battle/BattleControls';
-import { EquipmentBar } from './components/equipment/EquipmentBar';
 import { StickerApplierModal } from './components/stickers/StickerApplierModal';
 import { DiceInspectModal } from './components/dice/DiceInspectModal';
 import { RewardModal } from './components/rewards/RewardModal';
 import { ChestModal } from './components/chest/ChestModal';
 import { ShopModal } from './components/shop/ShopModal';
 import { GameOverModal } from './components/common/GameOverModal';
-import { BattlePreparationModal } from './components/battle/BattlePreparationModal';
-import { ConsumableBar } from './components/stickers/ConsumableBar';
+import { BattlePreparation } from './components/battle/BattlePreparation';
 import { StickerPackModal } from './components/stickers/StickerPackModal';
 import { ConsumableReplacementModal } from './components/stickers/ConsumableReplacementModal';
 import { EquipmentReplacementModal } from './components/equipment/EquipmentReplacementModal';
@@ -28,7 +26,6 @@ export default function App() {
     currentEnemy,
     combatPhase,
     activeRerollingIndex,
-    comboSummary,
     executeBattleSettlement,
     startNode,
   } = useGameStore();
@@ -48,6 +45,7 @@ export default function App() {
   const currentNode = mapNodes[currentNodeIndex];
   const isCombatNode =
     currentNode?.type === 'fight' || currentNode?.type === 'elite' || currentNode?.type === 'boss';
+  const isConfiguring = combatPhase === 'PREPARATION' && currentNodeIndex > 0;
 
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
@@ -66,9 +64,6 @@ export default function App() {
             : 'none',
       }}
     >
-      {/* Top Header */}
-      <HeaderBar onOpenDiceBag={() => setIsDiceBagOpen(true)} />
-
       {/* Main Content Arena */}
       <main className="app-main">
         {/* Map Route Progress */}
@@ -76,20 +71,20 @@ export default function App() {
 
         {/* Combat Area */}
         {isCombatNode && (
-          <div className="combat-arena">
+          <div className={`combat-arena ${isConfiguring ? 'is-preparing' : ''}`}>
             {/* Enemy Display */}
             <EnemyCard
               enemy={currentEnemy}
             />
 
-            {/* Active Combo Synergies Banner */}
-            <ComboBanner summary={comboSummary} />
-
             {/* Dice Board Arena */}
-            <DiceBoard />
+            {!isConfiguring && <DiceBoard />}
+            <PlayerVitals />
 
             {/* Tactical Control Bar & Resolve Action */}
-            <BattleControls onResolve={handleResolveBattle} isResolving={isResolving} />
+            {isConfiguring
+              ? <BattlePreparation key={currentNodeIndex} />
+              : <BattleControls onResolve={handleResolveBattle} isResolving={isResolving} />}
           </div>
         )}
 
@@ -98,21 +93,17 @@ export default function App() {
 
         {/* Merchant Shop Area */}
         {currentNode?.type === 'shop' && <ShopModal />}
-
-        {/* Equipment Relics Bar */}
-        <ConsumableBar />
-        <EquipmentBar />
       </main>
+      <Footbar onOpenDiceBag={() => setIsDiceBagOpen(true)} />
 
       {/* Modals & Overlays */}
       <StickerApplierModal />
-      <BattlePreparationModal />
       <StickerPackModal />
       <ConsumableReplacementModal />
       <EquipmentReplacementModal />
       <DiceUnlockModal />
+      <RewardModal onOpenDiceBag={() => setIsDiceBagOpen(true)} inspectingDice={isDiceBagOpen} />
       <DiceInspectModal isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
-      <RewardModal />
       <GameOverModal />
     </div>
   );

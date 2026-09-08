@@ -1,11 +1,16 @@
 import type { BonusAttackDice, Dice } from '../../types/game';
-import { getEffectiveFace } from './diceFaces';
+import { getAdjacentFaces, getEffectiveFace } from './diceFaces';
 import { DICE_TRAY_PRESENTATION as layout } from '../../configs/dicePresentationConfig';
 
 /** Reserve by build, so rolling and revealing bonuses never move the normal row. */
-export function getDiceTrayLayout(width: number, height: number, dice: Dice[]) {
-  const sources = dice.map((die) => ({ key: `creature:${die.id}`,
-    capacity: die.faces.some((face) => getEffectiveFace(face).creature === 'priest') ? 2 : 1 }));
+export function getDiceTrayLayout(width: number, height: number, dice: Dice[], detailsHeight: number = layout.detailsHeight) {
+  const sources = dice.map((die) => {
+    const faces = die.faces.map(getEffectiveFace);
+    const gangCapacity = Math.max(0, ...faces.map((face, index) => face.creature === 'gang'
+      ? getAdjacentFaces(die, index).filter((neighbor) => neighbor.creature === 'gang').length : 0));
+    return { key: `creature:${die.id}`, capacity: Math.max(1, gangCapacity)
+      + Number(faces.some((face) => face.creature === 'priest')) };
+  });
   const slotCount = sources.reduce((total, source) => total + source.capacity, 0);
   const availableWidth = Math.max(0, width - layout.sidePadding * 2);
   const extentRatio = layout.phantomExtent * layout.normalBodyRatio / layout.phantomBodySize;
@@ -17,13 +22,13 @@ export function getDiceTrayLayout(width: number, height: number, dice: Dice[]) {
     const candidate = Math.min(layout.maxSize,
       availableWidth / Math.max(1, dice.length) - layout.slotGap,
       (availableWidth / count - layout.phantomGap) / (extentRatio * 2),
-      (height - layout.topPadding - layout.detailsHeight - rows * layout.phantomGap) / (1 + rows * extentRatio * 2));
+      (height - layout.topPadding - detailsHeight - rows * layout.phantomGap) / (1 + rows * extentRatio * 2));
     if (candidate > size) { size = candidate; columns = count; }
   }
   const phantomScale = size * layout.normalBodyRatio / layout.phantomBodySize;
   const pitch = layout.phantomExtent * 2 * phantomScale + layout.phantomGap;
   const rows = Math.ceil(slotCount / columns);
-  const occupiedHeight = rows * pitch + size + layout.detailsHeight;
+  const occupiedHeight = rows * pitch + size + detailsHeight;
   const top = Math.max(layout.topPadding, (height - occupiedHeight) / 2);
   const normalY = top + rows * pitch + size / 2;
   const spacing = Math.min(layout.maxSpacing, availableWidth / Math.max(1, dice.length));

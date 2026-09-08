@@ -1,5 +1,12 @@
 import { ceilDamage } from '../../service/battle/damageValue';
 import { SkillFeedback } from './SkillFeedback';
+import { PlayerImpact } from './PlayerImpact';
+import { DiceHoverOverlay } from './DiceHoverOverlay';
+import { DiceHoverInfo, type DiceInspection } from './DiceHoverInfo';
+import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
+import { getEffectiveFace } from '../../service/dice/diceFaces';
+import { DICE_TRAY_PRESENTATION } from '../../configs/dicePresentationConfig';
+import { describeBattleSkills } from '../../service/battle/battleSkillDescription';
 import { EQUIPMENT_BALANCE as eq, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { getOppositeFace, teacherTargets } from '../../service/battle/rollService';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
@@ -35,14 +42,53 @@ export const DiceBoard: React.FC = () => {
     visibleBonusIds, skillFeedback, displayedIdentities, displayedShields, displayedFood,
     diceAction, rerollAnimationId, gold,
     creatureBattleState,
+    enemyAttack,
   } = useGameStore();
   const actionState = useGameStore.getState();
 
   const trayRef = useRef<HTMLDivElement>(null);
   const [traySize, setTraySize] = useState({ width: 640, height: 280 });
   const [attackTarget, setAttackTarget] = useState({ x: 0, y: 0 });
-  const trayLayout = getDiceTrayLayout(traySize.width, traySize.height, dicePool);
+  const [detailsHeight, setDetailsHeight] = useState<number>(DICE_TRAY_PRESENTATION.detailsHeight);
+  const trayLayout = getDiceTrayLayout(traySize.width, traySize.height, dicePool, detailsHeight);
   const bonusPositions = placeBonusDice(comboSummary?.bonusDice ?? [], trayLayout.bonusPositions);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const canShowRelations = combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null;
+  const identities = dicePool.map((die, index) => {
+    const effective = getEffectiveFace(die.faces[rolledIndices[index] ?? 0]);
+    const displayed = combatPhase === 'PREPARATION' || combatPhase === 'ROLLING' || combatPhase === 'CONTROL_PHASE'
+      ? undefined : displayedIdentities[die.id];
+    const creature = displayed?.creature ?? effective.creature;
+    return { creature, tags: displayed?.tags ?? [...CREATURE_CONFIG[creature].tags] };
+  });
+  const battleDescriptions = dicePool.map((die, index) => describeBattleSkills({ die,
+    faceIndex: rolledIndices[index] ?? 0, creature: identities[index].creature,
+    summary: canShowRelations ? comboSummary : null, state: creatureBattleState }));
+  const hoverAnchors = dicePool.map((die, index) => ({ id: die.id, ...trayLayout.positions[index],
+    size: trayLayout.size, abilities: battleDescriptions[index].abilities }));
+  const shownBonusDice = (comboSummary?.bonusDice ?? []).filter((die) => visibleBonusIds.includes(die.id));
+  for (const bonus of shownBonusDice) {
+    const index = comboSummary!.bonusDice.indexOf(bonus);
+    hoverAnchors.push({ id: bonus.id, ...bonusPositions[index], size: trayLayout.size, abilities: [bonus.label] });
+  }
+  useLayoutEffect(() => {
+    const labels = [...trayRef.current!.querySelectorAll<HTMLElement>('.die-result-label')];
+    const measure = () => setDetailsHeight(Math.max(DICE_TRAY_PRESENTATION.detailsHeight,
+      ...labels.map((label) => label.offsetHeight + 8)));
+    measure();
+    const observer = new ResizeObserver(measure);
+    labels.forEach((label) => observer.observe(label));
+    return () => observer.disconnect();
+  }, [comboSummary, combatPhase, activeRerollingIndex]);
+  const hoveredIndex = dicePool.findIndex((die) => die.id === hoveredId);
+  const hoveredBonus = shownBonusDice.find((die) => die.id === hoveredId);
+  let inspection: DiceInspection | null = null;
+  if (hoveredIndex >= 0) {
+    const identity = identities[hoveredIndex], creature = CREATURE_CONFIG[identity.creature];
+    inspection = { ...identity, title: creature.name,
+      description: battleDescriptions[hoveredIndex].description };
+  } else if (hoveredBonus) inspection = { creature: hoveredBonus.creature,
+    title: `${hoveredBonus.sourceName}・${hoveredBonus.label}`, description: hoveredBonus.description };
 
   useLayoutEffect(() => {
     const tray: HTMLDivElement = trayRef.current!;
@@ -167,14 +213,17 @@ export const DiceBoard: React.FC = () => {
 
   return (
     <div
-      className="dice-board"
+      id="battle-player-target"
+      style={{ '--player-impact-duration': `${timing.enemyImpactMs + timing.enemyRecoilMs}ms` } as React.CSSProperties}
+      className={`dice-board ${enemyAttack?.stage === 'impact' || enemyAttack?.stage === 'recoil' ? 'is-hit' : ''} ${enemyAttack?.heavy ? 'heavy-hit' : ''} ${enemyAttack && enemyAttack.healthDamage === 0 ? 'shield-hit' : ''}`}
     >
+      <PlayerImpact />
       <div className="board-header">
         <Sparkles size={14} />
         <span>
-          {combatPhase === 'PREPARATION' && '戰前準備：配置本場戰術貼紙'}
+          {combatPhase === 'PREPARATION' && '初始骰池已就位，按下擲骰開始'}
           {combatPhase === 'ROLLING' && '骰子拋擲翻滾中…'}
-          {combatPhase === 'CONTROL_PHASE' && (diceAction === 'swap' ? '點擊左側骰子，與右側鄰骰交換' : diceAction === 'lock' ? '點擊骰子，本回合保護並提高基礎值' : diceAction === 'flip' ? '點擊有相對面的骰子進行翻面' : diceAction.startsWith('teacher:') ? '選擇基礎值最低的土人骰，發動老師' : control > 0 ? '點擊骰子重骰，每次花費 1 Control' : hasEquipment(equipments, 'COUNTERWEIGHT') ? `點擊骰子，花 ${eq.paidReroll} 金幣重骰` : '選擇老師或鎖定結果')}
+          {combatPhase === 'CONTROL_PHASE' && (diceAction === 'swap' ? '點擊左側骰子，與右側鄰骰交換' : diceAction === 'lock' ? '點擊骰子，本回合保護並提高基礎值' : diceAction === 'flip' ? '點擊有相對面的骰子進行翻面' : diceAction.startsWith('teacher:') ? '選擇基礎值最低的土人骰，發動老師' : control > 0 ? '點擊骰子重骰，每次花費 1 Control' : hasEquipment(equipments, 'COUNTERWEIGHT') ? `點擊骰子，花 ${eq.paidReroll} 金幣重骰` : '鎖定結果，結算本輪')}
           {combatPhase === 'RESOLVING_CALCULATION' && '角色技能連鎖結算中'}
           {combatPhase === 'RESOLVING_ATTACK' && '骰子衝鋒撞擊敵人！'}
           {combatPhase === 'ENEMY_TURN' && '敵方行動中…'}
@@ -184,6 +233,8 @@ export const DiceBoard: React.FC = () => {
 
       {/* Normal dice and additional attacks share the tray coordinate system. */}
       <div ref={trayRef} className="dice-tray-area">
+        <DiceHoverOverlay anchors={hoverAnchors} hoveredId={canShowRelations ? hoveredId : null}
+          summary={comboSummary} width={traySize.width} />
         {dicePool.map((die, idx) => {
           const roll = rollStates[idx];
           const targetFaceIdx = rolledIndices[idx] ?? 0;
@@ -193,23 +244,22 @@ export const DiceBoard: React.FC = () => {
           const storedFood = creatureBattleState.storedFood[die.id] ?? 0;
           const nextFood = calcItem ? comboSummary.nextStoredFood[die.id] ?? 0 : storedFood;
           const resolving = combatPhase === 'RESOLVING_CALCULATION' || combatPhase === 'RESOLVING_ATTACK';
-          const resultLabel = calcItem && combatPhase === 'CONTROL_PHASE' ? [
+          const resultLabels = calcItem && combatPhase === 'CONTROL_PHASE' ? [
             `攻擊 ${ceilDamage(calcItem.finalDamage)}`,
             calcItem.shieldGranted > 0 ? `護盾 ${calcItem.shieldGranted}` : '',
             storedFood > 0 || nextFood > 0 ? `儲糧 ${storedFood}→${nextFood}` : '',
-          ].filter(Boolean).join('・') : resolving ? [
+          ].filter(Boolean) : resolving ? [
             (displayedShields[die.id]?.displayValue ?? 0) > 0 ? `護盾 ${displayedShields[die.id].displayValue}` : '',
             (displayedFood[die.id]?.displayValue ?? 0) > 0 ? `儲糧 ${displayedFood[die.id].displayValue}` : '',
-          ].filter(Boolean).join('・') : '';
+          ].filter(Boolean) : [];
           const dieSize = trayLayout.size;
           const pumpVal = slotState?.displayValue;
-          const identity = resolving ? displayedIdentities[die.id]?.creature : calcItem?.creature;
-          const tags = resolving ? displayedIdentities[die.id]?.tags : calcItem?.tags;
+          const identity = identities[idx].creature;
           const available = diceAction.startsWith('teacher:') ? teacherTargets(actionState, diceAction.slice(8)).includes(idx)
             : diceAction === 'swap' ? idx < dicePool.length - 1 && control >= eq.formationCost && !creatureBattleState.formationUsed
-            : diceAction === 'lock' ? control >= eq.whistleCost && !creatureBattleState.whistleUsed
-            : diceAction === 'flip' ? control >= eq.prismCost && getOppositeFace(die, targetFaceIdx) !== null
-            : control > 0 || (hasEquipment(equipments, 'COUNTERWEIGHT') && gold >= eq.paidReroll);
+              : diceAction === 'lock' ? control >= eq.whistleCost && !creatureBattleState.whistleUsed
+                : diceAction === 'flip' ? control >= eq.prismCost && getOppositeFace(die, targetFaceIdx) !== null
+                  : control > 0 || (hasEquipment(equipments, 'COUNTERWEIGHT') && gold >= eq.paidReroll);
 
           let rotation = roll?.rotation ?? 0;
 
@@ -268,14 +318,14 @@ export const DiceBoard: React.FC = () => {
               <BattleDie dice={die} size={dieSize} rotation={rotation} scale={roll?.scale ?? 1}
                 faceIndex={isRerolling && roll ? roll.faceIndex : targetFaceIdx} rolling={isRerolling}
                 value={pumpVal} spinning={slotState?.isSpinning ?? false} locked={slotState?.isLocked ?? false} buffed={slotState?.isBuffed ?? false}
-                numberScale={slotState?.scale ?? 1} effectiveCreature={isRerolling ? undefined : identity} tags={isRerolling ? undefined : tags}
+                numberScale={slotState?.scale ?? 1} effectiveCreature={isRerolling ? undefined : identity}
                 protectedDie={creatureBattleState.lockedDice.includes(die.id)}
                 canReroll={combatPhase === 'CONTROL_PHASE' && available && activeRerollingIndex === null}
-                onReroll={() => useControlReroll(idx)} />
+                onReroll={() => useControlReroll(idx)} onInspect={setHoveredId} />
 
               {calcItem && activeRerollingIndex === null && combatPhase !== 'ROLLING' && (
-                <div className="die-result-label" title={`${resultLabel}・${calcItem.bonusTags.join('・')}`}>
-                  {resultLabel}
+                <div className="die-result-label">
+                  {resultLabels.map((label, index) => <span key={index}>{label}</span>)}
                 </div>
               )}
 
@@ -306,6 +356,7 @@ export const DiceBoard: React.FC = () => {
               y={position.y}
               scale={trayLayout.phantomScale}
               attackOffset={{ x: attackTarget.x - position.x, y: attackTarget.y - position.y }}
+              onInspect={setHoveredId}
             />
           );
         })}
@@ -317,15 +368,8 @@ export const DiceBoard: React.FC = () => {
           <span>
             當前骰池：<strong className="highlight">{dicePool.length}</strong> 顆骰子
           </span>
-          <span>•</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            剩餘 Control：
-            <strong className="control-num">{control}</strong>
-          </span>
         </div>
-        <div className="footer-right">
-          {comboSummary && combatPhase === 'CONTROL_PHASE' ? `預計傷害 ${comboSummary.totalDamage}・護盾 ${comboSummary.totalShield}・追傷 ${comboSummary.bonusDice.length} 顆` : '土人技能依骰子排列與標籤結算'}
-        </div>
+        <DiceHoverInfo info={inspection} />
       </div>
     </div>
   );

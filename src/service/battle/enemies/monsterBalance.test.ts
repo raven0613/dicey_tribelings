@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
-import { MONSTER_BALANCE_CONFIG } from '../../../configs/monsters/monsterBalanceConfig';
+import { MONSTER_BALANCE_CONFIG, getEncounterDamageBudget } from '../../../configs/monsters/monsterBalanceConfig';
 import { INITIAL_DICE_POOL, INITIAL_EQUIPMENT } from '../../../configs/gameConfig';
 import { calculateRollResolution } from '../battleEngine';
 import { simulateMonsterBalance } from './monsterBalanceSimulation';
@@ -16,7 +16,7 @@ test('starting dice enumerate all rolls through the production damage calculatio
     }
   }
   const mean = damage.reduce((sum, value) => sum + value, 0) / damage.length;
-  const regionOneBudget = MONSTER_BALANCE_CONFIG.regions[1].damagePerTurn;
+  const regionOneBudget = getEncounterDamageBudget('r1_patrol');
   assert.ok(Math.abs(mean - regionOneBudget) / regionOneBudget <= 0.2);
   context.diagnostic(`Starter: ${damage.length} rolls, mean ${mean.toFixed(2)}, range ${Math.min(...damage)}–${Math.max(...damage)}; zero Control.`);
 });
@@ -43,9 +43,8 @@ test('seeded output envelopes meet median turn targets and retain weak-build pro
     if (attackThresholds.length) {
       assert.ok(typical.counterRate > 0 && typical.counterRate < 1, `${monster.name}: threshold always/never met`);
     }
-    if (monster.id === 'rivet_guard') assert.ok(typical.counterRate > 0 && typical.counterRate < 1);
     const shieldPerCycle = monster.intents.reduce((sum, intent) => sum + (intent.type === 'defend' ? intent.value : 0), 0);
-    const weakestDamage = Math.max(1, Math.round(MONSTER_BALANCE_CONFIG.regions[monster.region].damagePerTurn
+    const weakestDamage = Math.max(1, Math.round(getEncounterDamageBudget(monster.id)
       * MONSTER_BALANCE_CONFIG.scenarios.weak * MONSTER_BALANCE_CONFIG.rollRange[0]));
     assert.ok(weakestDamage * monster.intents.length > shieldPerCycle, `${monster.name}: shield renewal prevents HP progress`);
   }

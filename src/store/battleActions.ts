@@ -19,7 +19,7 @@ export function createBattleActions(set: (state: Partial<GameState>) => void, ge
       const virtualFood = hasEquipment(state.equipments, 'RATIONS') ? state.storedRations : 0;
       const result = performStartBattleRoll(state.dicePool, state.equipments, state.creatureBattleState, state, virtualFood);
       set({ ...result, storedRations: 0, activeRerollingIndex: null, pendingRerolls: [], diceAction: 'reroll',
-        attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle', visibleBonusIds: [],
+        attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle', enemyAttack: null, visibleBonusIds: [],
         diceSlotStates: {}, bonusSlotStates: {}, skillFeedback: [], displayedIdentities: {},
         displayedShields: {}, displayedFood: {}, playerShieldDisplay: null });
     },

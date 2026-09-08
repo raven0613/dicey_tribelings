@@ -15,7 +15,7 @@ import type { Dice } from '../../../types/game';
 function summaryWithDamage(damage: number): BattleComboSummary {
   return { items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
     sourceName: '測試', bonusDamage: damage, label: '追加', description: '追加' }] : [], triggeredEquipmentIds: [], totalDamage: damage,
-    totalShield: 0, bonusControlGranted: 0, activeCombos: [], nextStoredFood: {} };
+    totalShield: 0, bonusControlGranted: 0, nextStoredFood: {} };
 }
 
 async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSummary, playerHp = 60, initial: Partial<GameState> = {}) {
@@ -40,7 +40,7 @@ async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSu
 }
 
 test('production settlement counts each normal and additional attack once including shield loss', async (context) => {
-  const enemy = createEnemy('rock_goblin');
+  const enemy = createEnemy('r1_slinger');
   enemy.hp = enemy.maxHp = 100;
   enemy.shield = 6;
   enemy.intents = [
@@ -63,7 +63,7 @@ test('production settlement counts each normal and additional attack once includ
 });
 
 test('additional attack consumes shield and a missed threshold applies player shield before HP', async (context) => {
-  const enemy = createEnemy('rock_goblin');
+  const enemy = createEnemy('r1_slinger');
   enemy.shield = 20;
   const summary = summaryWithDamage(5);
   summary.totalShield = 3;
@@ -77,7 +77,7 @@ test('additional attack consumes shield and a missed threshold applies player sh
 });
 
 test('lethal player damage ends battle before enemy action and never starts another roll', async (context) => {
-  const enemy = createEnemy('rock_goblin');
+  const enemy = createEnemy('r1_slinger');
   enemy.hp = 1;
   const { state, rolls } = await settle(context, enemy, summaryWithDamage(99));
   assert.equal(state.combatPhase, 'VICTORY');
@@ -86,23 +86,24 @@ test('lethal player damage ends battle before enemy action and never starts anot
 });
 
 test('enemy lethal damage enters defeat and never starts another roll', async (context) => {
-  const { state, rolls } = await settle(context, createEnemy('rock_goblin'), summaryWithDamage(0), 1);
+  const { state, rolls } = await settle(context, createEnemy('r1_slinger'), summaryWithDamage(0), 1);
   assert.equal(state.combatPhase, 'DEFEAT');
   assert.equal(state.playerHp, 0);
   assert.equal(rolls, 0);
 });
 
 test('cancelled defense grants zero shield through production settlement', async (context) => {
-  const enemy = createEnemy('mirror_judge');
-  const intent = enemy.intents[0];
+  const enemy = createEnemy('r5_jailer');
+  enemy.currentIntentIndex = 1;
+  const intent = enemy.intents[1];
   assert.ok('counter' in intent && intent.counter?.type === 'damage_taken');
   const { state } = await settle(context, enemy, summaryWithDamage(intent.counter.threshold));
   assert.equal(state.currentEnemy?.shield, 0);
-  assert.equal(state.currentEnemy?.currentIntentIndex, 1);
+  assert.equal(state.currentEnemy?.currentIntentIndex, 2);
 });
 
 test('charge advances without attacking or replenishing initial shield', async (context) => {
-  const enemy = createEnemy('bubble_slime');
+  const enemy = createEnemy('r1_patrol');
   enemy.currentIntentIndex = 1;
   const { state, rolls } = await settle(context, enemy, summaryWithDamage(0));
   assert.equal(state.currentEnemy?.currentIntentIndex, 2);
@@ -117,7 +118,7 @@ test('settlement attacks match preview after robbery and porter support with gan
     faces: Array.from({ length: 6 }, (_, face) => ({ id: `${index}-${face}`, baseValue: 4,
       creature: face === 0 || (creature === 'gang' && face < 3) ? creature : 'food' })) }));
   const summary = calculateRollResolution(pool, pool.map(() => 0), []);
-  const enemy = createEnemy('rock_goblin');
+  const enemy = createEnemy('r1_slinger');
   enemy.hp = enemy.maxHp = 1000; enemy.shield = 0;
   const { state } = await settle(context, enemy, summary);
   assert.equal(state.currentEnemy?.hp, enemy.hp - summary.totalDamage);
@@ -128,7 +129,7 @@ test('locking commits chef food once and rejects another settlement during the a
   context.mock.timers.enable({ apis: ['setTimeout'] });
   const chef: Dice = { id: 'chef', name: '廚師骰', dieType: 'd6', colorTheme: 'emerald',
     faces: Array.from({ length: 6 }, (_, index) => ({ id: `chef-${index}`, creature: index === 0 ? 'chef' : 'food', baseValue: 4 })) };
-  const enemy = createEnemy('rock_goblin');
+  const enemy = createEnemy('r1_slinger');
   enemy.hp = enemy.maxHp = 100;
   const creatureBattleState = { ...createCreatureBattleState(), storedFood: { chef: 7 } };
   let state: GameState = { ...useGameStore.getInitialState(), dicePool: [chef], rolledIndices: [0],
@@ -147,7 +148,7 @@ test('locking commits chef food once and rejects another settlement during the a
 
 
 test('remaining shields carry fully into the next round and abacus refills only to the configured ceiling', async (context) => {
-  const enemy = createEnemy('bubble_slime'); enemy.currentIntentIndex = 1;
+  const enemy = createEnemy('r1_patrol'); enemy.currentIntentIndex = 1;
   const summary = summaryWithDamage(0); summary.totalShield = 3; summary.bonusControlGranted = 1;
   const maxControl = 3;
   const { state } = await settle(context, enemy, summary, 60,
@@ -157,10 +158,28 @@ test('remaining shields carry fully into the next round and abacus refills only 
 });
 
 test('victory packs rations and clears battle food storage', async (context) => {
-  const enemy = createEnemy('bubble_slime'); enemy.hp = 1;
+  const enemy = createEnemy('r1_patrol'); enemy.hp = 1;
   const summary = summaryWithDamage(9); summary.leftoverFood = 17; summary.nextStoredFood = { chef: 12 };
   const { state } = await settle(context, enemy, summary, 60,
     { equipments: ALL_EQUIPMENT_CATALOG.filter((item) => item.ruleId === 'RATIONS') });
   assert.equal(state.storedRations, 17);
   assert.deepEqual(state.creatureBattleState.storedFood, {});
+});
+
+test('regional boss victory restores capped HP and offers two permanent rewards while final boss completes rescue', async (context) => {
+  const enemy = createEnemy('r1_boss'); enemy.hp = 1;
+  const { state } = await settle(context, enemy, summaryWithDamage(10), 50);
+  assert.equal(state.playerHp, 60);
+  assert.equal(state.battleRewardOptions.length, 5);
+  assert.equal(state.battleRewardPickCount, 2);
+  assert.equal(state.combatPhase, 'VICTORY');
+});
+
+test('final boss victory offers no further construction rewards', async (context) => {
+  const enemy = createEnemy('r6_boss'); enemy.hp = 1; enemy.shield = 0;
+  const { state } = await settle(context, enemy, summaryWithDamage(10), 40);
+  assert.equal(state.playerHp, 40);
+  assert.deepEqual(state.battleRewardOptions, []);
+  assert.equal(state.battleRewardPickCount, 0);
+  assert.equal(state.combatPhase, 'VICTORY');
 });

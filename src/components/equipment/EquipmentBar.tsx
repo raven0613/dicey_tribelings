@@ -1,3 +1,4 @@
+import { SkillText } from '../common/SkillText';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useGameStore } from '../../store/gameStore';
@@ -185,7 +186,7 @@ export const EquipmentBar: React.FC = () => {
 
                 {/* Description */}
                 <p className="tooltip-desc">
-                  {equip.description}
+                  <SkillText text={equip.description} />
                 </p>
 
                 {/* Direction Arrow strictly pointing down toward slot */}

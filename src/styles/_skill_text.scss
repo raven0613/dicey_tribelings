@@ -1,0 +1,13 @@
+@use 'variables' as *;
+
+.skill-tooltip {
+  position: fixed; z-index: 100000; pointer-events: none;
+  padding: 0.75rem 1rem; border: 1px solid $amber-300; border-radius: $radius-lg;
+  background: $slate-950; color: $slate-100; box-shadow: $shadow-xl;
+  font-size: 0.875rem; line-height: 1.6; white-space: pre-line; overflow: auto;
+}
+.phantom-die-anchor:focus-visible { outline: 3px solid $amber-300; outline-offset: 6px; }
+
+.skill-keyword { font-weight: 800; }
+.skill-tooltip-trigger { display: inline; }
+.skill-tooltip-trigger:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }

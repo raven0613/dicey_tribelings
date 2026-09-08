@@ -7,7 +7,7 @@ export const GameOverModal: React.FC = () => {
   const { combatPhase, restartGame, dicePool, equipments, currentNodeIndex, currentEnemy } = useGameStore();
 
   const isDefeat = combatPhase === 'DEFEAT';
-  const isFinalVictory = combatPhase === 'VICTORY' && currentEnemy?.isBoss;
+  const isFinalVictory = combatPhase === 'VICTORY' && currentEnemy?.isBoss && currentEnemy.region === 6;
 
   React.useEffect(() => {
     if (isFinalVictory) {
@@ -39,11 +39,11 @@ export const GameOverModal: React.FC = () => {
 
         <div>
           <div className={`game-over-title ${isFinalVictory ? 'victory' : 'defeat'}`}>
-            {isFinalVictory ? '通關大勝利！通關全境！' : '冒險中途倒下...'}
+            {isFinalVictory ? '救回王子！' : '冒險中途倒下...'}
           </div>
           <div className="game-over-desc">
             {isFinalVictory
-              ? '你成功擊敗了「骰之支配者」，用自製的強大骰池掌控了命運！'
+              ? '你帶領土人擊敗鱷魚王，從深牢救回王子！王子將王冠送給你，感謝代理王子的救援。'
               : '骰運與戰術在最後一刻失衡，整備心情再次挑戰吧！'}
           </div>
         </div>

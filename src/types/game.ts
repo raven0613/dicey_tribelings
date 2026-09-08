@@ -1,10 +1,9 @@
 import type { CreatureId } from './creatures';
 
-export type RewardTier = 'early' | 'mid' | 'late' | 'boss';
+import type { RegionId } from './enemy';
 
 export interface TemporarySticker {
   name: string;
-  baseValue: number;
   creature: CreatureId;
   description: string;
 }
@@ -48,23 +47,28 @@ export interface BonusAttackDice {
   description: string;
 }
 
-export interface StickerItem {
+interface StickerIdentity {
   id: string;
   name: string;
-  isDisposable: boolean;
-  baseValue: number;
   creature: CreatureId;
   description: string;
   rarity: EquipmentRarity;
   cost?: number;
-  rewardTier?: RewardTier;
 }
+export interface PermanentSticker extends StickerIdentity {
+  isDisposable: false;
+  baseValue: number;
+  region: RegionId;
+}
+export interface DisposableSticker extends StickerIdentity {
+  isDisposable: true;
+}
+export type StickerItem = PermanentSticker | DisposableSticker;
 
 export interface ConsumableSticker {
   instanceId: string;
   stickerId: string;
   name: string;
-  baseValue: number;
   creature: CreatureId;
   description: string;
   rarity: EquipmentRarity;
@@ -76,8 +80,9 @@ export interface StickerPack {
   rarity: EquipmentRarity;
   description: string;
   stickerCount: number;
+  permanentCount: number;
   themeName: string;
-  stickerIds: string[];
+  creatures: readonly CreatureId[];
 }
 
 export type BattleRewardOption =
@@ -96,10 +101,13 @@ export interface TemporaryStickerPlacement {
 
 export type { Enemy, EnemyIntent } from './enemy';
 
-export type MapNodeType = 'fight' | 'chest' | 'shop' | 'elite' | 'boss';
+export type MapNodeType = 'fight' | 'chest' | 'shop' | 'elite' | 'boss' | 'pack';
 
 export interface MapNode {
   id: number;
+  region: RegionId;
+  regionNode: number;
+  packId?: string;
   type: MapNodeType;
   enemyId?: string;
   title: string;

@@ -1,5 +1,12 @@
-import type { BonusAttackDice } from './game';
+import type { AttackStage, BonusAttackDice } from './game';
 import type { CreatureId, CreatureTag } from './creatures';
+
+export interface EnemyAttackFeedback {
+  stage: Exclude<AttackStage, 'idle'>;
+  heavy: boolean;
+  healthDamage: number;
+  shieldDamage: number;
+}
 
 export interface CalculatedRollItem {
   diceId: string;
@@ -13,6 +20,19 @@ export interface CalculatedRollItem {
   finalDamage: number;
   bonusTags: string[];
   shieldGranted: number;
+  skillInputs: SkillInputs;
+}
+
+/** Values captured at the role's own resolution step, before later skills alter the board. */
+export interface SkillInputs {
+  count?: number;
+  minimum?: number;
+  value?: number;
+  before?: number;
+  after?: number;
+  copiedCreature?: CreatureId;
+  virtualFood?: boolean;
+  blockedByRobbery?: boolean;
 }
 
 export interface SkillChange {
@@ -23,6 +43,9 @@ export interface SkillChange {
 }
 
 export interface SkillEvent {
+  skill: CreatureId | 'storage' | 'princessReady' | 'equipment';
+  activated: boolean;
+  relation: 'support' | 'adjacent' | 'robbery' | 'attack';
   id: string;
   stage: number;
   sourceDiceId?: string;
@@ -50,7 +73,6 @@ export interface BattleComboSummary {
   goldGranted: number;
   nextStoredFood: Record<string, number>;
   leftoverFood: number;
-  activeCombos: { title: string; description: string; bonusValue: number }[];
 }
 
 export interface NumberDisplay {

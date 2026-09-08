@@ -13,7 +13,7 @@ const resolve = (pool: ReturnType<typeof die>[]) => calculateRollResolution(pool
 
 test('family reads other effective faces and twins use the highest effective base', () => {
   const family = die('a', 'family');
-  family.faces[1].temporarySticker = { name: '覆蓋', creature: 'twins', baseValue: 20, description: '' };
+  family.faces[1].temporarySticker = { name: '覆蓋', creature: 'twins', description: '' };
   const twins = die('b', 'twins', 2);
   twins.faces[5].baseValue = 9;
   const result = resolve([family, twins]);
@@ -50,12 +50,12 @@ test('boss steals current supported damage once, preserving gang additions', () 
   const result = resolve([die('a', 'boss'), die('b', 'gang', 10)]);
   assert.equal(result.items[0].finalDamage, 4 + 10 * b.boss.multiplier);
   assert.equal(result.items[1].finalDamage, 0);
-  assert.equal(result.bonusDice[0].bonusDamage, 10);
+  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), Array(4).fill(b.gang.damagePerNeighbor));
 });
 
 test('bosses can steal each other but each target is marked once', () => {
   const result = resolve([die('a', 'boss'), die('b', 'boss'), die('c', 'boss')]);
-  const stolen = result.events.filter((event) => event.ability === '搶奪')
+  const stolen = result.events.filter((event) => event.ability === '現在是我的了')
     .flatMap((event) => event.changes.filter((change) => change.after === 0).map((change) => change.targetId));
   assert.equal(new Set(stolen).size, stolen.length);
   assert.ok(stolen.length > 0);
@@ -80,11 +80,11 @@ test('multiple bulwarks read the same newly granted shield and heralds affect no
 
 test('princesses can gain herald damage and order each other without recursive skills', () => {
   const result = resolve([die('a', 'princess'), die('b', 'princess'), die('c', 'gang'), die('d', 'herald')]);
-  assert.deepEqual(result.items.slice(0, 2).map((item) => item.finalDamage), [1, 1]);
+  assert.deepEqual(result.items.slice(0, 2).map((item) => item.finalDamage), [4, 4].map((count) => count * b.herald.bonusPerAttack));
   assert.equal(result.repeatAttacks.length, 2);
-  assert.equal(result.bonusDice.length, 1);
+  assert.equal(result.bonusDice.length, 4);
   assert.equal(result.totalDamage, result.items.reduce((sum, item) => sum + item.finalDamage, 0)
-    + result.bonusDice[0].bonusDamage + 2);
+    + 4 * b.gang.damagePerNeighbor + 8 * b.herald.bonusPerAttack);
 });
 
 test('imposter supplies counts without abilities or extra physical attacks', () => {
@@ -111,10 +111,10 @@ test('equipment bonuses are applied before princess snapshots and never replay a
   const pool = [die('a', 'princess'), die('b', 'elder'), die('c', 'gang')];
   const result = calculateRollResolution(pool, [0, 0, 0], equipment, createCreatureBattleState(), { control: 3, maxControl: 3, gold: 0 });
   assert.equal(result.repeatAttacks[0].damage, result.items[1].finalDamage);
-  assert.equal(result.bonusDice.length, 1);
+  assert.equal(result.bonusDice.length, 4);
 });
 
-test('food boosts divide one fixed budget per farmer and storage reads strengthened bases', () => {
+test('farmers concentrate fixed boosts on nearest food and storage reads strengthened bases', () => {
   const foods = Array.from({ length: 7 }, (_, index) => {
     const food = die(`food-${index}`, 'food', 4);
     food.faces[1].creature = 'chef';
@@ -126,19 +126,20 @@ test('food boosts divide one fixed budget per farmer and storage reads strengthe
   for (const food of result.items.slice(0, 7)) assert.equal(result.nextStoredFood[food.diceId], food.baseValue);
 });
 
-test('same-die and neighboring warriors use effective base values while field followers contribute once', () => {
+test('warriors count neighboring follower faces and followers read effective neighboring warrior bases', () => {
   const warrior = die('a', 'warrior', 6);
   warrior.faces[1].creature = 'follower';
-  warrior.faces[2].temporarySticker = { name: '勇士', creature: 'warrior', baseValue: 20, description: '' };
+  warrior.faces[2].baseValue = 20;
+  warrior.faces[2].temporarySticker = { name: '勇士', creature: 'warrior', description: '' };
   const result = resolve([warrior, die('b', 'follower', 3)]);
-  assert.equal(result.items[0].finalDamage, 6 + 2 * b.warrior.bonusPerFollower);
+  assert.equal(result.items[0].finalDamage, 6 + 6 * b.warrior.bonusPerFollower);
   assert.equal(result.items[1].finalDamage, 23);
 });
 
-test('artisan grants shields once per containing die using physical neighboring tribes', () => {
+test('face-up artisan grants shields from adjacent craftsman faces', () => {
   const artisan = die('b', 'artisan');
   const result = resolve([die('a', 'food'), artisan, die('c', 'imposter')]);
-  assert.equal(result.items[1].shieldGranted, b.artisan.shield);
+  assert.equal(result.items[1].shieldGranted, 4 * b.artisan.shield);
 });
 
 test('imposter count supports sister threshold and identifies its actual participating die', () => {

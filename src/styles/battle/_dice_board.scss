@@ -10,7 +10,7 @@
   border-radius: $radius-2xl;
   padding: 0.5rem 0.75rem;
   display: grid;
-  grid-template-rows: 1.75rem minmax(0, 1fr) 1.75rem;
+  grid-template-rows: 1.75rem minmax(7rem, 1fr) 5.5rem;
   box-shadow: $shadow-2xl;
   user-select: none;
   overflow: visible; // Allow dice forward dash to visibly strike monster!
@@ -75,12 +75,12 @@
   .board-footer {
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.5rem;
     min-width: 0;
-    white-space: nowrap;
-    font-size: 0.7rem;
+    white-space: normal;
+    font-size: 0.875rem;
     color: $slate-400;
     border-top: 1px solid rgba($slate-700, 0.5);
     padding-top: 0.25rem;
@@ -104,11 +104,8 @@
     }
 
     .footer-right {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 11px;
-      color: $slate-500;
+      flex: 1; min-width: 0; height: 100%; overflow-y: auto;
+      font-size: 0.875rem; color: $slate-200; line-height: 1.5;
     }
   }
 }
@@ -124,17 +121,20 @@
   left: 50%;
   transform: translateX(-50%);
   width: var(--detail-width);
-  overflow: hidden;
-  text-overflow: ellipsis;
   text-align: center;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
   padding: 0.2rem 0.4rem;
   border-radius: 0.3rem;
   background: #0f172ae6;
   color: #e2e8f0;
   font-size: 0.7rem;
+  &:empty { display: none; }
 }
 
 @media (max-height: 740px) {
-  .dice-board { padding-block: 0.25rem; grid-template-rows: 1.5rem minmax(0, 1fr) 1.5rem; }
+  .dice-board { padding-block: 0.25rem; grid-template-rows: 1.5rem minmax(7rem, 1fr) 5.5rem; }
 }

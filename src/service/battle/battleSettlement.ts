@@ -4,14 +4,14 @@ import { combatNumber } from './creatures/creatureState';
 import type { DamagePop } from '../../types/game';
 import type { GameState } from '../../store/gameStore.types';
 import { soundService } from '../audio/soundService';
-import { ALL_STICKERS_CATALOG } from '../../configs/gameConfig';
-import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
+import { REWARD_CONFIG } from '../../configs/rewardConfig';
 import { BATTLE_PRESENTATION as timing, COMBAT_GOLD } from '../../configs/battleConfig';
-import { generateBattleRewardOptions, getRewardTier } from '../rewards/rewardService';
+import { generateBattleRewardOptions, getBattleRewardCount } from '../rewards/rewardService';
 import { restoreTemporaryStickers } from '../inventory/inventoryService';
 import { createCreatureBattleState } from './creatures/creatureState';
 import { applyEnemyDamage, resolveEnemyIntent } from './enemies/enemyIntent';
 import { animateAttack, animateCalculatedNumbers, waitForAnimation } from './settlementAnimation';
+import { animateEnemyAttack } from './enemyAttackAnimation';
 
 export interface BattleStoreMethods {
   get: () => GameState;
@@ -22,7 +22,7 @@ export interface BattleStoreMethods {
 }
 
 export async function runBattleSettlement(methods: BattleStoreMethods): Promise<void> {
-  const { get, set, startBattleRoll, triggerScreenShake } = methods;
+  const { get, set, startBattleRoll } = methods;
   const initial = get();
   const { comboSummary: summary, currentEnemy, dicePool } = initial;
   if (initial.combatPhase !== 'CONTROL_PHASE' || initial.activeRerollingIndex !== null || !summary || !currentEnemy) return;
@@ -61,11 +61,13 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
     if (!isCurrent()) return;
     soundService.playVictory();
     const state = get();
-    const tier = getRewardTier(state.currentNodeIndex, state.mapNodes.length);
-    const battleRewardOptions = currentEnemy.isBoss ? [] : generateBattleRewardOptions(
-      ALL_STICKERS_CATALOG, STICKER_PACKS_CATALOG, tier, Math.random, !currentEnemy.isElite);
+    const rank = currentEnemy.isBoss ? currentEnemy.region === 6 ? 'final_boss' : 'boss'
+      : currentEnemy.isElite ? 'elite' : 'normal';
+    const battleRewardOptions = generateBattleRewardOptions(currentEnemy.region, rank);
     const earnedGold = currentEnemy.isBoss ? COMBAT_GOLD.boss : currentEnemy.isElite ? COMBAT_GOLD.elite : COMBAT_GOLD.normal;
     set({ combatPhase: 'VICTORY', gold: state.gold + earnedGold, battleRewardOptions,
+      battleRewardPickCount: getBattleRewardCount(rank),
+      playerHp: Math.min(state.maxHp, state.playerHp + (rank === 'boss' ? REWARD_CONFIG.bossHeal : 0)),
       dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: createCreatureBattleState(),
       storedRations: hasEquipment(initial.equipments, 'RATIONS') ? summary.leftoverFood : 0 });
     return;
@@ -76,20 +78,16 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   if (!isCurrent()) return;
   const intent = activeEnemy.intents[activeEnemy.currentIntentIndex];
   const resolution = resolveEnemyIntent(activeEnemy, damageTaken);
-  activeEnemy = { ...activeEnemy, currentIntentIndex: resolution.nextIntentIndex, shield: activeEnemy.shield + resolution.shieldGain };
-  set({ currentEnemy: activeEnemy });
   if (resolution.damage > 0) {
-    soundService.playEnemyHit(intent.type === 'heavy_attack');
-    triggerScreenShake(intent.type === 'heavy_attack' ? timing.heavyShake : timing.lightShake);
-    const state = get();
-    const absorbed = Math.min(state.playerShield, resolution.damage);
-    const playerHp = combatNumber(Math.max(0, state.playerHp - (resolution.damage - absorbed)));
-    set({ playerShield: combatNumber(state.playerShield - absorbed), playerHp });
-    if (playerHp <= 0) {
+    await animateEnemyAttack(methods, resolution.damage, intent.type === 'heavy_attack', isCurrent);
+    if (!isCurrent()) return;
+    if (get().playerHp <= 0) {
       set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: createCreatureBattleState() });
       return;
     }
   }
+  activeEnemy = { ...activeEnemy, currentIntentIndex: resolution.nextIntentIndex, shield: activeEnemy.shield + resolution.shieldGain };
+  set({ currentEnemy: activeEnemy });
   await waitForAnimation(timing.nextRoundMs);
   if (!isCurrent()) return;
   set({ control: Math.min(initial.maxControl + EQUIPMENT_BALANCE.controlHeadroom, get().control + summary.bonusControlGranted) });

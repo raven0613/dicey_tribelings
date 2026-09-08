@@ -1,17 +1,17 @@
 import {
   ConsumableSticker,
   Dice,
-  StickerItem,
+  DisposableSticker,
+  PermanentSticker,
   TemporarySticker,
   TemporaryStickerPlacement,
 } from '../../types/game';
 
-export function createConsumableSticker(sticker: StickerItem, instanceId: string): ConsumableSticker {
+export function createConsumableSticker(sticker: DisposableSticker, instanceId: string): ConsumableSticker {
   return {
     instanceId,
     stickerId: sticker.id,
     name: sticker.name,
-    baseValue: sticker.baseValue,
     creature: sticker.creature,
     description: sticker.description,
     rarity: sticker.rarity,
@@ -38,7 +38,7 @@ export function applyPermanentSticker(
   dicePool: Dice[],
   diceId: string,
   faceIndex: number,
-  sticker: StickerItem
+  sticker: PermanentSticker
 ): Dice[] {
   return dicePool.map((die) => {
     if (die.id !== diceId || !die.faces[faceIndex]) return die;
@@ -68,7 +68,6 @@ export function applyTemporaryPlacements(
       if (!placement) return face;
       const temporarySticker: TemporarySticker = {
         name: placement.consumable.name,
-        baseValue: placement.consumable.baseValue,
         creature: placement.consumable.creature,
         description: placement.consumable.description,
       };
@@ -82,4 +81,13 @@ export function restoreTemporaryStickers(dicePool: Dice[]): Dice[] {
     ...die,
     faces: die.faces.map(({ temporarySticker: _temporarySticker, ...face }) => face),
   }));
+}
+
+export function validateTemporaryPlacements(dicePool: Dice[], inventory: ConsumableSticker[],
+  placements: TemporaryStickerPlacement[]): boolean {
+  const faces = new Set(placements.map((item) => `${item.diceId}:${item.faceIndex}`));
+  const instances = new Set(placements.map((item) => item.consumable.instanceId));
+  return faces.size === placements.length && instances.size === placements.length
+    && placements.every((item) => inventory.some((owned) => owned.instanceId === item.consumable.instanceId)
+      && Boolean(dicePool.find((die) => die.id === item.diceId)?.faces[item.faceIndex]));
 }
