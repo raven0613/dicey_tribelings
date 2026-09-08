@@ -22,12 +22,12 @@ interface DiceNetFaceProps {
 
 const FaceContent: React.FC<{ face: DiceFace; sticker?: StickerItem }> = ({ face, sticker }) => {
   const original = getEffectiveFace(face);
-  const effective = sticker ? { creature: sticker.creature, baseValue: sticker.isDisposable ? face.baseValue : sticker.baseValue } : original;
+  const effective = sticker ? { creature: sticker.creature, baseValue: sticker.isDisposable === true ? face.baseValue : sticker.baseValue } : original;
   const creature = CREATURE_CONFIG[effective.creature];
   return <span className="dice-net-copy" style={{ '--face-color': creature.color } as CSSProperties}>
     <span className="dice-net-creature">
       <span className="dice-net-identity"><span aria-hidden="true">{creature.emoji}</span>{creature.name}</span>
-      <strong className="dice-net-attack">{sticker ? sticker.isDisposable ? `${face.baseValue}（沿用）` : `${original.baseValue} → ${sticker.baseValue}` : effective.baseValue}</strong>
+      <strong className="dice-net-attack">{sticker ? sticker.isDisposable === true ? `${face.baseValue}（沿用）` : `${original.baseValue} → ${sticker.baseValue}` : effective.baseValue}</strong>
     </span>
     <span className="dice-net-ability"><strong><SkillText text={creature.ability} />：</strong><SkillText text={creature.description} /></span>
     <RarityBadge rarity={creature.rarity} />
@@ -41,7 +41,7 @@ const FaceContent: React.FC<{ face: DiceFace; sticker?: StickerItem }> = ({ face
 export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry, scale, relation, neighbors,
   onHover, onFocus, sticker, previewing, onApply }) => {
   const showPreview = !!sticker && previewing;
-  const effective = showPreview ? { creature: sticker.creature, baseValue: sticker.isDisposable ? face.baseValue : sticker.baseValue } : getEffectiveFace(face);
+  const effective = showPreview ? { creature: sticker.creature, baseValue: sticker.isDisposable === true ? face.baseValue : sticker.baseValue } : getEffectiveFace(face);
   const creature = CREATURE_CONFIG[effective.creature];
   const { bounds, contentBounds } = geometry;
   const polygon = geometry.points.map(([x, y]) =>

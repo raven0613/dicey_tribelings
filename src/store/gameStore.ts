@@ -1,3 +1,5 @@
+import { useStoryStore } from './storyStore';
+import { syncStoryProgress } from '../service/story/syncStoryProgress';
 import { create } from 'zustand';
 import { createCreatureBattleState } from '../service/battle/creatures/creatureState';
 import { ConsumableSticker, Dice, DisposableSticker, StickerItem, TemporaryStickerPlacement } from '../types/game';
@@ -62,6 +64,7 @@ function getInitialValues() {
     attackingDieIndex: null,
     attackingBonusIndex: null,
     attackingStage: 'idle' as const,
+    attackEmphasis: 0,
     enemyAttack: null,
     damagePops: [],
     visibleBonusIds: [],
@@ -180,6 +183,7 @@ export const useGameStore = create<GameState>((set, get) => {
           attackingDieIndex: null,
           attackingBonusIndex: null,
           attackingStage: 'idle',
+          attackEmphasis: 0,
           visibleBonusIds: [],
           diceSlotStates: {},
           bonusSlotStates: {},
@@ -407,6 +411,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     restartGame: () => {
+      useStoryStore.getState().beginRun();
       consumableSequence = 0;
       set(getInitialValues());
       get().startNode(0);
@@ -417,3 +422,5 @@ export const useGameStore = create<GameState>((set, get) => {
     dismissDiceNotification: () => set({ unlockedDiceNotification: null }),
   };
 });
+
+useGameStore.subscribe(syncStoryProgress);

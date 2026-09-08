@@ -1,4 +1,5 @@
 import { buildAttackPlan } from './attackPlan';
+import { getAttackEmphases } from './attackPresentation';
 import { EQUIPMENT_BALANCE, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { combatNumber } from './creatures/creatureState';
 import type { DamagePop } from '../../types/game';
@@ -25,7 +26,8 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   const { get, set, startBattleRoll } = methods;
   const initial = get();
   const { comboSummary: summary, currentEnemy, dicePool } = initial;
-  if (initial.combatPhase !== 'CONTROL_PHASE' || initial.activeRerollingIndex !== null || !summary || !currentEnemy) return;
+  if (initial.combatPhase !== 'CONTROL_PHASE' || initial.activeRerollingIndex !== null
+    || initial.diceAction.startsWith('teacher:') || !summary || !currentEnemy) return;
   let activeEnemy = structuredClone(currentEnemy);
   let damageTaken = 0;
   const isCurrent = () => get().comboSummary === summary;
@@ -47,12 +49,13 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
     set({ currentEnemy: activeEnemy });
   };
   const attacks = buildAttackPlan(summary, currentEnemy.shield, initial.equipments);
-  for (const attack of attacks) {
+  const emphases = getAttackEmphases(attacks);
+  for (const [position, attack] of attacks.entries()) {
     if (!isCurrent()) return;
     const defeated = activeEnemy.hp <= 0;
     await animateAttack(methods, attack.index, attack.bonus,
       { value: attack.value, creature: attack.creature, label: defeated ? '追擊!' : attack.label || undefined },
-      () => { if (isCurrent()) applyDamage(attack.value); }, isCurrent);
+      () => { if (isCurrent()) applyDamage(attack.value); }, isCurrent, emphases[position]);
   }
   if (!isCurrent()) return;
 

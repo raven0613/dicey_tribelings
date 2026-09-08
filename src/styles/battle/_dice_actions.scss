@@ -1,0 +1,39 @@
+.battle-controls { flex-wrap: wrap; }
+
+.teacher-controls {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #fef3c7;
+  font-size: 13px;
+
+  button {
+    padding: 8px 12px;
+    border: 1px solid #fbbf2480;
+    border-radius: 8px;
+    background: #45341f;
+    color: #fef3c7;
+    font: inherit;
+    cursor: pointer;
+    &:hover:not(:disabled) { background: #644623; border-color: #fbbf24; }
+    &:focus-visible { outline: 2px solid #fbbf24; outline-offset: 3px; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+}
+
+.die-anchor.is-teacher-target .battle-die {
+  outline: 3px solid #fbbf24;
+  outline-offset: 5px;
+  border-radius: 14px;
+  background: #fbbf2420;
+}
+.die-anchor.is-not-teacher-target { opacity: 0.45; }
+.dice-filter-definitions { position: absolute; pointer-events: none; }
+.is-carry .battle-die-rim { stroke: #fff0a6; stroke-width: 3px; }
+.is-carry .phantom-face { border-color: #fff0a6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .die-bulge-body { filter: none !important; }
+}

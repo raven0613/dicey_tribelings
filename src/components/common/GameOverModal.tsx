@@ -26,9 +26,8 @@ export const GameOverModal: React.FC = () => {
       <div className="game-over-card">
         {/* Icon Header */}
         <div
-          className={`game-over-icon-box ${
-            isFinalVictory ? 'victory' : 'defeat'
-          }`}
+          className={`game-over-icon-box ${isFinalVictory ? 'victory' : 'defeat'
+            }`}
         >
           {isFinalVictory ? (
             <Trophy size={40} />
@@ -59,7 +58,7 @@ export const GameOverModal: React.FC = () => {
             <span className="val-amber">{dicePool.length} 顆骰子</span>
           </div>
           <div className="stat-row">
-            <span className="label">持有裝備遺物：</span>
+            <span className="label">持有裝備：</span>
             <span className="val-indigo">{equipments.length} 件</span>
           </div>
         </div>

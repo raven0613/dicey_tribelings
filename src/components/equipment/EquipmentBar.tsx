@@ -60,7 +60,7 @@ export const EquipmentBar: React.FC = () => {
       <div className="bar-header">
         <span className="bar-title">
           <Sparkles style={{ width: '14px', height: '14px', color: '#fbbf24' }} />
-          裝備遺物槽位 ({equipments.length}/{maxSlots})
+          裝備槽位 ({equipments.length}/{maxSlots})
         </span>
         <span className="bar-tip">懸停或點擊槽位可檢視完整遺物技能效果</span>
       </div>
@@ -112,7 +112,7 @@ export const EquipmentBar: React.FC = () => {
               <div className="slot-text-box">
                 <div className="equip-name">{equip.name}</div>
                 <div className="equip-type">
-                  {equip.type === 'pattern' ? '組合' : equip.type === 'control' ? '控制' : '被動'} 遺物
+                  {equip.type === 'pattern' ? '組合' : equip.type === 'control' ? '控制' : '被動'} 裝備
                 </div>
               </div>
 
@@ -179,8 +179,8 @@ export const EquipmentBar: React.FC = () => {
                     {equip.type === 'pattern'
                       ? '骰面組合'
                       : equip.type === 'control'
-                      ? 'Control 補救與戰術機制'
-                      : '全局共鳴被動'}
+                        ? 'Control 補救與戰術機制'
+                        : '全局共鳴被動'}
                   </span>
                 </div>
 

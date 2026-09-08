@@ -1,7 +1,7 @@
 import { ceilDamage } from '../../service/battle/damageValue';
 import { SkillFeedback } from './SkillFeedback';
 import type { SkillFeedback as Feedback } from '../../types/battle';
-import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
+import { getAttackPose } from '../../service/battle/attackPresentation';
 import React from 'react';
 import { BonusAttackDice, AttackStage } from '../../types/game';
 import { Sparkles } from 'lucide-react';
@@ -14,6 +14,9 @@ interface BonusPhantomDiceProps {
   feedback: Feedback[];
   isAttacking: boolean;
   attackingStage: AttackStage;
+  attackEmphasis: number;
+  bulgeFilter?: string;
+  reducedMotion: boolean;
   slotState?: {
     displayValue: number;
     scale: number;
@@ -33,6 +36,9 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   feedback,
   isAttacking,
   attackingStage,
+  attackEmphasis,
+  bulgeFilter,
+  reducedMotion,
   slotState,
   x,
   y,
@@ -50,25 +56,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
     ? <CreatureBadge creature={dice.creature} iconOnly size={18} showTooltip={false} />
     : <Sparkles size={16} />;
 
-  // Attack forward-dash motion calculations
-  let transformStyle = 'translate(-50%, -50%)';
-  let transitionStyle = 'none';
-
-  if (isAttacking) {
-    if (attackingStage === 'windup') {
-      transformStyle = 'translate(-50%, calc(-50% + 12px)) scale(0.9)';
-      transitionStyle = `transform ${timing.windupMs}ms ease-out`;
-    } else if (attackingStage === 'dash') {
-      transformStyle = `translate(calc(-50% + ${attackOffset.x}px), calc(-50% + ${attackOffset.y}px)) scale(1.45)`;
-      transitionStyle = `transform ${timing.dashMs}ms cubic-bezier(0.1, 0.9, 0.2, 1.25)`;
-    } else if (attackingStage === 'impact') {
-      transformStyle = `translate(calc(-50% + ${attackOffset.x}px), calc(-50% + ${attackOffset.y}px)) scale(1.6)`;
-      transitionStyle = `transform ${timing.recoilMs}ms ease-out`;
-    } else if (attackingStage === 'recoil') {
-      transformStyle = 'translate(-50%, -50%) scale(1)';
-      transitionStyle = `transform ${timing.recoilMs}ms ease-out`;
-    }
-  }
+  const pose = getAttackPose(isAttacking ? attackingStage : 'idle', attackEmphasis, attackOffset, reducedMotion);
 
   return (
     <div
@@ -77,14 +65,15 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
       onFocus={() => onInspect(dice.id)} onBlur={() => onInspect(null)}
       onKeyDown={(event) => { if (event.key === 'Escape') onInspect(null); }}
       id={`phantom-die-${dice.id}`}
-      className={`phantom-die-anchor ${isAttacking ? 'is-attacking' : ''}`}
+      className={`phantom-die-anchor ${isAttacking ? 'is-attacking' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
       style={{
         '--creature-color': color,
         color,
         left: `${x}px`,
         top: `${y}px`,
-        transform: `${transformStyle} scale(${scale})`,
-        transition: transitionStyle,
+        transform: `${pose.transform} rotate(${pose.rotation}deg) scale(${scale})`,
+        transition: pose.transition,
+        zIndex: isAttacking ? 100 : undefined,
       } as React.CSSProperties}
     >
       <SkillFeedback diceId={dice.id} feedback={feedback} />
@@ -102,7 +91,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
       )}
 
       {/* Only the outer spawn layer starts once; the stable cube keeps its six faces. */}
-      <div className="phantom-spawn">
+      <div className="phantom-spawn die-bulge-body" style={{ filter: bulgeFilter }}>
         <div className="phantom-float" style={{ animationPlayState: isAttacking ? 'paused' : 'running' }}>
           <div className="phantom-cube-container">
             {/* Front Face (Hero face showing slot machine number) */}

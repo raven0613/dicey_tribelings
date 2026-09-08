@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { Play, Swords, RotateCcw, Shield } from 'lucide-react';
+import { TeacherControls } from './TeacherControls';
 
 interface BattleControlsProps {
   onResolve: () => void;
@@ -9,7 +10,7 @@ interface BattleControlsProps {
 
 export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isResolving }) => {
   const { combatPhase, control, maxControl, comboSummary, activeRerollingIndex,
-    confirmBattlePreparation, unlockedDiceNotification, stickerFlow } = useGameStore();
+    confirmBattlePreparation, unlockedDiceNotification, stickerFlow, diceAction } = useGameStore();
 
   if (combatPhase === 'PREPARATION') return <div className="battle-controls first-roll-controls">
     <span>擲出骰子，開始救援！</span>
@@ -18,18 +19,20 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
   </div>;
 
   const isControlPhase = combatPhase === 'CONTROL_PHASE';
-  const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving;
+  const selectingTeacher = diceAction.startsWith('teacher:');
+  const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving && !selectingTeacher;
   const totalForecastDamage = comboSummary?.totalDamage || 0;
   const totalForecastShield = comboSummary?.totalShield || 0;
   let resolveLabel = '鎖定結果 • 結算攻擊';
   if (isResolving) resolveLabel = '結算連續撞擊中...';
   else if (activeRerollingIndex !== null) resolveLabel = '等待重骰落定...';
+  else if (selectingTeacher) resolveLabel = '請選擇老師目標或取消';
 
   return (
     <div className="battle-controls">
       {/* Left: Control Points meter & Tips */}
       <div className="controls-left">
-        <div className="control-meter-group">
+        <div className="control-meter-group" data-story-anchor="control">
           <div className="meter-icon-box">
             <RotateCcw style={{ width: '20px', height: '20px' }} />
           </div>
@@ -50,7 +53,7 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
         </div>
 
         <div className="tactics-tip">
-          {control > 0 ? (
+          {selectingTeacher ? <span>點擊亮框骰子，或取消老師操作</span> : control > 0 ? (
             <span>點擊骰子重骰，調整本輪組合</span>
           ) : (
             <span className="exhausted">確認本輪結果，準備攻擊</span>
@@ -86,6 +89,7 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
           <span>{resolveLabel}</span>
         </button>
       </div>
+      <TeacherControls />
     </div>
   );
 };

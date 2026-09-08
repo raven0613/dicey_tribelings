@@ -69,6 +69,7 @@ export interface GameState {
   attackingDieIndex: number | null;
   attackingBonusIndex: number | null;
   attackingStage: AttackStage;
+  attackEmphasis: number;
   enemyAttack: EnemyAttackFeedback | null;
   damagePops: DamagePop[];
   visibleBonusIds: string[];

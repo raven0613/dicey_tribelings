@@ -3,13 +3,15 @@
 // Chest Modal & Relic Selection Wrapper
 .chest-wrapper {
   width: 100%;
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
+  min-height: min-content;
+  flex-direction: column;
+  gap: 0.75rem;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .chest-card {

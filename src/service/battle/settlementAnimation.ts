@@ -6,6 +6,7 @@ import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { soundService } from '../audio/soundService';
 import { ceilDamage } from './damageValue';
 import { combatNumber } from './creatures/creatureState';
+import { getAttackTiming } from './attackPresentation';
 
 export const waitForAnimation = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const still = (value: number): NumberDisplay => ({ displayValue: value, scale: 1, isSpinning: false, isLocked: true, isBuffed: false });
@@ -106,23 +107,25 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
 }
 
 export async function animateAttack(methods: BattleStoreMethods, index: number, bonus: boolean,
-  pop: Omit<DamagePop, 'id'>, applyDamage: () => void, isCurrent = () => true) {
+  pop: Omit<DamagePop, 'id'>, applyDamage: () => void, isCurrent = () => true, strength = 0) {
   const { set, triggerScreenShake, addDamagePop } = methods;
   if (!isCurrent()) return;
-  const heavy = pop.value >= timing.heavyDamage;
-  set({ attackingDieIndex: bonus ? null : index, attackingBonusIndex: bonus ? index : null, attackingStage: 'windup' });
-  await waitForAnimation(timing.windupMs);
+  const heavy = strength > 0;
+  const duration = getAttackTiming(strength);
+  set({ attackingDieIndex: bonus ? null : index, attackingBonusIndex: bonus ? index : null,
+    attackingStage: 'windup', attackEmphasis: strength });
+  await waitForAnimation(duration.windup);
   if (!isCurrent()) return;
   soundService.playDiceDash(); set({ attackingStage: 'dash' });
-  await waitForAnimation(timing.dashMs);
+  await waitForAnimation(duration.dash);
   if (!isCurrent()) return;
-  soundService.playEnemyHit(heavy); triggerScreenShake(heavy ? timing.heavyShake : timing.lightShake);
+  soundService.playEnemyHit(heavy); triggerScreenShake(timing.lightShake + (timing.heavyShake - timing.lightShake) * strength);
   applyDamage(); addDamagePop(pop); set({ attackingStage: 'impact' });
-  await waitForAnimation(timing.impactMs);
+  await waitForAnimation(duration.impact);
   if (!isCurrent()) return;
   set({ attackingStage: 'recoil' });
-  await waitForAnimation(timing.recoilMs);
+  await waitForAnimation(duration.recoil);
   if (!isCurrent()) return;
-  set({ attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle' });
+  set({ attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle', attackEmphasis: 0 });
   await waitForAnimation(timing.betweenAttackMs);
 }

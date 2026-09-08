@@ -20,7 +20,7 @@ export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
   loner: role('土人獨行俠', '🧥', ['warrior'], '孤獨一匹狼', `同骰中沒有其他土人獨行俠時，基礎攻擊 ×${b.loner.multiplier}。`),
   chef: role('土人廚師', '👨‍🍳', ['craftsman'], '加菜', '同骰擲出 [食物] 時存入儲糧；自身擲出時，消耗所有儲糧轉為等值追加攻擊。'),
   porter: role('土人搬運工', '📦', ['craftsman'], '接力', '與其他土人搬運工相連時，隊列最右側的一名攻擊力 × 連接人數。'),
-  follower: role('土人跟班', '🤩', ['warrior'], '勇士崇拜', '左右鄰骰中若有土人勇士，獲得其中最高的基礎攻擊力加值。'),
+  follower: role('土人跟班', '🤩', ['common', 'warrior'], '勇士崇拜', '左右鄰骰中若有土人勇士，獲得其中最高的基礎攻擊力加值。'),
   cheerleader: role('土人啦啦隊', '📣', ['common'], '加油', `依骰出的 [戰士] 數量 ×${b.cheerleader.damagePerWarrior}，追加攻擊一次。`),
   thief: role('土人毛賊', '🥷', ['common'], '趁火打劫', '本回合若發生搶奪，追加一次基礎攻擊。'),
   coward: role('膽小土人', '😱', ['common'], '你不要過來啊', '被重骰時留下等同基礎攻擊力的護盾。'),

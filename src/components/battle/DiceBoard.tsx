@@ -10,7 +10,10 @@ import { describeBattleSkills } from '../../service/battle/battleSkillDescriptio
 import { EQUIPMENT_BALANCE as eq, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { getOppositeFace, teacherTargets } from '../../service/battle/rollService';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { getAttackPose } from '../../service/battle/attackPresentation';
+import { DiceBulgeFilter } from './DiceBulgeFilter';
 import { useGameStore } from '../../store/gameStore';
 import { BattleDie } from './BattleDie';
 import { getDiceTrayLayout, placeBonusDice } from '../../service/dice/diceTrayLayout';
@@ -37,6 +40,7 @@ export const DiceBoard: React.FC = () => {
     attackingDieIndex,
     attackingBonusIndex,
     attackingStage,
+    attackEmphasis,
     diceSlotStates,
     bonusSlotStates,
     visibleBonusIds, skillFeedback, displayedIdentities, displayedShields, displayedFood,
@@ -45,6 +49,12 @@ export const DiceBoard: React.FC = () => {
     enemyAttack,
   } = useGameStore();
   const actionState = useGameStore.getState();
+  const unrolled = combatPhase === 'PREPARATION';
+  const selectingTeacher = diceAction.startsWith('teacher:') && combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null;
+  const teacherCandidates = selectingTeacher ? teacherTargets(actionState, diceAction.slice(8)) : [];
+  const reducedMotion = useReducedMotion() === true;
+  const bulgeId = `dice-bulge-${useId()}`;
+  const attackPose = getAttackPose(attackingStage, attackEmphasis, { x: 0, y: 0 }, reducedMotion);
 
   const trayRef = useRef<HTMLDivElement>(null);
   const [traySize, setTraySize] = useState({ width: 640, height: 280 });
@@ -83,11 +93,11 @@ export const DiceBoard: React.FC = () => {
   const hoveredIndex = dicePool.findIndex((die) => die.id === hoveredId);
   const hoveredBonus = shownBonusDice.find((die) => die.id === hoveredId);
   let inspection: DiceInspection | null = null;
-  if (hoveredIndex >= 0) {
+  if (!unrolled && hoveredIndex >= 0) {
     const identity = identities[hoveredIndex], creature = CREATURE_CONFIG[identity.creature];
     inspection = { ...identity, title: creature.name,
       description: battleDescriptions[hoveredIndex].description };
-  } else if (hoveredBonus) inspection = { creature: hoveredBonus.creature,
+  } else if (!unrolled && hoveredBonus) inspection = { creature: hoveredBonus.creature,
     title: `${hoveredBonus.sourceName}・${hoveredBonus.label}`, description: hoveredBonus.description };
 
   useLayoutEffect(() => {
@@ -214,10 +224,14 @@ export const DiceBoard: React.FC = () => {
   return (
     <div
       id="battle-player-target"
+      onKeyDown={(event) => {
+        if (selectingTeacher && event.key === 'Escape') actionState.setDiceAction('reroll');
+      }}
       style={{ '--player-impact-duration': `${timing.enemyImpactMs + timing.enemyRecoilMs}ms` } as React.CSSProperties}
       className={`dice-board ${enemyAttack?.stage === 'impact' || enemyAttack?.stage === 'recoil' ? 'is-hit' : ''} ${enemyAttack?.heavy ? 'heavy-hit' : ''} ${enemyAttack && enemyAttack.healthDamage === 0 ? 'shield-hit' : ''}`}
     >
       <PlayerImpact />
+      <DiceBulgeFilter id={bulgeId} strength={attackPose.bulge} duration={attackPose.duration} />
       <div className="board-header">
         <Sparkles size={14} />
         <span>
@@ -255,52 +269,34 @@ export const DiceBoard: React.FC = () => {
           const dieSize = trayLayout.size;
           const pumpVal = slotState?.displayValue;
           const identity = identities[idx].creature;
-          const available = diceAction.startsWith('teacher:') ? teacherTargets(actionState, diceAction.slice(8)).includes(idx)
+          const available = diceAction.startsWith('teacher:') ? teacherCandidates.includes(idx)
             : diceAction === 'swap' ? idx < dicePool.length - 1 && control >= eq.formationCost && !creatureBattleState.formationUsed
               : diceAction === 'lock' ? control >= eq.whistleCost && !creatureBattleState.whistleUsed
                 : diceAction === 'flip' ? control >= eq.prismCost && getOppositeFace(die, targetFaceIdx) !== null
                   : control > 0 || (hasEquipment(equipments, 'COUNTERWEIGHT') && gold >= eq.paidReroll);
-
-          let rotation = roll?.rotation ?? 0;
 
           const isRerolling = activeRerollingIndex === idx || (combatPhase === 'ROLLING' && (!roll || !roll.isFinished));
           const isAttacking = combatPhase === 'RESOLVING_ATTACK' && attackingDieIndex === idx;
 
           const offsetX = attackTarget.x - trayLayout.positions[idx].x;
           const offsetY = attackTarget.y - trayLayout.positions[idx].y;
-          let transformStyle = 'translate(-50%, -50%)';
-          let transitionStyle = 'none';
-
-          if (isAttacking) {
-            if (attackingStage === 'windup') {
-              transformStyle = 'translate(-50%, calc(-50% + 10px)) scale(0.92)';
-              transitionStyle = `transform ${timing.windupMs}ms ease-out`;
-              rotation -= 12;
-            } else if (attackingStage === 'dash') {
-              transformStyle = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(1.45)`;
-              transitionStyle = `transform ${timing.dashMs}ms cubic-bezier(0.1, 0.9, 0.2, 1.25)`;
-              rotation += 18;
-            } else if (attackingStage === 'impact') {
-              transformStyle = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(1.55)`;
-              transitionStyle = `transform ${timing.recoilMs}ms ease-out`;
-              rotation += 8;
-            } else if (attackingStage === 'recoil') {
-              transformStyle = 'translate(-50%, -50%) scale(1)';
-              transitionStyle = `transform ${timing.recoilMs}ms ease-out`;
-            }
-          }
+          const pose = getAttackPose(isAttacking ? attackingStage : 'idle', attackEmphasis,
+            { x: offsetX, y: offsetY }, reducedMotion);
+          const rotation = (unrolled ? 0 : roll?.rotation ?? 0) + pose.rotation;
 
           return (
             <div
               key={die.id}
-              className={`die-anchor ${resolving && pumpVal === 0 ? 'is-depleted' : ''}`}
+              className={`die-anchor ${resolving && pumpVal === 0 ? 'is-depleted' : ''} ${selectingTeacher ? available ? 'is-teacher-target' : 'is-not-teacher-target' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
               style={{
                 width: dieSize, height: dieSize,
                 '--detail-width': `${trayLayout.spacing - 8}px`,
-                left: roll && !roll.isFinished ? roll.x : trayLayout.positions[idx].x,
-                top: roll && !roll.isFinished ? roll.y - roll.height : trayLayout.positions[idx].y,
-                transform: transformStyle,
-                transition: transitionStyle,
+                '--attack-motion-duration': `${pose.duration}ms`,
+                '--attack-motion-easing': pose.easing,
+                left: !unrolled && roll && !roll.isFinished ? roll.x : trayLayout.positions[idx].x,
+                top: !unrolled && roll && !roll.isFinished ? roll.y - roll.height : trayLayout.positions[idx].y,
+                transform: pose.transform,
+                transition: pose.transition,
                 zIndex: isAttacking ? 100 : isRerolling ? 20 : 10,
               } as React.CSSProperties}
             >
@@ -315,7 +311,8 @@ export const DiceBoard: React.FC = () => {
                 <div className="impact-shockwave animate-ping" />
               )}
 
-              <BattleDie dice={die} size={dieSize} rotation={rotation} scale={roll?.scale ?? 1}
+              <BattleDie dice={die} size={dieSize} rotation={rotation} scale={unrolled ? 1 : roll?.scale ?? 1}
+                unrolled={unrolled} bulgeFilter={isAttacking && attackEmphasis > 0 && !reducedMotion ? `url(#${bulgeId})` : undefined}
                 faceIndex={isRerolling && roll ? roll.faceIndex : targetFaceIdx} rolling={isRerolling}
                 value={pumpVal} spinning={slotState?.isSpinning ?? false} locked={slotState?.isLocked ?? false} buffed={slotState?.isBuffed ?? false}
                 numberScale={slotState?.scale ?? 1} effectiveCreature={isRerolling ? undefined : identity}
@@ -351,6 +348,9 @@ export const DiceBoard: React.FC = () => {
               feedback={skillFeedback}
               isAttacking={isAttacking}
               attackingStage={attackingStage}
+              attackEmphasis={attackEmphasis}
+              bulgeFilter={isAttacking && attackEmphasis > 0 && !reducedMotion ? `url(#${bulgeId})` : undefined}
+              reducedMotion={reducedMotion}
               slotState={slotState}
               x={position.x}
               y={position.y}

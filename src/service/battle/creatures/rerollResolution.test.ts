@@ -55,7 +55,7 @@ test('authority keeps a live target across other rerolls and preview calls', () 
 });
 
 test('paid reroll, smoke refund and formation use one common Control state', () => {
-  const pool = [die('a', 'family', 'food'), die('b', 'family', 'food')];
+  const pool = [die('a', 'family', 'food', 5, 3), die('b', 'family', 'food')];
   const equipments = ALL_EQUIPMENT_CATALOG;
   const state = { dicePool: pool, rolledIndices: [0, 0], equipments, creatureBattleState: createCreatureBattleState(),
     control: 0, maxControl: 3, gold: 40, combatPhase: 'CONTROL_PHASE' as const };

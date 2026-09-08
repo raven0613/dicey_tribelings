@@ -47,7 +47,8 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
       const target = choose(neighbors, next.seed, `prankster:${die.id}`);
       if (target !== undefined) queue.push({ index: target, forced: true, teacher: false });
     }
-    rolled[action.index] = Math.floor(random() * die.faces.length);
+    const otherFace = Math.floor(random() * (die.faces.length - 1));
+    rolled[action.index] = otherFace >= rolled[action.index] ? otherFace + 1 : otherFace;
     next.faceVersions[die.id] = (next.faceVersions[die.id] ?? 0) + 1;
     next.teachersAvailable = next.teachersAvailable.filter((id) => id !== die.id);
     delete next.authorityTargets[die.id];

@@ -1,3 +1,4 @@
+import { ChestStory } from '../story/ChestStory';
 import { SkillText } from '../common/SkillText';
 import React, { useState } from 'react';
 import { ArrowRight, Check, Gift, Sparkles } from 'lucide-react';
@@ -109,6 +110,7 @@ export const ChestModal: React.FC = () => {
 
   return (
     <div className="chest-wrapper">
+      {isOpened && <ChestStory key={currentNodeIndex} />}
       <div className={`chest-card ${isOpened ? 'opened' : ''}`}>
         <div className="chest-icon-box"><Gift size={36} /></div>
         <div className="chest-info">

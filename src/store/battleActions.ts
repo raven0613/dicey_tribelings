@@ -1,5 +1,5 @@
 import type { GameState } from './gameStore.types';
-import { performControlReroll, performDiceAction, performStartBattleRoll } from '../service/battle/rollService';
+import { performControlReroll, performDiceAction, performStartBattleRoll, teacherTargets } from '../service/battle/rollService';
 import { calculateRollResolution } from '../service/battle/battleEngine';
 import { hasEquipment } from '../configs/equipment/equipmentConfig';
 
@@ -19,7 +19,7 @@ export function createBattleActions(set: (state: Partial<GameState>) => void, ge
       const virtualFood = hasEquipment(state.equipments, 'RATIONS') ? state.storedRations : 0;
       const result = performStartBattleRoll(state.dicePool, state.equipments, state.creatureBattleState, state, virtualFood);
       set({ ...result, storedRations: 0, activeRerollingIndex: null, pendingRerolls: [], diceAction: 'reroll',
-        attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle', enemyAttack: null, visibleBonusIds: [],
+        attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle', attackEmphasis: 0, enemyAttack: null, visibleBonusIds: [],
         diceSlotStates: {}, bonusSlotStates: {}, skillFeedback: [], displayedIdentities: {},
         displayedShields: {}, displayedFood: {}, playerShieldDisplay: null });
     },
@@ -27,7 +27,14 @@ export function createBattleActions(set: (state: Partial<GameState>) => void, ge
       if (get().combatPhase === 'ROLLING') set({ combatPhase: 'CONTROL_PHASE' });
     },
     setDiceAction: (diceAction) => {
-      if (get().combatPhase === 'CONTROL_PHASE' && get().activeRerollingIndex === null) set({ diceAction });
+      const state = get();
+      if (state.combatPhase !== 'CONTROL_PHASE' || state.activeRerollingIndex !== null) return;
+      if (diceAction.startsWith('teacher:')) {
+        const targets = teacherTargets(state, diceAction.slice(8));
+        if (!targets.length) return;
+        set({ diceAction });
+        if (targets.length === 1) get().useControlReroll(targets[0]);
+      } else set({ diceAction });
     },
     useControlReroll: (index) => {
       const state = get();

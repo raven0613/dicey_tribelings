@@ -16,3 +16,6 @@
 @use 'battle/player_vitals';
 @use 'battle/enemy_attack';
 @use 'battle/dice_hover';
+@use 'battle/dice_actions';
+
+@use 'story';

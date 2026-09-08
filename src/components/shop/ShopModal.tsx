@@ -63,7 +63,7 @@ export const ShopModal: React.FC = () => {
 
       <div className="shop-bottom-grid">
         <section className="shop-column">
-          <div className="section-title"><Sparkles size={14} color="#818cf8" /><span>裝備遺物（{SHOP_CONFIG.equipmentCost} 金幣）</span></div>
+          <div className="section-title"><Sparkles size={14} color="#818cf8" /><span>裝備（{SHOP_CONFIG.equipmentCost} 金幣）</span></div>
           {shopEquipments.map((equipment) => (
             <article key={equipment.id} className="shop-item-card">
               <div><div className="item-name">{equipment.name}</div><p className="item-desc"><SkillText text={equipment.description} /></p></div>

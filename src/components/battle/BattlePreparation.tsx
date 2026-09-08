@@ -43,9 +43,9 @@ export const BattlePreparation: React.FC = () => {
       <DiceNet key={die.id} dice={die} sticker={sticker} onApplyFace={selected ? assign : undefined} />
     </div>
     <div className="preparation-start">
-      <span>{placements.length ? `已配置 ${placements.length} 張・擲骰後維持整場` : '準備好了就擲骰，開始救援！'}</span>
+      <span>{placements.length ? `已配置 ${placements.length} 張・擲骰後維持整場` : '準備好了就擲骰，開始戰鬥！'}</span>
       <button type="button" className="btn-resolve" disabled={!!unlockedDiceNotification || !!stickerFlow}
-        onClick={() => confirmBattlePreparation(placements)}><Play size={18} />開始擲骰</button>
+        onClick={() => confirmBattlePreparation(placements)}><Play size={18} />擲骰</button>
     </div>
   </section>;
 };
