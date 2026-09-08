@@ -45,7 +45,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
       case 'sisters': return `場上有 ${count} 名土人姐妹花，需要 ${inputs.minimum} 名；${currentGain}`;
       case 'twins': return `同骰有 ${count} 個土人雙胞胎面，本回合取最高基礎攻擊力 ${ceilDamage(inputs.after!)}。`;
       case 'gang': return `同骰相鄰面有 ${count} 個土人混混，本回合追加 ${count} 次攻擊，每次 ${inputs.value} 點。`;
-      case 'loner': return `同骰有 ${count} 個土人獨行俠面，只有 1 個時基礎攻擊 ×${balance.loner.multiplier}；${currentGain}`;
+      case 'loner': return `同骰有 ${count} 個土人獨行俠面，基礎攻擊 ×${balance.loner.multiplier}；${currentGain}`;
       case 'follower': return `左右鄰骰有 ${count} 個土人勇士面，最高基礎攻擊力 ${ceilDamage(inputs.value!)}；${currentGain}`;
       case 'warrior': return `左右鄰骰有 ${count} 個土人跟班面，${currentGain}`;
       case 'elder': return `場上有 ${count} 種不同土人，${currentGain}`;

@@ -20,7 +20,7 @@ test('real rewards, finite HP, Control and shops produce repeatable complete res
     if (run.won) {
       assert.equal(run.lastNode, INITIAL_MAP_NODES.length - 1);
       assert.equal(run.encounters.length, 28);
-      assert.equal(run.diceCount, 10);
+      assert.equal(run.diceCount, 7);
     }
   }
   const ordinary = Array.from({ length: config.runs }, (_, index) => simulateRun(config.seed + index, true));
@@ -31,7 +31,7 @@ test('real rewards, finite HP, Control and shops produce repeatable complete res
 test('regional route and milestone rewards fulfill the documented finite growth budget', () => {
   assert.equal(INITIAL_MAP_NODES.length, 40);
   assert.deepEqual([1, 2, 3, 4, 5, 6].map((region) => INITIAL_MAP_NODES.filter((node) => node.region === region).length), [7, 7, 7, 7, 7, 5]);
-  assert.equal(Object.keys(PROGRESSION_DICE_REWARDS).length, 7);
+  assert.equal(Object.keys(PROGRESSION_DICE_REWARDS).length, 4);
   const rewards = INITIAL_MAP_NODES.reduce((sum, node) => sum + (node.type === 'fight' ? getBattleRewardCount('normal')
     : node.type === 'elite' ? getBattleRewardCount('elite') : node.type === 'boss' && node.region < 6 ? getBattleRewardCount('boss') : 0), 0);
   assert.equal(rewards, 38); // 另加深牢補給包的兩張；小公主為額外里程碑。

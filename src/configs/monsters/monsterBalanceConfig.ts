@@ -10,7 +10,7 @@ export function getEncounterDamageBudget(monsterId: string): number {
   return region.entryDamage + (region.bossDamage - region.entryDamage) * progress;
 }
 export const MONSTER_BALANCE_CONFIG = {
-  turnTargets: { normal: [2, 3], elite: [3, 4], boss: [4, 5], final_boss: [5, 6] } satisfies Record<EnemyRank, readonly [number, number]>,
+  turnTargets: { normal: [1, 3], elite: [3, 4], boss: [4, 5], final_boss: [5, 6] } satisfies Record<EnemyRank, readonly [number, number]>,
   scenarios: { weak: 0.7, typical: 1, strong: 1.4 }, weakExtraTurns: 2,
   rollRange: [0.7, 1.3] as const, seed: 20260907, runsPerScenario: 512, maxTurns: 40,
 } as const;

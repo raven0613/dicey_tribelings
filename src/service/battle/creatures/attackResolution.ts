@@ -58,9 +58,10 @@ export function resolveFinalAttacks(c: ResolutionContext) {
     for (const item of c.items) c.attack(e, item, item.finalDamage + c.bonusDice.length * b.herald.bonusPerAttack);
   }
   const reserve = c.equipment.find((item) => item.ruleId === 'RESERVE');
-  if (reserve && c.battle.control > 0) {
+  if (reserve && c.battle.control > 0 && c.items.length > 0) {
     const e = c.equipmentEvent(9, reserve);
-    for (const item of c.items) c.attack(e, item, item.finalDamage + c.battle.control * eq.reserveDamage);
+    const target = c.items.reduce((best, item) => item.finalDamage > best.finalDamage ? item : best);
+    c.attack(e, target, target.finalDamage + c.battle.control * eq.reserveDamage);
   }
   const frugal = c.equipment.find((item) => item.ruleId === 'FRUGAL');
   if (frugal && c.state.controlSpent === 0) {

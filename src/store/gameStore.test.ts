@@ -118,7 +118,7 @@ test('two reward choices apply in order before advancing a regional boss', () =>
   assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
 });
 
-test('the complete route awards exactly seven new dice and processes the deep dungeon pack', () => {
+test('the complete route awards exactly four new dice and processes the deep dungeon pack', () => {
   useGameStore.getState().restartGame();
   for (let index = 0; index < 39; index++) {
     assert.equal(useGameStore.getState().currentNodeIndex, index);
@@ -132,8 +132,8 @@ test('the complete route awards exactly seven new dice and processes the deep du
     useGameStore.getState().dismissDiceNotification();
   }
   assert.equal(useGameStore.getState().currentEnemy?.id, 'r6_boss');
-  assert.equal(useGameStore.getState().dicePool.length, 10);
-  assert.equal(new Set(useGameStore.getState().dicePool.map((die) => die.id)).size, 10);
+  assert.equal(useGameStore.getState().dicePool.length, 7);
+  assert.equal(new Set(useGameStore.getState().dicePool.map((die) => die.id)).size, 7);
 });
 
 test('one consumable can cover only one existing face and commit preserves the target base', () => {

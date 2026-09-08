@@ -35,7 +35,7 @@ test('extra barricade shield feeds each bulwark; resonator and reserve affect th
     createCreatureBattleState(), { control: 2, maxControl: 3, gold: 0 });
   assert.equal(result.totalShield, eq.barricadeShield);
   assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [eq.barricadeShield + eq.bonusDamage, eq.barricadeShield + eq.bonusDamage]);
-  assert.deepEqual(result.items.map((item) => item.finalDamage), [4 + 2 * eq.reserveDamage, 4 + 2 * eq.reserveDamage]);
+  assert.deepEqual(result.items.map((item) => item.finalDamage), [4 + 2 * eq.reserveDamage, 4]);
 });
 
 test('frugal reads spent Control rather than refunded balance, and purse pays once per settlement', () => {
