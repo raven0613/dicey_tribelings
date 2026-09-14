@@ -17,6 +17,7 @@ export const EquipmentReplacementModal: React.FC = () => {
     equipments,
     replacePendingEquipment,
     cancelPendingEquipment,
+    skipChestReward,
   } = useGameStore();
   const incomingEquipmentRef = useRef<HTMLDivElement>(null);
   const [transfer, setTransfer] = useState<ReplacementTransferState | null>(null);
@@ -55,7 +56,9 @@ export const EquipmentReplacementModal: React.FC = () => {
             <div className="modal-title-box">
               <div className="modal-title">裝備槽已滿</div>
               <div className="modal-subtitle">
-                選擇一件現有裝備替換，或{pendingEquipment.source === 'chest' ? '返回寶箱選擇' : '取消購買'}。
+                {pendingEquipment.source === 'chest'
+                  ? '選擇一件現有裝備替換、返回寶箱選擇，或跳過獎勵。'
+                  : '選擇一件現有裝備替換，或取消購買。'}
               </div>
             </div>
           </div>
@@ -83,6 +86,11 @@ export const EquipmentReplacementModal: React.FC = () => {
         <button type="button" disabled={transfer !== null} className="btn-secondary-modal" onClick={cancelPendingEquipment}>
           {pendingEquipment.source === 'chest' ? '返回寶箱選擇' : '取消購買'}
         </button>
+        {pendingEquipment.source === 'chest' && (
+          <button type="button" disabled={transfer !== null} className="btn-secondary-modal" onClick={skipChestReward}>
+            跳過獎勵，繼續前進
+          </button>
+        )}
       </div>
       {transfer && (
         <EquipmentTransferAnimation

@@ -9,7 +9,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 700px;
   user-select: none;
 
   &.is-attacking {
@@ -50,12 +49,15 @@
     z-index: 10;
   }
 
-  .phantom-spawn, .phantom-float, .phantom-cube-container {
+  .phantom-distortion, .phantom-projection, .phantom-spawn, .phantom-float, .phantom-cube-container {
     width: 72px;
     height: 72px;
     position: relative;
-    transform-style: preserve-3d;
   }
+
+  // Complete the 3D projection before the outer filter samples the resulting image.
+  .phantom-projection { perspective: 700px; }
+  .phantom-spawn, .phantom-float, .phantom-cube-container { transform-style: preserve-3d; }
 
   .phantom-spawn {
     animation: phantomSpawnPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.25) both;

@@ -1,6 +1,7 @@
 import type { EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
+import type { WaitForAttackMotion } from '../service/battle/battleSettlement';
 import type { CreatureId, CreatureTag } from '../types/creatures';
 import type { CreatureBattleState } from '../types/creatures';
 import {
@@ -109,7 +110,7 @@ export interface GameState {
   useControlReroll: (dieIndex: number) => void;
   setDiceAction: (action: DiceAction) => void;
   finishRerollAnimation: (dieIndex: number) => void;
-  executeBattleSettlement: () => Promise<void>;
+  executeBattleSettlement: (waitForAttackMotion: WaitForAttackMotion) => Promise<void>;
   addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
   removeDamagePop: (id: number) => void;
   openPackAction: (packId: string, completion: FlowCompletion) => void;
@@ -121,6 +122,7 @@ export interface GameState {
   skipBattleReward: () => void;
   openChest: () => void;
   claimChestReward: (option: ChestRewardOption) => void;
+  skipChestReward: () => void;
   buyShopSticker: (stickerId: string) => boolean;
   replaceShopSticker: (instanceId: string) => void;
   cancelShopSticker: () => void;

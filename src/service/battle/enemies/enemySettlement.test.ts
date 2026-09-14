@@ -28,6 +28,7 @@ async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSu
     set: (partial) => { state = { ...state, ...partial }; },
     triggerScreenShake: () => {},
     addDamagePop: () => {},
+    waitForAttackMotion: async () => true,
     startBattleRoll: () => { rolls++; },
   });
   // 每次 await 後執行下一個動畫計時器，省略真實等待時間。
@@ -136,7 +137,7 @@ test('locking commits chef food once and rejects another settlement during the a
     currentEnemy: enemy, creatureBattleState, combatPhase: 'CONTROL_PHASE',
     comboSummary: calculateRollResolution([chef], [0], [], creatureBattleState) };
   const methods = { get: () => state, set: (partial: Partial<GameState>) => { state = { ...state, ...partial }; },
-    triggerScreenShake: () => {}, addDamagePop: () => {}, startBattleRoll: () => {} };
+    triggerScreenShake: () => {}, addDamagePop: () => {}, startBattleRoll: () => {}, waitForAttackMotion: async () => true };
   const first = runBattleSettlement(methods);
   assert.equal(state.creatureBattleState.storedFood.chef, 0);
   await runBattleSettlement(methods);

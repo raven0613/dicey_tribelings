@@ -287,6 +287,7 @@ export const DiceBoard: React.FC = () => {
           return (
             <div
               key={die.id}
+              data-attack-die={idx}
               className={`die-anchor ${resolving && pumpVal === 0 ? 'is-depleted' : ''} ${selectingTeacher ? available ? 'is-teacher-target' : 'is-not-teacher-target' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
               style={{
                 width: dieSize, height: dieSize,
@@ -344,6 +345,7 @@ export const DiceBoard: React.FC = () => {
             <BonusPhantomDice
               key={bDie.id}
               dice={bDie}
+              attackIndex={bIdx}
               sourceLabel={sourceLabel}
               feedback={skillFeedback}
               isAttacking={isAttacking}

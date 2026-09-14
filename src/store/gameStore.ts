@@ -219,9 +219,9 @@ export const useGameStore = create<GameState>((set, get) => {
 
     ...createBattleActions(set, get),
 
-    executeBattleSettlement: async () => {
+    executeBattleSettlement: async (waitForAttackMotion) => {
       await runBattleSettlement({ get, set, triggerScreenShake: get().triggerScreenShake,
-        startBattleRoll: get().startBattleRoll, addDamagePop: get().addDamagePop });
+        startBattleRoll: get().startBattleRoll, addDamagePop: get().addDamagePop, waitForAttackMotion });
     },
 
     openPackAction: (packId, completion) => {
@@ -308,6 +308,14 @@ export const useGameStore = create<GameState>((set, get) => {
         return;
       }
       set({ pendingEquipment: { equipment: option.equipment, source: 'chest', cost: 0 } });
+    },
+
+    skipChestReward: () => {
+      const { mapNodes, currentNodeIndex, chestRewardOptions } = get();
+      const node = mapNodes[currentNodeIndex];
+      if (node?.type !== 'chest' || node.completed || chestRewardOptions.length === 0) return;
+      set({ chestRewardOptions: [], pendingEquipment: null });
+      get().advanceToNextNode();
     },
 
     buyShopSticker: (stickerId) => {

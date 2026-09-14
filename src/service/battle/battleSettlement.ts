@@ -14,12 +14,15 @@ import { applyEnemyDamage, resolveEnemyIntent } from './enemies/enemyIntent';
 import { animateAttack, animateCalculatedNumbers, waitForAnimation } from './settlementAnimation';
 import { animateEnemyAttack } from './enemyAttackAnimation';
 
+export type WaitForAttackMotion = (index: number, bonus: boolean, isCurrent: () => boolean) => Promise<boolean>;
+
 export interface BattleStoreMethods {
   get: () => GameState;
   set: (partial: Partial<GameState>) => void;
   triggerScreenShake: (intensity?: number) => void;
   startBattleRoll: () => void;
   addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
+  waitForAttackMotion: WaitForAttackMotion;
 }
 
 export async function runBattleSettlement(methods: BattleStoreMethods): Promise<void> {
@@ -53,9 +56,10 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   for (const [position, attack] of attacks.entries()) {
     if (!isCurrent()) return;
     const defeated = activeEnemy.hp <= 0;
-    await animateAttack(methods, attack.index, attack.bonus,
+    const completed = await animateAttack(methods, attack.index, attack.bonus,
       { value: attack.value, creature: attack.creature, label: defeated ? '追擊!' : attack.label || undefined },
       () => { if (isCurrent()) applyDamage(attack.value); }, isCurrent, emphases[position]);
+    if (!completed) return;
   }
   if (!isCurrent()) return;
 

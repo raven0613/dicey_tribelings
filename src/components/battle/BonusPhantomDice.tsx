@@ -10,6 +10,7 @@ import { CreatureBadge } from '../dice/CreatureBadge';
 
 interface BonusPhantomDiceProps {
   dice: BonusAttackDice;
+  attackIndex: number;
   sourceLabel: string;
   feedback: Feedback[];
   isAttacking: boolean;
@@ -32,6 +33,7 @@ interface BonusPhantomDiceProps {
 
 export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   dice,
+  attackIndex,
   sourceLabel,
   feedback,
   isAttacking,
@@ -60,6 +62,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
 
   return (
     <div
+      data-attack-bonus={attackIndex}
       tabIndex={0} aria-label={`${sourceLabel}・${dice.label}`} aria-describedby="dice-hover-information"
       onMouseEnter={() => onInspect(dice.id)} onMouseLeave={() => onInspect(null)}
       onFocus={() => onInspect(dice.id)} onBlur={() => onInspect(null)}
@@ -91,51 +94,55 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
       )}
 
       {/* Only the outer spawn layer starts once; the stable cube keeps its six faces. */}
-      <div className="phantom-spawn die-bulge-body" style={{ filter: bulgeFilter }}>
-        <div className="phantom-float" style={{ animationPlayState: isAttacking ? 'paused' : 'running' }}>
-          <div className="phantom-cube-container">
-            {/* Front Face (Hero face showing slot machine number) */}
-            <div className="phantom-face face-front">
-              <div className="slot-number-box">
-                {renderCreatureIcon()}
-                <div style={{ transform: `scale(${slotState?.scale ?? 1})` }} className={`slot-number ${isSpinning ? 'spinning' : ''} ${isLocked ? 'locked' : ''}`}>
-                  {displayNum}
+      <div className="phantom-distortion die-bulge-body" style={{ filter: bulgeFilter }}>
+        <div className="phantom-projection">
+          <div className="phantom-spawn">
+            <div className="phantom-float" style={{ animationPlayState: isAttacking ? 'paused' : 'running' }}>
+              <div className="phantom-cube-container">
+                {/* Front Face (Hero face showing slot machine number) */}
+                <div className="phantom-face face-front">
+                  <div className="slot-number-box">
+                    {renderCreatureIcon()}
+                    <div style={{ transform: `scale(${slotState?.scale ?? 1})` }} className={`slot-number ${isSpinning ? 'spinning' : ''} ${isLocked ? 'locked' : ''}`}>
+                      {displayNum}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Back Face */}
+                <div className="phantom-face face-back">
+                  <div className="slot-number-box">
+                    {renderCreatureIcon()}
+                    <div className="slot-number">{displayNum}</div>
+                  </div>
+                </div>
+
+                {/* Right Face */}
+                <div className="phantom-face face-right">
+                  <div className="slot-number-box">
+                    {renderCreatureIcon()}
+                  </div>
+                </div>
+
+                {/* Left Face */}
+                <div className="phantom-face face-left">
+                  <div className="slot-number-box">
+                    {renderCreatureIcon()}
+                  </div>
+                </div>
+
+                {/* Top Face */}
+                <div className="phantom-face face-top">
+                  <div className="slot-number-box">
+                    <Sparkles style={{ width: '14px', height: '14px', opacity: 0.8 }} />
+                  </div>
+                </div>
+
+                {/* Bottom Face */}
+                <div className="phantom-face face-bottom">
+                  <div className="slot-number-box" />
                 </div>
               </div>
-            </div>
-
-            {/* Back Face */}
-            <div className="phantom-face face-back">
-              <div className="slot-number-box">
-                {renderCreatureIcon()}
-                <div className="slot-number">{displayNum}</div>
-              </div>
-            </div>
-
-            {/* Right Face */}
-            <div className="phantom-face face-right">
-              <div className="slot-number-box">
-                {renderCreatureIcon()}
-              </div>
-            </div>
-
-            {/* Left Face */}
-            <div className="phantom-face face-left">
-              <div className="slot-number-box">
-                {renderCreatureIcon()}
-              </div>
-            </div>
-
-            {/* Top Face */}
-            <div className="phantom-face face-top">
-              <div className="slot-number-box">
-                <Sparkles style={{ width: '14px', height: '14px', opacity: 0.8 }} />
-              </div>
-            </div>
-
-            {/* Bottom Face */}
-            <div className="phantom-face face-bottom">
-              <div className="slot-number-box" />
             </div>
           </div>
         </div>

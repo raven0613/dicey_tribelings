@@ -25,9 +25,11 @@ export const ChestModal: React.FC = () => {
     mapNodes,
     currentNodeIndex,
     chestRewardOptions,
+    pendingEquipment,
     equipments,
     openChest,
     claimChestReward,
+    skipChestReward,
   } = useGameStore();
   const [equipmentTransfer, setEquipmentTransfer] = useState<EquipmentTransferState | null>(null);
   const currentNode = mapNodes[currentNodeIndex];
@@ -109,7 +111,7 @@ export const ChestModal: React.FC = () => {
   };
 
   return (
-    <div className="chest-wrapper">
+    <div className="chest-wrapper" inert={pendingEquipment?.source === 'chest'}>
       {isOpened && <ChestStory key={currentNodeIndex} />}
       <div className={`chest-card ${isOpened ? 'opened' : ''}`}>
         <div className="chest-icon-box"><Gift size={36} /></div>
@@ -117,7 +119,7 @@ export const ChestModal: React.FC = () => {
           <div className="chest-title">{currentNode.title}</div>
           <div className="chest-desc">
             {isOpened
-              ? '選擇一份補給，接著繼續救援。'
+              ? '選擇一份補給，或跳過獎勵繼續救援。'
               : '寶箱提供裝備保證候選與主題貼紙包，三選一。'}
           </div>
         </div>
@@ -135,6 +137,14 @@ export const ChestModal: React.FC = () => {
           <div className="chest-pick-section">
             <div className="chest-relics-grid">{chestRewardOptions.map(renderOption)}</div>
             <div className="chest-tip-footer"><Sparkles size={14} color="#fbbf24" /><span>裝備槽已滿時，可在下一步選擇舊裝備替換。</span></div>
+            <button
+              type="button"
+              className="btn-secondary-modal"
+              disabled={equipmentTransfer !== null}
+              onClick={skipChestReward}
+            >
+              跳過獎勵，繼續前進<ArrowRight size={16} />
+            </button>
           </div>
         )}
       </div>

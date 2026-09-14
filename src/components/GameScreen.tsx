@@ -6,6 +6,7 @@ import { PlayerVitals } from './battle/PlayerVitals';
 import { MapProgress } from './map/MapProgress';
 import { EnemyCard } from './battle/EnemyCard';
 import { DiceBoard } from './battle/DiceBoard';
+import { waitForDiceAttackMotion } from './battle/waitForDiceAttackMotion';
 import { BattleControls } from './battle/BattleControls';
 import { StickerApplierModal } from './stickers/StickerApplierModal';
 import { DiceInspectModal } from './dice/DiceInspectModal';
@@ -41,7 +42,7 @@ export function GameScreen() {
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
     setIsResolving(true);
-    await executeBattleSettlement();
+    await executeBattleSettlement(waitForDiceAttackMotion);
     setIsResolving(false);
   };
 
