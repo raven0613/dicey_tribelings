@@ -26,7 +26,7 @@ export const ALL_EQUIPMENT_CATALOG: Equipment[] = [
   equipment('eq_counterweight', '黃金秤錘', 'COUNTERWEIGHT', 'control', 'rare', 'RotateCcw', `Control 為 0 時，可花 ${b.paidReroll} 金幣主動重骰一次。`),
   equipment('eq_purse', '鱷魚皮錢袋', 'PURSE', 'global', 'rare', 'Layers', `本回合成功搶奪時，獲得 ${b.stolenGoldMin}～${b.stolenGoldMax} 金幣一次。`),
   equipment('eq_warhammer', '土人大錘', 'WARHAMMER', 'global', 'rare', 'ShieldAlert', `每次撞擊前敵人有盾時，該次傷害 ×${b.shieldDamageMultiplier}。`),
-  equipment('eq_slots', '老虎機', 'SLOTS', 'pattern', 'rare', 'Layers', `朝上出現最多次的基礎值取得重擊，基礎傷害 ×${b.matchedMultiplier}；平手隨機選一個值。`),
+  equipment('eq_slots', '老虎機', 'SLOTS', 'pattern', 'rare', 'Layers', `場上出現最多次的基礎值取得重擊，基礎傷害 ×${b.matchedMultiplier}；平手隨機選一個值。`),
   equipment('eq_frugal', '沉著徽章', 'FRUGAL', 'global', 'rare', 'Shield', `本回合花費 0 Control 時，全隊傷害 ×${b.frugalMultiplier}。`),
   equipment('eq_reserve', '蓄勢徽章', 'RESERVE', 'global', 'rare', 'Sparkles', `每剩餘 1 Control，最終攻擊最高的一顆正常骰 +${b.reserveDamage}；平手取最左側。`),
 ];

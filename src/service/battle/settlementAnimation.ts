@@ -80,8 +80,10 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
       const display = valueFor(change);
       const attackValue = change.kind === 'attack' || change.kind === 'bonus';
       const target = attackValue ? ceilDamage(change.after) : change.after;
-      const interpolated = tween.from + (target - tween.from) * eased;
-      display.displayValue = attackValue ? Math.round(interpolated) : combatNumber(interpolated);
+      const fromInteger = Math.floor(tween.from);
+      const targetInteger = Math.floor(target);
+      display.displayValue = progress === 1 ? target
+        : Math.round(fromInteger + (targetInteger - fromInteger) * eased);
       const peak = Math.abs(change.after - change.before) >= timing.heavyDamage ? timing.numberScaleLarge : timing.numberScaleSmall;
       display.scale = progress < 0.3 ? tween.scale + (peak - tween.scale) * (progress / 0.3)
         : peak + (1 - peak) * (1 - (1 - (progress - 0.3) / 0.7) ** 2);
@@ -93,9 +95,11 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
     if (settled) soundService.playNumberSettle();
     const copy = <T extends string | number>(values: Record<T, NumberDisplay>) =>
       Object.fromEntries(Object.entries<NumberDisplay>(values).map(([key, value]) => [key, { ...value }])) as Record<T, NumberDisplay>;
+    const shieldDisplays = Object.values(shields);
+    const totalShield = combatNumber(initialShield + shieldDisplays.reduce((sum, value) => sum + value.displayValue, 0));
     set({ diceSlotStates: copy(dice), bonusSlotStates: copy(bonuses), displayedShields: copy(shields), displayedFood: copy(food),
       displayedIdentities: { ...identities }, visibleBonusIds: [...visible],
-      playerShieldDisplay: combatNumber(initialShield + Object.values(shields).reduce((sum, value) => sum + value.displayValue, 0)),
+      playerShieldDisplay: shieldDisplays.some((display) => display.isSpinning) ? Math.floor(totalShield) : totalShield,
       skillFeedback: get().skillFeedback.filter((feedback) => performance.now() - feedback.startedAt < nameLifetime) });
     await waitForAnimation(timing.frameMs);
   }

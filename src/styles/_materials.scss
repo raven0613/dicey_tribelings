@@ -1,0 +1,37 @@
+.material-info { display: inline-flex; flex-direction: column; gap: .25rem; max-width: 100%; }
+.material-badge {
+  display: inline-flex; align-items: center; gap: .35rem; width: fit-content;
+  padding: .2rem .5rem; border: 1px solid var(--material-color); border-radius: .45rem;
+  background: #0f172a; color: var(--material-color); font-weight: 800; font-size: .8rem;
+  > span { font-size: 1.15em; } small { font-size: .65rem; }
+}
+.material-description { color: #cbd5e1; font-size: .8rem; line-height: 1.45; }
+[data-material] {
+  --material-pattern: linear-gradient(135deg, transparent 40%, #ffffff15 41%, transparent 65%);
+  background-image: var(--material-pattern); box-shadow: inset 0 0 0 2px var(--material-color);
+}
+[data-material="mirror"] { --material-pattern: repeating-linear-gradient(135deg, #cbd5e120 0 20px, transparent 20px 50px); }
+[data-material="resonance"] { --material-pattern: repeating-radial-gradient(circle at 50% 50%, #a78bfa25 0 2px, transparent 3px 15px); }
+[data-material="shock"] { --material-pattern: repeating-linear-gradient(115deg, #fb923c25 0 4px, transparent 5px 20px); }
+[data-material="vial"] { --material-pattern: radial-gradient(ellipse at 50% 0%, #fb718540, transparent 65%); }
+[data-material="ripple"] { --material-pattern: repeating-radial-gradient(ellipse at 50% -50%, transparent 0 12px, #38bdf830 13px 15px); }
+[data-material="gilded"] { --material-pattern: radial-gradient(circle at 15% 15%, #fbbf2455, transparent 30%), radial-gradient(circle at 85% 85%, #fbbf2440, transparent 30%); }
+[data-material="foil"] { --material-pattern: repeating-linear-gradient(0deg, #eab30830 0 1px, transparent 2px 8px), linear-gradient(135deg, #eab30830, transparent); }
+[data-material="negative"] { --material-pattern: linear-gradient(110deg, #0008 0 48%, #e2e8f020 49% 100%); }
+[data-material="iridescent"] { --material-pattern: linear-gradient(120deg, #f9a8d440, #c4b5fd30, #7dd3fc40, #6ee7b740, #fde68a40); }
+[data-material="echo"] { --material-pattern: radial-gradient(circle at 40% 50%, transparent 30%, #2dd4bf35 31% 33%, transparent 34%), radial-gradient(circle at 60% 50%, transparent 30%, #2dd4bf35 31% 33%, transparent 34%); }
+.dice-net .dice-net-face[data-material] { background-image: var(--material-pattern); }
+.battle-die[data-material] { background: none; box-shadow: none; }
+.battle-die .battle-die-material { fill: #172033; font: 900 9px system-ui, sans-serif; paint-order: stroke; stroke: #fff; stroke-width: 2px; }
+.battle-die[data-material="negative"] {
+  .battle-die-value, .battle-die-type, .battle-die-material { fill: #fff; stroke: #0f172a; }
+}
+.battle-round { color: #cbd5e1; font-size: .8rem; font-weight: 800; white-space: nowrap; }
+.battle-round.is-warning { padding: .3rem .55rem; color: #fecaca; background: #7f1d1d; border: 1px solid #fb7185; border-radius: .4rem; }
+.food-capacity { color: #cbd5e1; font-size: .8rem; }
+
+.reward-card .reward-options-grid .reward-option-card[data-material],
+.pack-sticker-card[data-material], .sticker-overview[data-material] {
+  background-image: var(--material-pattern);
+  border-color: var(--material-color);
+}

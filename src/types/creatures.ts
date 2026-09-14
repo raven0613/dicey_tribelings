@@ -20,9 +20,13 @@ export interface CreatureDefinition {
 export interface AuthorityTarget { diceId: string; version: number }
 
 export interface CreatureBattleState {
+  round: number;
+  imposterTargets: Record<string, CreatureId>;
+  echoUsed: string[];
+  gildedFaces: string[];
   storedFood: Record<string, number>;
   cowardShields: Record<string, number>;
-  priestAttacks: Record<string, number>;
+  priestAttacks: Record<string, { diceId: string; damage: number }>;
   teacherBonuses: Record<string, number>;
   teachersAvailable: string[];
   prankstersUsed: string[];

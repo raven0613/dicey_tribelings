@@ -1,3 +1,5 @@
+import { getFaceTags } from '../../dice/diceFaces';
+import { FOOD_CAPACITY } from '../../../configs/materials/materialConfig';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
 import { CREATURE_CONFIG } from '../../../configs/creatures/creatureConfig';
 import { EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentConfig';
@@ -59,19 +61,18 @@ export function resolveSupport(c: ResolutionContext) {
         add(item.skillInputs.count! * b.elder.bonusPerSpecies); break;
       case 'knight': {
         const commons = c.countParticipants((entry) => entry.tags.includes('common')).filter((entry) => entry.diceId !== item.diceId);
-        const count = c.items.filter((entry) => entry.diceId !== item.diceId && entry.tags.includes('common')).length
-          + c.virtualFaces.filter((face) => face.sourceDiceId !== item.diceId && face.tags.includes('common')).length;
+        const count = c.items.filter((entry) => entry.diceId !== item.diceId && entry.tags.includes('common')).length;
         item.skillInputs = { count };
         if (count > 0) { participants(commons.map((entry) => entry.diceId)); add(b.knight.bonus); }
         break;
       }
       case 'royalGuard': {
-        const nobles = c.faces[index].filter((face, faceIndex) => faceIndex !== item.faceIndex && CREATURE_CONFIG[face.creature].tags.includes('noble'));
+        const nobles = c.faces[index].filter((face, faceIndex) => faceIndex !== item.faceIndex && getFaceTags(face).includes('noble'));
         item.skillInputs = { count: nobles.length };
         add(nobles.length * b.royalGuard.bonusPerNoble); break;
       }
       case 'glutton': {
-        const food = c.items.filter((entry) => entry.creature === 'food');
+        const food = c.items.filter((entry) => entry.tags.includes('food'));
         const count = food.length + Number(c.virtualFood > 0);
         participants(food.map((entry) => entry.diceId));
         const multiplier = count ? 1 + count * b.glutton.foodMultiplier : b.glutton.hungryMultiplier;
@@ -83,13 +84,12 @@ export function resolveSupport(c: ResolutionContext) {
       }
       case 'guard': {
         participants(c.countParticipants((entry) => entry.tags.includes('common') || entry.tags.includes('noble')).map((entry) => entry.diceId));
-        const count = c.items.filter((entry) => entry.tags.includes('common') || entry.tags.includes('noble')).length
-          + c.virtualFaces.filter((face) => face.tags.includes('common') || face.tags.includes('noble')).length;
+        const count = c.items.filter((entry) => entry.tags.includes('common') || entry.tags.includes('noble')).length;
         item.skillInputs = { count };
         c.shield(e, item, count * b.guard.shield); break;
       }
       case 'artisan': {
-        const count = c.adjacentFaces(index).filter((face) => CREATURE_CONFIG[face.creature].tags.includes('craftsman')).length;
+        const count = c.adjacentFaces(index).filter((face) => getFaceTags(face).includes('craftsman')).length;
         item.skillInputs = { count };
         c.shield(e, item, count * b.artisan.shield); break;
       }
@@ -118,13 +118,17 @@ export function resolveSupport(c: ResolutionContext) {
 export function resolveFoodAndBonuses(c: ResolutionContext) {
   for (const [index, item] of c.items.entries()) {
     if (c.faceCount(index, 'chef') > 0) {
-      const foodValue = (item.creature === 'food' ? item.baseValue : 0) + c.virtualFood;
+      const foodValue = (item.tags.includes('food') ? item.baseValue : 0) + c.virtualFood;
       if (foodValue > 0) {
         const before = c.nextStoredFood[item.diceId] ?? 0;
-        const after = combatNumber(before + foodValue);
+        const total = Object.values(c.nextStoredFood).reduce((sum, value) => sum + value, 0);
+        const room = Math.max(0, (c.battle.foodCapacity ?? FOOD_CAPACITY.crocodile) - total);
+        const after = combatNumber(before + Math.min(foodValue, room));
+        if (after > before) {
         c.nextStoredFood[item.diceId] = after;
         c.event(5, item, '儲糧', [], 'support', 'storage').changes.push({ kind: 'food', targetId: item.diceId, before, after });
         item.bonusTags.push(`儲糧 ${before}→${after}`);
+        }
       }
     }
     if (item.creature === 'chef') item.skillInputs = { value: c.nextStoredFood[item.diceId] ?? 0 };
@@ -148,8 +152,13 @@ export function resolveFoodAndBonuses(c: ResolutionContext) {
       item.skillInputs = { count: c.tagCount('warrior') };
       c.bonus(c.event(5, item, undefined, warriors), item, item.skillInputs.count! * b.cheerleader.damagePerWarrior);
     }
-    const priest = c.state.priestAttacks[item.diceId] ?? 0;
+    const sources = Object.entries(c.state.priestAttacks).filter(([, attack]) => attack.diceId === item.diceId);
+    const priest = sources.reduce((sum, [, attack]) => sum + attack.damage, 0);
     if (item.creature === 'priest') item.skillInputs = { count: priest / b.priest.damagePerReroll, value: priest };
-    if (priest > 0) c.bonus(c.event(5, item, CREATURE_CONFIG.priest.ability, [], 'support', 'priest'), item, priest, 'priest');
+    for (const [faceId, attack] of sources) {
+      const e = c.event(5, item, CREATURE_CONFIG.priest.ability, [], 'support', 'priest');
+      e.sourceFaceId = faceId;
+      c.bonus(e, item, attack.damage, 'priest');
+    }
   }
 }

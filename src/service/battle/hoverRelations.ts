@@ -15,7 +15,7 @@ export interface HoverRelations { diceIds: string[]; links: HoverLink[] }
 /** 僅讀取既定事件；同一接力隊列可由任一成員檢視。 */
 export function getHoverRelations(summary: BattleComboSummary | null, hoveredId: string | null): HoverRelations {
   if (!summary || !hoveredId) return { diceIds: [], links: [] };
-  const isFood = summary.items.find((item) => item.diceId === hoveredId)?.rolledCreature === 'food';
+  const isFood = summary.items.find((item) => item.diceId === hoveredId)?.tags.includes('food');
   const events = summary.events.filter((event) => event.sourceDiceId === hoveredId
     || event.bonusIds.includes(hoveredId)
     || ((event.skill === 'porter' || (isFood && (event.skill === 'farmer' || event.skill === 'glutton')))

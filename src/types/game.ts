@@ -1,3 +1,4 @@
+import type { FaceMaterial } from './materials';
 import type { CreatureId } from './creatures';
 
 import type { RegionId } from './enemy';
@@ -9,6 +10,8 @@ export interface TemporarySticker {
 }
 
 export interface DiceFace {
+  material?: FaceMaterial;
+  materialDecay?: number;
   id: string;
   baseValue: number;
   creature: CreatureId;
@@ -39,7 +42,7 @@ export interface Equipment {
 
 export interface BonusAttackDice {
   id: string;
-  source: { kind: 'creature'; diceId: string; ability: string } | { kind: 'equipment'; equipmentId: string };
+  source: { kind: 'creature'; diceId: string; faceId?: string; ability: string } | { kind: 'equipment'; equipmentId: string };
   sourceName: string;
   creature?: CreatureId;
   bonusDamage: number;
@@ -57,6 +60,7 @@ interface StickerIdentity {
 }
 export interface PermanentSticker extends StickerIdentity {
   isDisposable: false;
+  material?: FaceMaterial;
   baseValue: number;
   region: RegionId;
 }

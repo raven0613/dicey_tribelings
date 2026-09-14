@@ -1,3 +1,4 @@
+import { MATERIAL_CHANCES } from '../../configs/materials/materialConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { generateBattleRewardOptions, generateChestRewardOptions, getBattleRewardCount } from './rewardService';
@@ -46,4 +47,17 @@ test('chests guarantee an equipment candidate even when random draws favor packs
   assert.equal(options[0].kind, 'equipment');
   assert.equal(options.length, 3);
   assert.equal(new Set(options.map((item) => item.id)).size, 3);
+});
+
+test('material tier is drawn first once per reward screen, independently of role rarity and jackpot', () => {
+  const ordinaryEnd = MATERIAL_CHANCES.ordinary;
+  const specialEnd = ordinaryEnd + MATERIAL_CHANCES.special;
+  const rolls = [0, ordinaryEnd - 0.00001, ordinaryEnd, specialEnd - 0.00001, specialEnd, 0.99999];
+  for (const rank of ['normal', 'elite', 'boss'] as const) for (const roll of rolls) {
+    let count = 0;
+    const options = generateBattleRewardOptions(1, rank, () => count++ === 0 ? roll : 0.5);
+    const coated = options.flatMap((o) => o.kind === 'sticker' && o.sticker.isDisposable === false && o.sticker.material ? [o.sticker.material] : []);
+    assert.equal(coated.length, roll < ordinaryEnd ? 0 : 1);
+    if (coated.length) assert.equal(['echo', 'iridescent'].includes(coated[0]), roll >= specialEnd);
+  }
 });

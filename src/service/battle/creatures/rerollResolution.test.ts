@@ -14,9 +14,9 @@ const die = (id: string, a: CreatureId, z: CreatureId, first = 3, rest = 5) => c
 test('priest witnesses before each reroll, keeps earned bonus after leaving, and has no retrospective credit', () => {
   const pool = [die('a', 'priest', 'food'), die('b', 'food', 'priest')];
   const steps = resolveRerollChain(pool, [0, 0], createCreatureBattleState(), 0, [], () => 0.5);
-  assert.equal(steps[0].state.priestAttacks.a, CREATURE_BALANCE.priest.damagePerReroll);
+  assert.equal(steps[0].state.priestAttacks['a-face-0'].damage, CREATURE_BALANCE.priest.damagePerReroll);
   const next = resolveRerollChain(pool, steps[0].rolledIndices, steps[0].state, 1, [], () => 0.5)[0];
-  assert.equal(next.state.priestAttacks.b, undefined);
+  assert.equal(next.state.priestAttacks['b-face-0'], undefined);
   const result = calculateRollResolution(pool, next.rolledIndices, [], next.state);
   assert.equal(result.bonusDice.filter((bonus) => bonus.creature === 'priest').length, 1);
 });

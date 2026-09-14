@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test src/service/battle/creatures/*.test.ts src/service/battle/nodeService.test.ts src/service/battle/enemies/enemyIntent.test.ts src/service/battle/enemies/enemySettlement.test.ts src/service/battle/enemies/monsterBalance.test.ts src/service/inventory/inventoryService.test.ts src/service/rewards/rewardService.test.ts src/service/shop/shopService.test.ts src/service/stickers/packService.test.ts src/store/gameStore.test.ts src/service/battle/simulation/*.test.ts",
+    "test": "node --import tsx --test src/components/dice/*.test.ts src/service/battle/creatures/*.test.ts src/service/battle/nodeService.test.ts src/service/battle/enemies/enemyIntent.test.ts src/service/battle/enemies/enemySettlement.test.ts src/service/battle/enemies/monsterBalance.test.ts src/service/inventory/inventoryService.test.ts src/service/rewards/rewardService.test.ts src/service/shop/shopService.test.ts src/service/stickers/packService.test.ts src/store/gameStore.test.ts src/service/battle/simulation/*.test.ts",
     "test:monsters": "node --import tsx --test src/service/battle/enemies/enemyIntent.test.ts src/service/battle/enemies/enemySettlement.test.ts src/service/battle/enemies/monsterBalance.test.ts"
   },
   "dependencies": {

@@ -4,7 +4,7 @@ import { PlayerImpact } from './PlayerImpact';
 import { DiceHoverOverlay } from './DiceHoverOverlay';
 import { DiceHoverInfo, type DiceInspection } from './DiceHoverInfo';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
-import { getEffectiveFace } from '../../service/dice/diceFaces';
+import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
 import { DICE_TRAY_PRESENTATION } from '../../configs/dicePresentationConfig';
 import { describeBattleSkills } from '../../service/battle/battleSkillDescription';
 import { EQUIPMENT_BALANCE as eq, hasEquipment } from '../../configs/equipment/equipmentConfig';
@@ -69,7 +69,7 @@ export const DiceBoard: React.FC = () => {
     const displayed = combatPhase === 'PREPARATION' || combatPhase === 'ROLLING' || combatPhase === 'CONTROL_PHASE'
       ? undefined : displayedIdentities[die.id];
     const creature = displayed?.creature ?? effective.creature;
-    return { creature, tags: displayed?.tags ?? [...CREATURE_CONFIG[creature].tags] };
+    return { creature, tags: displayed?.tags ?? getFaceTags(effective) };
   });
   const battleDescriptions = dicePool.map((die, index) => describeBattleSkills({ die,
     faceIndex: rolledIndices[index] ?? 0, creature: identities[index].creature,

@@ -13,7 +13,7 @@ import { previewEnemyIntent } from './enemyDescription';
 import type { Dice } from '../../../types/game';
 
 function summaryWithDamage(damage: number): BattleComboSummary {
-  return { items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
+  return { healing: 0, reflection: 0, nextEchoUsed: [], nextGildedFaces: [], items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
     sourceName: '測試', bonusDamage: damage, label: '追加', description: '追加' }] : [], triggeredEquipmentIds: [], totalDamage: damage,
     totalShield: 0, bonusControlGranted: 0, nextStoredFood: {} };
 }
@@ -132,19 +132,49 @@ test('locking commits chef food once and rejects another settlement during the a
     faces: Array.from({ length: 6 }, (_, index) => ({ id: `chef-${index}`, creature: index === 0 ? 'chef' : 'food', baseValue: 4 })) };
   const enemy = createEnemy('r1_slinger');
   enemy.hp = enemy.maxHp = 100;
-  const creatureBattleState = { ...createCreatureBattleState(), storedFood: { chef: 7 } };
+  const creatureBattleState = { ...createCreatureBattleState(), storedFood: { chef: 7.25 }, cowardShields: { chef: 9.75 } };
   let state: GameState = { ...useGameStore.getInitialState(), dicePool: [chef], rolledIndices: [0],
-    currentEnemy: enemy, creatureBattleState, combatPhase: 'CONTROL_PHASE',
+    currentEnemy: enemy, creatureBattleState, playerShield: 0.5, combatPhase: 'CONTROL_PHASE',
     comboSummary: calculateRollResolution([chef], [0], [], creatureBattleState) };
-  const methods = { get: () => state, set: (partial: Partial<GameState>) => { state = { ...state, ...partial }; },
+  const frames: Pick<GameState, 'diceSlotStates' | 'bonusSlotStates' | 'displayedShields' | 'displayedFood' | 'playerShieldDisplay'>[] = [];
+  const methods = { get: () => state, set: (partial: Partial<GameState>) => {
+    state = { ...state, ...partial };
+    if (partial.displayedFood) frames.push(structuredClone({ diceSlotStates: state.diceSlotStates,
+      bonusSlotStates: state.bonusSlotStates, displayedShields: state.displayedShields,
+      displayedFood: state.displayedFood, playerShieldDisplay: state.playerShieldDisplay }));
+  },
     triggerScreenShake: () => {}, addDamagePop: () => {}, startBattleRoll: () => {}, waitForAttackMotion: async () => true };
   const first = runBattleSettlement(methods);
   assert.equal(state.creatureBattleState.storedFood.chef, 0);
   await runBattleSettlement(methods);
   for (let step = 0; step < 1000; step++) { context.mock.timers.runAll(); await Promise.resolve(); }
   await first;
-  assert.equal(state.currentEnemy?.hp, 89);
+  assert.equal(state.currentEnemy?.hp, 88);
   assert.equal(state.creatureBattleState.storedFood.chef, 0);
+  const shieldFrames = frames.filter((frame) => frame.displayedShields.chef.isSpinning);
+  const foodFrames = frames.filter((frame) => frame.displayedFood.chef.isSpinning);
+  assert.ok(shieldFrames.length > 1 && foodFrames.length > 1);
+  for (const frame of frames) {
+    for (const displays of [frame.diceSlotStates, frame.bonusSlotStates, frame.displayedShields, frame.displayedFood]) {
+      for (const display of Object.values(displays)) {
+        if (display.isSpinning) assert.ok(Number.isInteger(display.displayValue), `輪播中出現小數 ${display.displayValue}`);
+      }
+    }
+  }
+  shieldFrames.forEach((frame, index) => {
+    const value = frame.displayedShields.chef.displayValue;
+    assert.ok(value >= 0 && value <= 9, `護盾輪播超出目標整數位數：${value}`);
+    assert.ok(Number.isInteger(frame.playerShieldDisplay));
+    if (index > 0) assert.ok(value >= shieldFrames[index - 1].displayedShields.chef.displayValue);
+  });
+  foodFrames.forEach((frame, index) => {
+    const value = frame.displayedFood.chef.displayValue;
+    assert.ok(value >= 0 && value <= 7);
+    if (index > 0) assert.ok(value <= foodFrames[index - 1].displayedFood.chef.displayValue);
+  });
+  assert.equal(frames.at(-1)?.displayedShields.chef.displayValue, 9.75);
+  assert.equal(frames.at(-1)?.displayedFood.chef.displayValue, 0);
+  assert.equal(frames.at(-1)?.playerShieldDisplay, 10.25);
 });
 
 
@@ -183,4 +213,30 @@ test('final boss victory offers no further construction rewards', async (context
   assert.deepEqual(state.battleRewardOptions, []);
   assert.equal(state.battleRewardPickCount, 0);
   assert.equal(state.combatPhase, 'VICTORY');
+});
+
+test('round 50 defeats a surviving enemy battle without starting round 51', async (context) => {
+  const enemy = createEnemy('r1_patrol'); enemy.currentIntentIndex = 1;
+  const { state, rolls } = await settle(context, enemy, summaryWithDamage(0), 60,
+    { creatureBattleState: { ...createCreatureBattleState(), round: 50 } });
+  assert.equal(state.combatPhase, 'DEFEAT');
+  assert.equal(rolls, 0);
+});
+
+test('reflection can win the last round and awards each gilded face once', async (context) => {
+  const enemy = createEnemy('r1_slinger'); enemy.hp = 3; enemy.shield = 0;
+  const summary = summaryWithDamage(0); summary.reflection = 3; summary.nextGildedFaces = ['a', 'b'];
+  const { state, rolls } = await settle(context, enemy, summary, 60,
+    { gold: 0, creatureBattleState: { ...createCreatureBattleState(), round: 50 } });
+  assert.equal(state.combatPhase, 'VICTORY');
+  assert.equal(state.gold, 21);
+  assert.equal(rolls, 0);
+});
+
+test('full shield absorption prevents reflection, while healing is capped', async (context) => {
+  const enemy = createEnemy('r1_slinger'); enemy.shield = 0;
+  const summary = summaryWithDamage(0); summary.reflection = 3; summary.healing = 4;
+  const { state } = await settle(context, enemy, summary, 59, { playerShield: 99 });
+  assert.equal(state.currentEnemy?.hp, enemy.hp);
+  assert.equal(state.playerHp, 60);
 });

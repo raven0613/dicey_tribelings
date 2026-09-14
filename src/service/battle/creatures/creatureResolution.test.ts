@@ -87,8 +87,10 @@ test('princesses can gain herald damage and order each other without recursive s
     + 4 * b.gang.damagePerNeighbor + 8 * b.herald.bonusPerAttack);
 });
 
-test('imposter supplies counts without abilities or extra physical attacks', () => {
+test('imposter becomes a real sister and executes its ability without adding physical dice', () => {
   const result = resolve([die('a', 'sisters'), die('b', 'imposter'), die('c', 'imposter')]);
+  assert.deepEqual(result.items.map((item) => item.creature), ['sisters', 'sisters', 'sisters']);
+  assert.deepEqual(result.items.map((item) => item.finalDamage), Array(3).fill(4 + b.sisters.bonus));
   assert.equal(result.items.length, 3);
   assert.equal(result.repeatAttacks.length, 0);
   assert.equal(result.bonusDice.length, 0);

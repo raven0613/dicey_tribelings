@@ -35,7 +35,7 @@ export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
   prankster: role('土人搗蛋鬼', '🤪', ['common'], '大鬧一番', '自身被重骰時，隨機重骰一顆土人鄰骰。'),
   authority: role('土人權威', '🎖️', ['noble'], '賞你個名分', '本回合將隨機 1 名相鄰的 [普通] 土人視為 [貴族]。', 'rare'),
   farmer: role('土人農夫', '👨‍🌾', ['common', 'craftsman'], '自給自足', `若場上沒有 [食物]，自身轉化為好吃的；已有 [食物] 時，使最接近的 1 份 [食物] 攻擊力 +${b.farmer.foodBonus}。`),
-  imposter: role('土人偽裝者', '🎭', ['mystery'], '混入人群', '場上數量最多的一種土人額外計數一次。', 'rare'),
+  imposter: role('土人偽裝者', '🎭', ['mystery'], '混入人群', '本回合首次出現時偽裝成場上最多的一種其他角色或食物。', 'rare'),
   glutton: role('土人大胃王', '😋', ['common'], '暴飲暴食', `每份場上 [食物] 使基礎攻擊力倍率 +${b.glutton.foodMultiplier}；沒有食物時基礎攻擊力 ×${b.glutton.hungryMultiplier}。`, 'rare'),
   bulwark: role('巨盾土人', '🛡️', ['warrior'], '連本帶利', '依本回合全隊累計獲得的護盾，追加一次等值攻擊。', 'rare'),
   bully: role('土人惡霸', '🧐', ['noble'], '保護費', `搶奪相鄰 1 名土人的 50% 攻擊力（×${b.bully.multiplier}）；若目標為 [職人]，自身收益翻倍。`, 'rare'),

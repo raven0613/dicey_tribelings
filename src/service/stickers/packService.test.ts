@@ -24,3 +24,12 @@ test('princess allocation is separate from regional quality and stops after two 
   }
   assert.ok(openStickerPack('pack_tribe', 6, () => 0).stickers.every((item) => item.creature !== 'princess'));
 });
+
+test('each special pack coats exactly one permanent sticker and preserves temporary stickers', () => {
+  for (const pack of [...STICKER_PACKS_CATALOG, FINAL_STICKER_PACK]) {
+    let count = 0;
+    const result = openStickerPack(pack.id, 1, () => count++ === 0 ? 0.995 : 0.5);
+    assert.equal(result.stickers.filter((s) => s.isDisposable === false && s.material).length, 1);
+    assert.ok(result.stickers.filter((s) => s.isDisposable).every((s) => !('material' in s)));
+  }
+});

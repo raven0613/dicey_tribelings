@@ -1,7 +1,7 @@
 @use '../variables' as *;
 
 .player-vitals {
-  display: flex; align-items: center; gap: 0.625rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem;
   padding: 0.25rem 0.75rem; color: $rose-300;
   background: $slate-900; border: 1px solid $slate-700; border-radius: $radius-lg;
   > svg { flex-shrink: 0; }

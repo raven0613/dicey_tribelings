@@ -1,11 +1,13 @@
+import { BATTLE_LIMIT } from '../../configs/battleConfig';
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { Skull, Trophy, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const GameOverModal: React.FC = () => {
-  const { combatPhase, restartGame, dicePool, equipments, currentNodeIndex, currentEnemy } = useGameStore();
+  const { combatPhase, restartGame, dicePool, equipments, currentNodeIndex, currentEnemy, creatureBattleState, playerHp } = useGameStore();
 
+  const timedOut = creatureBattleState.round >= BATTLE_LIMIT.rounds && playerHp > 0;
   const isDefeat = combatPhase === 'DEFEAT';
   const isFinalVictory = combatPhase === 'VICTORY' && currentEnemy?.isBoss && currentEnemy.region === 6;
 
@@ -38,12 +40,12 @@ export const GameOverModal: React.FC = () => {
 
         <div>
           <div className={`game-over-title ${isFinalVictory ? 'victory' : 'defeat'}`}>
-            {isFinalVictory ? '救回王子！' : '冒險中途倒下...'}
+            {isFinalVictory ? '救回王子！' : timedOut ? '戰鬥回合耗盡' : '冒險中途倒下...'}
           </div>
           <div className="game-over-desc">
             {isFinalVictory
               ? '你帶領土人擊敗鱷魚王，從深牢救回王子！王子將王冠送給你，感謝代理王子的救援。'
-              : '骰運與戰術在最後一刻失衡，整備心情再次挑戰吧！'}
+              : timedOut ? '50 回合內未能擊敗敵人，本次冒險結束。' : '骰運與戰術在最後一刻失衡，整備心情再次挑戰吧！'}
           </div>
         </div>
 

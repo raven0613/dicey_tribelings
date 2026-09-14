@@ -78,7 +78,8 @@ export function resolveFinalAttacks(c: ResolutionContext) {
     princess.skillInputs = { count: targets.length };
     if (!targets.length) continue;
     const e = c.event(10, princess, undefined, targets, 'attack');
-    for (const target of targets) {
+    const copies = c.echoMultiplier(e);
+    for (let copy = 0; copy < copies; copy++) for (const target of targets) {
       c.repeatAttacks.push({ diceId: target.diceId, damage: target.finalDamage, sourceDiceId: princess.diceId });
       e.repeatDiceIds.push(target.diceId);
       target.bonusTags.push('公主命令：再攻擊');

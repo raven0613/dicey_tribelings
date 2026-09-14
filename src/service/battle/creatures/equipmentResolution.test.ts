@@ -55,7 +55,7 @@ test('crown changes common identity before theft and princess snapshots, abacus 
   assert.deepEqual(result.items[1].tags, ['noble']);
   assert.equal(result.items[1].finalDamage > 0, true);
   assert.equal(result.repeatAttacks[0].diceId, 'b');
-  assert.equal(result.bonusControlGranted, eq.abacusControl);
+  assert.equal(result.bonusControlGranted, 0); // 偽裝後的角色標籤取代神秘，場上只有普通與貴族。
 });
 
 test('slot match grants one base contribution and retains other support bonuses', () => {

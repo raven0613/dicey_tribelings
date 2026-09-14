@@ -1,3 +1,6 @@
+import { commitMaterialRound } from './creatures/materialResolution';
+import { MATERIAL_BALANCE } from '../../configs/materials/materialConfig';
+import { BATTLE_LIMIT } from '../../configs/battleConfig';
 import { buildAttackPlan } from './attackPlan';
 import { getAttackEmphases } from './attackPresentation';
 import { EQUIPMENT_BALANCE, hasEquipment } from '../../configs/equipment/equipmentConfig';
@@ -35,7 +38,9 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   let damageTaken = 0;
   const isCurrent = () => get().comboSummary === summary;
   set({ combatPhase: 'RESOLVING_CALCULATION', visibleBonusIds: [], bonusSlotStates: {},
-    creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood } },
+    creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood },
+      echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces },
+    playerHp: Math.min(initial.maxHp, initial.playerHp + summary.healing),
     playerShield: combatNumber(initial.playerShield + summary.totalShield),
     gold: initial.gold + summary.goldGranted,
   });
@@ -63,7 +68,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   }
   if (!isCurrent()) return;
 
-  if (activeEnemy.hp <= 0) {
+  const finishVictory = async () => {
     await waitForAnimation(timing.victoryMs);
     if (!isCurrent()) return;
     soundService.playVictory();
@@ -72,13 +77,14 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
       : currentEnemy.isElite ? 'elite' : 'normal';
     const battleRewardOptions = generateBattleRewardOptions(currentEnemy.region, rank);
     const earnedGold = currentEnemy.isBoss ? COMBAT_GOLD.boss : currentEnemy.isElite ? COMBAT_GOLD.elite : COMBAT_GOLD.normal;
-    set({ combatPhase: 'VICTORY', gold: state.gold + earnedGold, battleRewardOptions,
+    set({ combatPhase: 'VICTORY', gold: state.gold + earnedGold + summary.nextGildedFaces.length * MATERIAL_BALANCE.gilded, battleRewardOptions,
       battleRewardPickCount: getBattleRewardCount(rank),
       playerHp: Math.min(state.maxHp, state.playerHp + (rank === 'boss' ? REWARD_CONFIG.bossHeal : 0)),
-      dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: createCreatureBattleState(),
+      dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round },
       storedRations: hasEquipment(initial.equipments, 'RATIONS') ? summary.leftoverFood : 0 });
     return;
-  }
+  };
+  if (activeEnemy.hp <= 0) { await finishVictory(); return; }
 
   set({ combatPhase: 'ENEMY_TURN' });
   await waitForAnimation(timing.enemyThinkMs);
@@ -86,13 +92,25 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   const intent = activeEnemy.intents[activeEnemy.currentIntentIndex];
   const resolution = resolveEnemyIntent(activeEnemy, damageTaken);
   if (resolution.damage > 0) {
+    const hpBeforeAttack = get().playerHp;
     await animateEnemyAttack(methods, resolution.damage, intent.type === 'heavy_attack', isCurrent);
     if (!isCurrent()) return;
+    if (get().playerHp < hpBeforeAttack && summary.reflection > 0) {
+      applyDamage(summary.reflection);
+      methods.addDamagePop({ value: summary.reflection, label: '鏡面反射' });
+    }
     if (get().playerHp <= 0) {
-      set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: createCreatureBattleState() });
+      set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
       return;
     }
   }
+  if (activeEnemy.hp <= 0) { await finishVictory(); return; }
+  if (initial.creatureBattleState.round >= BATTLE_LIMIT.rounds) {
+    set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool),
+      creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
+    return;
+  }
+  set({ dicePool: commitMaterialRound(dicePool, initial.rolledIndices) });
   activeEnemy = { ...activeEnemy, currentIntentIndex: resolution.nextIntentIndex, shield: activeEnemy.shield + resolution.shieldGain };
   set({ currentEnemy: activeEnemy });
   await waitForAnimation(timing.nextRoundMs);

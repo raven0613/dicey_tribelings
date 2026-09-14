@@ -1,3 +1,4 @@
+import { BATTLE_LIMIT } from '../../../configs/battleConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { simulateRun } from './runSimulation';
@@ -16,7 +17,7 @@ test('real rewards, finite HP, Control and shops produce repeatable complete res
     assert.ok(run.hp >= 0 && run.hp <= INITIAL_PLAYER_STATS.maxHp);
     assert.ok(run.gold >= 0 && Number.isFinite(run.gold));
     assert.ok(run.checkpoints.every((row) => Number.isFinite(row.damage) && row.damage > 0));
-    assert.ok(run.encounters.every((row) => row.turns > 0 && row.turns <= config.maxBattleTurns));
+    assert.ok(run.encounters.every((row) => row.turns > 0 && row.turns <= BATTLE_LIMIT.rounds));
     if (run.won) {
       assert.equal(run.lastNode, INITIAL_MAP_NODES.length - 1);
       assert.equal(run.encounters.length, 28);

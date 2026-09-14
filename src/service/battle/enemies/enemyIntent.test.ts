@@ -129,6 +129,8 @@ test('descriptions derive numbers and charge previews from current config', () =
 });
 
 test('current combat nodes explicitly reference regional monsters of matching rank', () => {
+  assert.equal(INITIAL_MAP_NODES[13].enemyId, 'r2_waterway_bully');
+  assert.equal(INITIAL_MAP_NODES[13].title, '水路鱷霸');
   for (const node of INITIAL_MAP_NODES.filter((node) => ['fight', 'elite', 'boss'].includes(node.type))) {
     const enemy = getEnemyForNode(node, node.id);
     assert.equal(enemy.id, node.enemyId);

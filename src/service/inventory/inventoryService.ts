@@ -46,6 +46,8 @@ export function applyPermanentSticker(
     faces[faceIndex] = {
       ...faces[faceIndex],
       baseValue: sticker.baseValue,
+      material: sticker.material,
+      materialDecay: undefined,
       creature: sticker.creature,
       temporarySticker: undefined,
     };
@@ -79,7 +81,7 @@ export function applyTemporaryPlacements(
 export function restoreTemporaryStickers(dicePool: Dice[]): Dice[] {
   return dicePool.map((die) => ({
     ...die,
-    faces: die.faces.map(({ temporarySticker: _temporarySticker, ...face }) => face),
+    faces: die.faces.map(({ temporarySticker: _temporarySticker, materialDecay: _materialDecay, ...face }) => face),
   }));
 }
 

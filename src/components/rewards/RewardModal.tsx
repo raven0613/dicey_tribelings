@@ -1,3 +1,5 @@
+import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
+import { getEffectiveFace } from '../../service/dice/diceFaces';
 import { SkillText } from '../common/SkillText';
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
@@ -35,15 +37,18 @@ export const RewardModal: React.FC<{ onOpenDiceBag: () => void; inspectingDice: 
       </div>
       <div className="reward-options-grid">
         {battleRewardOptions.map((option) => <button type="button" key={option.id}
-          aria-pressed={selected.includes(option.id)} onClick={() => choose(option.id)} className="reward-option-card">
+          aria-pressed={selected.includes(option.id)} onClick={() => choose(option.id)} className="reward-option-card"
+          data-material={option.kind === 'sticker' && option.sticker.isDisposable === false ? option.sticker.material : undefined}
+          style={materialStyle(option.kind === 'sticker' && option.sticker.isDisposable === false ? option.sticker.material : undefined)}>
           {option.kind === 'stickerPack' ? <>
             <div className="card-tag-row"><span className="type-badge pack">貼紙包</span><RarityBadge rarity={option.pack.rarity} /></div>
             <div className="card-value-box"><Gift size={36} /><strong>{option.pack.stickerCount} 張</strong></div>
             <div className="sticker-name">{option.pack.name}</div><div className="sticker-desc"><SkillText text={option.pack.description} /></div>
           </> : <>
             <div className="card-tag-row"><span className="type-badge permanent">永久改造</span><RarityBadge rarity={option.sticker.rarity} /></div>
-            <div className="card-value-box"><div className="main-number">{'baseValue' in option.sticker && option.sticker.baseValue}</div>
+            <div className="card-value-box"><div className="main-number">{option.sticker.isDisposable === false && getEffectiveFace(option.sticker).baseValue}</div>
               <CreatureBadge creature={option.sticker.creature} /></div>
+            {option.sticker.isDisposable === false && <MaterialBadge material={option.sticker.material} description />}
             <div className="sticker-name">{option.sticker.name}</div><div className="sticker-desc"><SkillText text={option.sticker.description} /></div>
           </>}
           <div className="btn-pick-reward">{selected.includes(option.id) ? '✓ 已選取' : battleRewardPickCount === 1 ? '選擇並處理 →' : '選取'}</div>

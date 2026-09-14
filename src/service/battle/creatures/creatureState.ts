@@ -1,6 +1,7 @@
 import type { CreatureBattleState } from '../../../types/creatures';
 
 export const createCreatureBattleState = (): CreatureBattleState => ({
+  round: 0, imposterTargets: {}, echoUsed: [], gildedFaces: [],
   storedFood: {}, cowardShields: {}, priestAttacks: {}, teacherBonuses: {},
   teachersAvailable: [], prankstersUsed: [], faceVersions: {}, authorityTargets: {},
   lockedDice: [], rerollCount: 0, controlSpent: 0, formationUsed: false,
@@ -8,7 +9,7 @@ export const createCreatureBattleState = (): CreatureBattleState => ({
 });
 
 export function startCreatureRound(state: CreatureBattleState, seed: number): CreatureBattleState {
-  return { ...createCreatureBattleState(), storedFood: { ...state.storedFood }, seed };
+  return { ...createCreatureBattleState(), storedFood: { ...state.storedFood }, round: state.round + 1, echoUsed: [...state.echoUsed], gildedFaces: [...state.gildedFaces], seed };
 }
 
 /** Stable choices are derived from the committed roll seed; previews consume no randomness. */

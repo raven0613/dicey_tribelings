@@ -1,3 +1,4 @@
+import type { FaceMaterial } from './materials';
 import type { AttackStage, BonusAttackDice } from './game';
 import type { CreatureId, CreatureTag } from './creatures';
 
@@ -11,6 +12,8 @@ export interface EnemyAttackFeedback {
 export interface CalculatedRollItem {
   diceId: string;
   diceName: string;
+  faceId: string;
+  material?: FaceMaterial;
   faceIndex: number;
   rolledCreature: CreatureId;
   rolledBaseValue: number;
@@ -30,7 +33,6 @@ export interface SkillInputs {
   value?: number;
   before?: number;
   after?: number;
-  copiedCreature?: CreatureId;
   virtualFood?: boolean;
   blockedByRobbery?: boolean;
 }
@@ -43,13 +45,15 @@ export interface SkillChange {
 }
 
 export interface SkillEvent {
-  skill: CreatureId | 'storage' | 'princessReady' | 'equipment';
+  skill: CreatureId | 'storage' | 'princessReady' | 'equipment' | 'material';
   activated: boolean;
   relation: 'support' | 'adjacent' | 'robbery' | 'attack';
   id: string;
   stage: number;
   sourceDiceId?: string;
   equipmentId?: string;
+  sourceFaceId?: string;
+  echoed?: boolean;
   ability: string;
   participantDiceIds: string[];
   changes: SkillChange[];
@@ -59,7 +63,7 @@ export interface SkillEvent {
 }
 
 export interface RepeatAttack { diceId: string; damage: number; sourceDiceId: string }
-export interface BattleContext { control: number; maxControl: number; gold: number; currentEnemy?: { shield: number } | null }
+export interface BattleContext { foodCapacity?: number;  control: number; maxControl: number; gold: number; currentEnemy?: { shield: number } | null }
 
 export interface BattleComboSummary {
   items: CalculatedRollItem[];
@@ -68,6 +72,10 @@ export interface BattleComboSummary {
   events: SkillEvent[];
   triggeredEquipmentIds: string[];
   totalDamage: number;
+  healing: number;
+  reflection: number;
+  nextEchoUsed: string[];
+  nextGildedFaces: string[];
   totalShield: number;
   bonusControlGranted: number;
   goldGranted: number;

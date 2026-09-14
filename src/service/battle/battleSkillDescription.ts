@@ -1,3 +1,4 @@
+import { MATERIAL_CONFIG, MATERIAL_BALANCE, FOOD_CAPACITY } from '../../configs/materials/materialConfig';
 import { CREATURE_CONFIG as roles } from '../../configs/creatures/creatureConfig';
 import { CREATURE_BALANCE as balance } from '../../configs/creatures/creatureBalanceConfig';
 import type { CreatureBattleState, CreatureId } from '../../types/creatures';
@@ -20,7 +21,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
   const faces = die.faces.map(getEffectiveFace);
   const face = faces[faceIndex];
   const item = summary?.items.find((entry) => entry.diceId === die.id);
-  const roleId = item?.rolledCreature ?? creature;
+  const roleId = item?.rolledCreature === 'imposter' ? state.imposterTargets[die.id] ?? item.creature : item?.rolledCreature ?? creature;
   const role = roles[roleId];
   const events = summary?.events.filter((event) => event.sourceDiceId === die.id && !event.equipmentId) ?? [];
   const primary = events.filter((event) => event.skill === roleId);
@@ -79,10 +80,10 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
       case 'porter': {
         const chain = summary.events.find((event) => event.skill === 'porter' && event.participantDiceIds.includes(die.id));
         const change = chain?.changes.find((entry) => entry.kind === 'attack');
-        return chain && change ? `${chain.participantDiceIds.length} 名土人搬運工接力，隊尾土人搬運工攻擊力 +${ceilDamage(change.after) - ceilDamage(change.before)}。`
+        return chain && change ? `${chain.participantDiceIds.length} 名土人搬運工接力，隊尾土人搬運工攻擊力 x ${chain.participantDiceIds.length}，為 ${ceilDamage(change.after)}。`
           : `目前接力隊列共 ${count} 名土人搬運工，需要至少 2 名；本回合攻擊力 +0。`;
       }
-      case 'imposter': return inputs.copiedCreature ? `場上有 ${count} 名${roles[inputs.copiedCreature].name}，本技能額外計數 1 名。` : role.description;
+      case 'imposter': return '本回合首次出現時偽裝成場上最多的角色，全場皆為偽裝者；維持原身分。';
       case 'authority': {
         const target = primary.flatMap((event) => event.identities)[0];
         return target ? `相鄰有 ${count} 名合法 [普通] 土人，本回合將 ${targetName(target.diceId)} 視為 [貴族]。` : `${role.description}本回合沒有合法目標。`;
@@ -97,9 +98,9 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
   const abilities = [...new Set([...events.map((event) => event.ability), ...(chain ? [chain.ability] : [])])];
   const lines = new Map([[primary[0]?.ability ?? role.ability, describe()]]);
   for (const event of events) {
-    if (event.skill === roleId) continue;
+    if (event.skill === roleId || event.skill === 'material') continue;
     if (event.skill === 'priest') {
-      const value = state.priestAttacks[die.id];
+      const value = event.sourceFaceId ? state.priestAttacks[event.sourceFaceId]?.damage ?? 0 : 0;
       lines.set(event.ability, `土人祭司本回合在場時目睹 ${value / balance.priest.damagePerReroll} 次重骰，保留並釋放 ${ceilDamage(value)} 點追加攻擊。`);
       continue;
     }
@@ -112,6 +113,14 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
     if (values.length) lines.set(event.ability, values.join('、'));
   }
   const description = [...lines].map(([ability, text]) => `${ability}：${text}`);
+  if (item?.rolledCreature === 'imposter' && roleId !== 'imposter') description.unshift(`本回合偽裝成：${roles[roleId].name}。`);
+  if (face.material) {
+    const material = MATERIAL_CONFIG[face.material];
+    const status = face.material === 'echo' ? state.echoUsed.includes(face.id) ? '已發動' : '尚未發動' : '';
+    description.push(`${material.name}：${material.description}${status}`);
+    if (face.material === 'negative') description.push(`目前有效基礎值 ${face.baseValue}，結算後 ${Math.max(0, face.baseValue - MATERIAL_BALANCE.decay)}。`);
+  }
+  if (item?.tags.includes('food') || roleId === 'chef') description.push(`全隊儲糧 ${Object.values(state.storedFood).reduce((sum, value) => sum + value, 0)}／${FOOD_CAPACITY.crocodile}，從左側依序入庫。`);
   if (state.lockedDice.includes(die.id)) description.push('免疫強制重骰。');
   return { abilities, description: description.join('\n') };
 }

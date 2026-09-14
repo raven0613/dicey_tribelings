@@ -6,10 +6,13 @@ import { DICE_TRAY_PRESENTATION as layout } from '../../configs/dicePresentation
 export function getDiceTrayLayout(width: number, height: number, dice: Dice[], detailsHeight: number = layout.detailsHeight) {
   const sources = dice.map((die) => {
     const faces = die.faces.map(getEffectiveFace);
-    const gangCapacity = Math.max(0, ...faces.map((face, index) => face.creature === 'gang'
+    const gangCapacity = Math.max(0, ...faces.map((face, index) => (face.creature === 'gang' || face.creature === 'imposter')
       ? getAdjacentFaces(die, index).filter((neighbor) => neighbor.creature === 'gang').length : 0));
-    return { key: `creature:${die.id}`, capacity: Math.max(1, gangCapacity)
-      + Number(faces.some((face) => face.creature === 'priest')) };
+    const echo = faces.some((face) => face.material === 'echo') ? 2 : 1;
+    const priests = faces.filter((face) => face.creature === 'priest' || face.creature === 'imposter');
+    return { key: `creature:${die.id}`, capacity: Math.max(1, gangCapacity) * echo
+      + priests.reduce((sum, face) => sum + (face.material === 'echo' ? 2 : 1), 0)
+      + Number(faces.some((face) => face.material === 'shock')) };
   });
   const slotCount = sources.reduce((total, source) => total + source.capacity, 0);
   const availableWidth = Math.max(0, width - layout.sidePadding * 2);

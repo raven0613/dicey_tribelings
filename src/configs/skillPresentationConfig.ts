@@ -3,6 +3,7 @@ import { CREATURE_CONFIG } from './creatures/creatureConfig';
 export const SKILL_KEYWORD_COLORS: Record<string, string> = {
   ...Object.fromEntries(Object.values(CREATURE_CONFIG).map((role) => [role.name, role.color])),
   搶奪: '#fb9988', 護盾: '#93c5fd',
+  尚未發動: '#2dd4bf', 已發動: '#94a3b8',
 };
 
 export const HOVER_PRESENTATION = {

@@ -1,3 +1,7 @@
+import { commitMaterialRound } from '../creatures/materialResolution';
+import { restoreTemporaryStickers } from '../../inventory/inventoryService';
+import { MATERIAL_BALANCE } from '../../../configs/materials/materialConfig';
+import { BATTLE_LIMIT } from '../../../configs/battleConfig';
 import type { Dice, Equipment, PermanentSticker, StickerItem } from '../../../types/game';
 import { INITIAL_DICE_POOL, INITIAL_PLAYER_STATS } from '../../../configs/gameConfig';
 import { INITIAL_MAP_NODES } from '../../../configs/regions/mapConfig';
@@ -77,7 +81,7 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
       const battleRandom = seededRandom(policySeed);
       const maxControl = computeMaxControl(gear, gold);
       let control = maxControl;
-      while (enemy.hp > 0 && hp > 0 && turns < config.maxBattleTurns) {
+      while (enemy.hp > 0 && hp > 0 && turns < BATTLE_LIMIT.rounds) {
         turns++;
         const rolled = performStartBattleRoll(pool, gear, round, { control, maxControl, gold }, rations, battleRandom);
         rations = 0;
@@ -126,7 +130,9 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         control = state.control; gold = state.gold + summary.goldGranted;
         rerolls += state.creatureBattleState.rerollCount;
         shield += summary.totalShield;
-        round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood };
+        round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood, echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces };
+        hp = Math.min(INITIAL_PLAYER_STATS.maxHp, hp + summary.healing);
+        pool = commitMaterialRound(pool, state.rolledIndices);
         const hit = applyEnemyDamage(enemy, summary.totalDamage); enemy = hit.enemy;
         if (enemy.hp <= 0) {
           rations = hasEquipment(gear, 'RATIONS') ? summary.leftoverFood : 0;
@@ -136,10 +142,14 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         if (enemy.intents[enemy.currentIntentIndex].type === 'heavy_attack' && intent.damage > 0) heavyActions++;
         enemy.shield += intent.shieldGain; enemy.currentIntentIndex = intent.nextIntentIndex;
         const absorbed = Math.min(shield, intent.damage); shield -= absorbed; hp = Math.max(0, hp - (intent.damage - absorbed));
+        if (intent.damage > absorbed && summary.reflection > 0) enemy = applyEnemyDamage(enemy, summary.reflection).enemy;
+        if (enemy.hp <= 0 && hp > 0) rations = hasEquipment(gear, 'RATIONS') ? summary.leftoverFood : 0;
         control = Math.min(maxControl + EQUIPMENT_BALANCE.controlHeadroom, control + summary.bonusControlGranted);
       }
       report.encounters.push({ node: node.id, turns, hp, hpLost: startingHp - hp, rerolls, heavyActions });
       if (hp === 0 || enemy.hp > 0) break;
+      pool = restoreTemporaryStickers(pool);
+      gold += round.gildedFaces.length * MATERIAL_BALANCE.gilded;
       const rank = node.type === 'fight' ? 'normal' : node.type === 'elite' ? 'elite' : node.region === 6 ? 'final_boss' : 'boss';
       gold += rank === 'normal' ? COMBAT_GOLD.normal : rank === 'elite' ? COMBAT_GOLD.elite : COMBAT_GOLD.boss;
       if (rank === 'boss') hp = Math.min(INITIAL_PLAYER_STATS.maxHp, hp + REWARD_CONFIG.bossHeal);

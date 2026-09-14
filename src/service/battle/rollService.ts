@@ -1,3 +1,4 @@
+import { lockImposterTargets, getRoundFace } from './creatures/imposterResolution';
 import type { Dice, Equipment, CombatPhase } from '../../types/game';
 import { predetermineRollResults, calculateRollResolution } from './battleEngine';
 import type { CreatureBattleState } from '../../types/creatures';
@@ -21,7 +22,8 @@ export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[]
   const rolledIndices = predetermineRollResults(dicePool, random);
   let round = startCreatureRound(state, Math.floor(random() * 0xffffffff));
   round.virtualFood = virtualFood;
-  round.teachersAvailable = dicePool.filter((die, index) => getEffectiveFace(die.faces[rolledIndices[index]]).creature === 'teacher').map((die) => die.id);
+  round = lockImposterTargets(dicePool, rolledIndices, round);
+  round.teachersAvailable = dicePool.filter((die, index) => getRoundFace(die, rolledIndices[index], round).creature === 'teacher').map((die) => die.id);
   round = refreshAuthorityTargets(dicePool, rolledIndices, equipments, round);
   soundService.playDiceRoll();
   return { rolledIndices, comboSummary: calculateRollResolution(dicePool, rolledIndices, equipments, round, battle),
@@ -37,7 +39,7 @@ export function getOppositeFace(die: Dice, faceIndex: number): number | null {
 
 export function teacherTargets(state: RollState, teacherId: string): number[] {
   const items = state.dicePool.map((die, index) => {
-    const face = getEffectiveFace(die.faces[state.rolledIndices[index]]);
+    const face = getRoundFace(die, state.rolledIndices[index], state.creatureBattleState);
     return { diceId: die.id, creature: face.creature, baseValue: face.baseValue };
   });
   return findTeacherTargets(items, state.creatureBattleState, teacherId);

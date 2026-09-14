@@ -31,7 +31,9 @@ export function calculateRollResolution(dicePool: Dice[], rolledIndices: number[
     events: c.events.filter((event) => event.activated),
     triggeredEquipmentIds: [...c.triggeredEquipmentIds], totalDamage,
     totalShield: combatNumber(c.items.reduce((sum, item) => sum + item.shieldGranted, 0)),
+    healing: c.materials.healing, reflection: c.materials.reflection, nextEchoUsed: [...c.echoUsed],
+    nextGildedFaces: [...c.materials.gildedFaces],
     bonusControlGranted, goldGranted, nextStoredFood: c.nextStoredFood,
-    leftoverFood: combatNumber(c.items.filter((item) => item.creature === 'food').reduce((sum, item) => sum + item.baseValue, 0) + c.virtualFood),
+    leftoverFood: combatNumber(c.items.filter((item) => item.tags.includes('food')).reduce((sum, item) => sum + item.baseValue, 0) + c.virtualFood),
   };
 }

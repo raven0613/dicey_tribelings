@@ -1,3 +1,5 @@
+import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
+import { getEffectiveFace } from '../../service/dice/diceFaces';
 import { SkillText } from '../common/SkillText';
 import { RarityBadge } from '../dice/RarityBadge';
 import React from 'react';
@@ -23,15 +25,17 @@ export const StickerPackModal: React.FC = () => {
         </div>
         <div className="pack-sticker-grid">
           {openedPackResult.stickers.map((sticker) => (
-            <article className="pack-sticker-card" key={sticker.id}>
+            <article className="pack-sticker-card" key={sticker.id} data-material={sticker.isDisposable === false ? sticker.material : undefined}
+              style={materialStyle(sticker.isDisposable === false ? sticker.material : undefined)}>
               <div className="card-tag-row">
                 <span className={`type-badge ${sticker.isDisposable ? 'disposable' : 'permanent'}`}>
                   {sticker.isDisposable ? '戰術消耗品' : '永久改造'}
                 </span>
                 <RarityBadge rarity={sticker.rarity} />
               </div>
-              <strong className="pack-sticker-value">{'baseValue' in sticker ? sticker.baseValue : '沿用原值'}</strong>
+              <strong className="pack-sticker-value">{sticker.isDisposable === false ? getEffectiveFace(sticker).baseValue : '沿用原值'}</strong>
               <CreatureBadge creature={sticker.creature} />
+              {sticker.isDisposable === false && <MaterialBadge material={sticker.material} description />}
               <h3>{sticker.name}</h3>
               <p><SkillText text={sticker.description} /></p>
             </article>

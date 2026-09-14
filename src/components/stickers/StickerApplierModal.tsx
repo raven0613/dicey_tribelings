@@ -1,3 +1,5 @@
+import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
+import { getEffectiveFace } from '../../service/dice/diceFaces';
 import { SkillText } from '../common/SkillText';
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
@@ -30,13 +32,13 @@ export const StickerApplierModal: React.FC = () => {
           <button type="button" onClick={discardCurrentSticker} className="btn-skip-reward">放棄貼紙</button>
         </div>
 
-        <div className="sticker-overview">
+        <div className="sticker-overview" data-material={sticker.material} style={materialStyle(sticker.material)}>
           <div className="sticker-overview-identity">
             <CreatureBadge creature={sticker.creature} size={24} />
-            <strong className="sticker-overview-value">{sticker.baseValue}</strong>
+            <strong className="sticker-overview-value">{getEffectiveFace(sticker).baseValue}</strong>
           </div>
           <div className="sticker-overview-info">
-            <strong>{sticker.name}</strong><p><SkillText text={sticker.description} /></p>
+            <strong>{sticker.name}</strong><MaterialBadge material={sticker.material} description /><p><SkillText text={sticker.description} /></p>
           </div>
         </div>
 
