@@ -1,5 +1,5 @@
 import { lockImposterTargets, getRoundFace } from './creatures/imposterResolution';
-import type { Dice, Equipment, CombatPhase } from '../../types/game';
+import type { Enemy, Dice, Equipment, CombatPhase } from '../../types/game';
 import { predetermineRollResults, calculateRollResolution } from './battleEngine';
 import type { CreatureBattleState } from '../../types/creatures';
 import { createCreatureBattleState, startCreatureRound } from './creatures/creatureState';
@@ -11,6 +11,7 @@ import { getDiceGeometry } from '../dice/diceGeometry';
 import { soundService } from '../audio/soundService';
 
 export interface RollState {
+  currentEnemy?: Enemy | null;
   control: number; maxControl: number; gold: number; dicePool: Dice[]; rolledIndices: number[];
   equipments: Equipment[]; combatPhase: CombatPhase; creatureBattleState: CreatureBattleState;
 }
@@ -18,10 +19,12 @@ export type DiceAction = 'reroll' | 'swap' | 'lock' | 'flip' | `teacher:${string
 
 export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[],
   state: CreatureBattleState = createCreatureBattleState(),
-  battle = { control: 3, maxControl: 3, gold: 0 }, virtualFood = 0, random = Math.random) {
+  battle: import('../../types/battle').BattleContext = { control: 3, maxControl: 3, gold: 0 }, virtualFood = 0, random = Math.random) {
   const rolledIndices = predetermineRollResults(dicePool, random);
   let round = startCreatureRound(state, Math.floor(random() * 0xffffffff));
   round.virtualFood = virtualFood;
+  round.sealedDice = battle.currentEnemy && 'sealedDie' in battle.currentEnemy && battle.currentEnemy.sealedDie ? [battle.currentEnemy.sealedDie] : [];
+  round.rerolledDice = [];
   round = lockImposterTargets(dicePool, rolledIndices, round);
   round.teachersAvailable = dicePool.filter((die, index) => getRoundFace(die, rolledIndices[index], round).creature === 'teacher').map((die) => die.id);
   round = refreshAuthorityTargets(dicePool, rolledIndices, equipments, round);
@@ -47,6 +50,7 @@ export function teacherTargets(state: RollState, teacherId: string): number[] {
 
 export function performControlReroll(dieIndex: number, state: RollState, random = Math.random, teacherId?: string) {
   if (state.combatPhase !== 'CONTROL_PHASE' || !state.dicePool[dieIndex]) return null;
+  if (state.creatureBattleState.sealedDice?.includes(state.dicePool[dieIndex].id)) return null;
   if (teacherId && !teacherTargets(state, teacherId).includes(dieIndex)) return null;
   const paid = !teacherId && state.control === 0 && hasEquipment(state.equipments, 'COUNTERWEIGHT') && state.gold >= eq.paidReroll;
   if (!teacherId && state.control <= 0 && !paid) return null;
@@ -82,6 +86,7 @@ export function performDiceAction(action: Exclude<DiceAction, 'reroll'>, index: 
     if (!hasEquipment(state.equipments, 'WHISTLE') || round.whistleUsed) return null;
     cost = eq.whistleCost; round.whistleUsed = true; round.lockedDice.push(die.id);
   } else if (action === 'flip') {
+    if (round.sealedDice?.includes(die.id)) return null;
     if (!hasEquipment(state.equipments, 'PRISM')) return null;
     const opposite = getOppositeFace(die, rolled[index]);
     if (opposite === null) return null;

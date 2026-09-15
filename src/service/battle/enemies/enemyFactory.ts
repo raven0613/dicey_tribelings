@@ -16,5 +16,7 @@ export function createEnemy(id: string): Enemy {
     isBoss: definition.rank === 'boss' || definition.rank === 'final_boss',
     intents: structuredClone([...definition.intents]) as Enemy['intents'],
     currentIntentIndex: 0,
+    traits: structuredClone(definition.traits), phases: structuredClone(definition.phases), phase: 0,
+    armor: definition.traits?.hitArmor?.layers ?? 0, strength: 0,
   };
 }

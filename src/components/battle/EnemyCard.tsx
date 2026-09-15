@@ -4,7 +4,7 @@ import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { Enemy } from '../../types/game';
 import { Shield, Swords, Sparkles, Skull, Crown } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { describeEnemyIntent, previewEnemyIntent } from '../../service/battle/enemies/enemyDescription';
+import { describeEnemyIntent, previewEnemyRound } from '../../service/battle/enemies/enemyDescription';
 import { SkillText } from '../common/SkillText';
 import { useSkillTooltip } from '../common/useSkillTooltip';
 
@@ -14,12 +14,12 @@ interface EnemyCardProps {
 }
 
 export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) => {
-  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack } = useGameStore();
+  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack, equipments, playerHp, maxHp, playerShield, creatureBattleState, dicePool } = useGameStore();
   const enemyRef = useRef<HTMLDivElement>(null);
   const [attackDistance, setAttackDistance] = useState(0);
   const intentDescription = enemy ? describeEnemyIntent(enemy) : '';
   const intentPreview = enemy && combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null && comboSummary
-    ? previewEnemyIntent(enemy, comboSummary.totalDamage) : '';
+    ? previewEnemyRound(enemy, comboSummary, equipments, playerHp, maxHp, playerShield, creatureBattleState) : '';
   const { tooltip, tooltipProps } = useSkillTooltip([intentDescription, intentPreview].filter(Boolean).join('・'));
   useLayoutEffect(() => {
     if (enemyAttack?.stage !== 'windup') return;
@@ -127,6 +127,14 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
         ) : null}
       </div>
 
+      <div className="enemy-status text-xs leading-relaxed">
+        {!!enemy.armor && <span>次數甲 {enemy.armor} 層；</span>}
+        {!!enemy.strength && <span>攻擊 +{enemy.strength}；</span>}
+        {!!enemy.exposure && <span>暴露弱點：受到傷害 ×{enemy.exposure}；</span>}
+        {enemy.sealedDie && <span>本輪封鎖：{dicePool.find((die) => die.id === enemy.sealedDie)?.name}；</span>}
+        {enemy.grapple && <span>鉤索：{dicePool.find((die) => die.id === enemy.grapple!.diceId)?.name}，
+          {creatureBattleState.rerolledDice?.includes(enemy.grapple.diceId) ? '已解除' : `額外重骰解除，否則受到 ${enemy.grapple.damage} 傷害`}；</span>}
+      </div>
       {/* Center Avatar & Health */}
       <div className="enemy-body">
         {/* Large Avatar Emoji with Glow */}

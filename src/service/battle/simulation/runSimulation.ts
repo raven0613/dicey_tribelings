@@ -18,23 +18,24 @@ import { openStickerPack, checkProgressionDiceReward } from '../../stickers/pack
 import { calculateHealPurchase } from '../../shop/shopService';
 import { computeMaxControl, generateShopStock } from '../nodeService';
 import { createEnemy } from '../enemies/enemyFactory';
-import { applyEnemyDamage, resolveEnemyIntent } from '../enemies/enemyIntent';
+import { resolveEnemyRound } from '../enemies/enemyRound';
+import { chapterPath } from '../../regions/routeService';
 import { calculateRollResolution } from '../battleEngine';
 import { createCreatureBattleState } from '../creatures/creatureState';
 import { performStartBattleRoll, performControlReroll, teacherTargets } from '../rollService';
 import { chooseEquipment, chooseUpgrade, evaluateBuild, seededRandom } from './buildPolicy';
 
 export interface RunSample {
-  seed: number; won: boolean; lastNode: number; hp: number; gold: number; diceCount: number;
+  seed: number; chapterCompleted: boolean; lastNode: number; hp: number; gold: number; diceCount: number;
   encounters: { node: number; turns: number; hp: number; hpLost: number; rerolls: number; heavyActions: number }[];
   checkpoints: { region: number; damage: number; dice: number }[];
 }
 /** 有限生命與沿途獎勵模型。策略以短期攻防期望選擇永久構築，實戰與評估亂數分離。 */
-export function simulateRun(seed: number, commonRewards = false, useRerolls = true): RunSample {
+export function simulateRun(seed: number, commonRewards = false, useRerolls = true, route: 'safe' | 'challenge' = 'challenge'): RunSample {
   const random = seededRandom(seed);
   let pool: Dice[] = structuredClone(INITIAL_DICE_POOL), gear: Equipment[] = [];
   let hp = INITIAL_PLAYER_STATS.hp, gold = INITIAL_PLAYER_STATS.gold, rations = 0, princesses = 0;
-  const report: RunSample = { seed, won: false, lastNode: 0, hp, gold, diceCount: pool.length, encounters: [], checkpoints: [] };
+  const report: RunSample = { seed, chapterCompleted: false, lastNode: 0, hp, gold, diceCount: pool.length, encounters: [], checkpoints: [] };
   const allowed = (items: StickerItem[]) => items.filter((item): item is PermanentSticker => item.isDisposable === false
     && (!commonRewards || item.rarity === 'common'));
   const grant = (items: StickerItem[], pickCount: number, policySeed: number) => {
@@ -51,7 +52,7 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
     princesses += opened.stickers.filter((item) => item.creature === 'princess').length;
     for (const sticker of opened.stickers) grant([sticker], 1, policySeed);
   };
-  for (const node of INITIAL_MAP_NODES) {
+  for (const node of chapterPath(INITIAL_MAP_NODES, route)) {
     report.lastNode = node.id;
     const policySeed = seed + node.id * 997;
     if (node.type === 'shop') {
@@ -83,7 +84,7 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
       let control = maxControl;
       while (enemy.hp > 0 && hp > 0 && turns < BATTLE_LIMIT.rounds) {
         turns++;
-        const rolled = performStartBattleRoll(pool, gear, round, { control, maxControl, gold }, rations, battleRandom);
+        const rolled = performStartBattleRoll(pool, gear, round, { control, maxControl, gold, currentEnemy: enemy }, rations, battleRandom);
         rations = 0;
         let state = { dicePool: pool, equipments: gear, rolledIndices: rolled.rolledIndices, creatureBattleState: rolled.creatureBattleState,
           combatPhase: 'CONTROL_PHASE' as const, control, maxControl, gold, currentEnemy: enemy };
@@ -101,11 +102,11 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
           }
         }
         // 打斷、破盾及護盾都透過實際避免的 HP 損失計價。
-        const score = (value: typeof summary) => {
-          const hit = applyEnemyDamage(enemy, value.totalDamage);
-          const incoming = resolveEnemyIntent(hit.enemy, hit.damageTaken).damage;
-          const hpLoss = Math.max(0, incoming - shield - value.totalShield);
-          return hit.damageTaken - hpLoss * config.healthLossWeight;
+        const score = (value: typeof summary, candidateRound = state.creatureBattleState) => {
+          const projected = resolveEnemyRound(enemy, value, gear,
+            { hp: Math.min(INITIAL_PLAYER_STATS.maxHp, hp + value.healing), shield: shield + value.totalShield }, candidateRound);
+          const hpLoss = Math.max(0, hp - projected.hp);
+          return enemy.hp + enemy.shield - projected.enemy.hp - projected.enemy.shield - hpLoss * config.healthLossWeight;
         };
         let target = -1, best = score(summary) + config.rerollGain;
         if (useRerolls && summary.totalDamage < enemy.hp + enemy.shield) pool.forEach((_, index) => {
@@ -117,7 +118,7 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
             const last = candidate.steps.at(-1)!;
             const value = calculateRollResolution(pool, last.rolledIndices, gear, last.state,
               { ...state, control: candidate.control, gold: candidate.gold });
-            expected += score(value) / config.rerollSamples;
+            expected += score(value, last.state) / config.rerollSamples;
           }
           if (expected > best) { best = expected; target = index; }
         });
@@ -133,16 +134,9 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood, echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces };
         hp = Math.min(INITIAL_PLAYER_STATS.maxHp, hp + summary.healing);
         pool = commitMaterialRound(pool, state.rolledIndices);
-        const hit = applyEnemyDamage(enemy, summary.totalDamage); enemy = hit.enemy;
-        if (enemy.hp <= 0) {
-          rations = hasEquipment(gear, 'RATIONS') ? summary.leftoverFood : 0;
-          break;
-        }
-        const intent = resolveEnemyIntent(enemy, hit.damageTaken);
-        if (enemy.intents[enemy.currentIntentIndex].type === 'heavy_attack' && intent.damage > 0) heavyActions++;
-        enemy.shield += intent.shieldGain; enemy.currentIntentIndex = intent.nextIntentIndex;
-        const absorbed = Math.min(shield, intent.damage); shield -= absorbed; hp = Math.max(0, hp - (intent.damage - absorbed));
-        if (intent.damage > absorbed && summary.reflection > 0) enemy = applyEnemyDamage(enemy, summary.reflection).enemy;
+        const resolution = resolveEnemyRound(enemy, summary, gear, { hp, shield }, state.creatureBattleState);
+        heavyActions += resolution.events.filter((event) => event.kind === 'enemy' && event.heavy).length;
+        enemy = resolution.enemy; hp = resolution.hp; shield = resolution.shield;
         if (enemy.hp <= 0 && hp > 0) rations = hasEquipment(gear, 'RATIONS') ? summary.leftoverFood : 0;
         control = Math.min(maxControl + EQUIPMENT_BALANCE.controlHeadroom, control + summary.bonusControlGranted);
       }
@@ -158,9 +152,9 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
       const packOption = choices.find((item) => item.kind === 'stickerPack');
       if (!upgrade.stickerId && packOption?.kind === 'stickerPack') pack(packOption.pack.id, node.region, policySeed);
       else grant(choices.flatMap((item) => item.kind === 'sticker' ? [item.sticker] : []), getBattleRewardCount(rank), policySeed);
-      if (node.id === CREATURE_BALANCE.princess.guaranteedNode) grant([createPermanentSticker('princess', node.region)], 1, policySeed);
-      if (rank === 'final_boss') report.won = true;
+      if (rank === 'final_boss') report.chapterCompleted = true;
     }
+    if (node.id === CREATURE_BALANCE.princess.guaranteedNode) grant([createPermanentSticker('princess', node.region)], 1, policySeed);
     const die = checkProgressionDiceReward(node.id, pool);
     if (die) pool = [...pool, die];
   }

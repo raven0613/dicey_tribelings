@@ -15,28 +15,49 @@ export function applyEnemyDamage(enemy: Enemy, damage: number): { enemy: Enemy; 
 
 export interface EnemyIntentResult {
   damage: number;
+  hits: number;
   shieldGain: number;
+  healing: number;
+  shieldCost: number;
+  strengthGain: number;
   counterTriggered: boolean;
   nextIntentIndex: number;
+  cancelled: boolean;
 }
 
-/** 傳入整池攻擊後的敵人與本回合實際累計傷害；呼叫端負責套用結果。 */
-export function resolveEnemyIntent(enemy: Enemy, damageTaken: number): EnemyIntentResult {
-  const result: EnemyIntentResult = {
-    damage: 0, shieldGain: 0, counterTriggered: false, nextIntentIndex: enemy.currentIntentIndex,
-  };
+/** 條件讀取本輪逐段紀錄；玩家護盾條件由每次攻擊前的狀態判斷。 */
+export function resolveEnemyIntent(enemy: Enemy, damageTaken = enemy.roundDamage ?? 0,
+  playerShield = 0, tagCount = 0): EnemyIntentResult {
+  const result: EnemyIntentResult = { damage: 0, hits: 0, shieldGain: 0, healing: 0,
+    shieldCost: 0, strengthGain: 0, counterTriggered: false, cancelled: false, nextIntentIndex: enemy.currentIntentIndex };
   if (enemy.hp <= 0) return result;
   const intent = enemy.intents[enemy.currentIntentIndex];
   result.nextIntentIndex = (enemy.currentIntentIndex + 1) % enemy.intents.length;
-  if (intent.type === 'charge' || intent.type === 'rest') return result;
-  const counter = intent.counter;
+  const counter = 'counter' in intent ? intent.counter : undefined;
   result.counterTriggered = counter?.type === 'damage_taken'
-    ? damageTaken >= counter.threshold
+    ? damageTaken >= Math.max(0, counter.threshold - (enemy.bonusHits ?? 0) * (counter.bonusReduction ?? 0))
     : counter?.type === 'shield_depleted' && enemy.shield === 0;
-  if (result.counterTriggered && counter?.effect === 'cancel') return result;
-  const value = result.counterTriggered && counter?.effect === 'halve'
-    ? Math.ceil(intent.value / 2) : intent.value;
-  if (intent.type === 'defend') result.shieldGain = value;
-  else result.damage = value;
+  result.cancelled = Boolean((result.counterTriggered && counter?.effect === 'cancel')
+    || (intent.stunOnBreak && enemy.shieldBroken));
+  if (result.cancelled) return result;
+  if (intent.heal && (enemy.healsUsed?.[intent.name] ?? 0) < intent.heal.uses) {
+    result.healing = Math.min(enemy.maxHp - enemy.hp, intent.heal.amount,
+      intent.heal.consumeShield ? enemy.shield : Infinity);
+    result.shieldCost = intent.heal.consumeShield ? result.healing : 0;
+  }
+  result.strengthGain = intent.strength ?? 0;
+  if (intent.type === 'charge' || intent.type === 'rest') return result;
+  if (intent.type === 'defend') { result.shieldGain = intent.value; return result; }
+  const power = enemy.traits?.missingHpPower;
+  let value = intent.value + (enemy.strength ?? 0)
+    + (power ? Math.floor((1 - enemy.hp / enemy.maxHp + Number.EPSILON) / power.fraction) * power.damage : 0);
+  if (playerShield === 0) value += intent.unshieldedBonus ?? 0;
+  if (enemy.shield > 0) value *= intent.shieldMultiplier ?? 1;
+  const weakened = (result.counterTriggered && counter?.effect === 'halve')
+    || (intent.singleHitThreshold !== undefined && (enemy.largestHit ?? 0) >= intent.singleHitThreshold)
+    || (intent.diverseTags !== undefined && tagCount >= intent.diverseTags);
+  result.counterTriggered ||= Boolean(weakened);
+  result.damage = Math.ceil(value * (weakened ? 0.5 : 1));
+  result.hits = intent.hits ?? 1;
   return result;
 }

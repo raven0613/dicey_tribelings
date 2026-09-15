@@ -1,3 +1,6 @@
+import { INITIAL_MAP_NODES, CHAPTER_END_NODE } from '../configs/regions/mapConfig';
+import { PROGRESSION_DICE_REWARDS } from '../configs/diceProgressionConfig';
+import { chapterPath } from '../service/regions/routeService';
 import { generateBattleRewardOptions } from '../service/rewards/rewardService';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -74,7 +77,7 @@ test('guaranteed princess is offered once before advancing its milestone', () =>
   assert.equal(useGameStore.getState().stickerFlow?.items[0].creature, 'princess');
   assert.equal(useGameStore.getState().princessGuaranteed, true);
   useGameStore.getState().discardCurrentSticker();
-  assert.equal(useGameStore.getState().currentNodeIndex, CREATURE_BALANCE.princess.guaranteedNode + 1);
+  assert.deepEqual(useGameStore.getState().routeChoices, INITIAL_MAP_NODES[CREATURE_BALANCE.princess.guaranteedNode].next);
   assert.equal(useGameStore.getState().stickerFlow, null);
 });
 
@@ -118,22 +121,29 @@ test('two reward choices apply in order before advancing a regional boss', () =>
   assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
 });
 
-test('the complete route awards exactly four new dice and processes the deep dungeon pack', () => {
+for (const route of ['safe', 'challenge'] as const) test(`${route} route grants all shared milestones once`, () => {
   useGameStore.getState().restartGame();
-  for (let index = 0; index < 39; index++) {
-    assert.equal(useGameStore.getState().currentNodeIndex, index);
-    if (useGameStore.getState().openedPackResult) {
-      useGameStore.getState().beginOpenedPack();
-      while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
-    } else {
-      useGameStore.getState().advanceToNextNode();
-      while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
+  const initialCount = useGameStore.getState().dicePool.length;
+  for (const node of chapterPath(INITIAL_MAP_NODES, route).slice(0, -1)) {
+    assert.equal(useGameStore.getState().mapNodes[useGameStore.getState().currentNodeIndex].id, node.id);
+    if (useGameStore.getState().openedPackResult) useGameStore.getState().beginOpenedPack();
+    else useGameStore.getState().advanceToNextNode();
+    while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
+    const choices = useGameStore.getState().routeChoices;
+    if (choices.length) {
+      const selected = INITIAL_MAP_NODES.find((candidate) => choices.includes(candidate.id) && candidate.route === route)!;
+      useGameStore.getState().chooseRoute(selected.id);
+      const before = useGameStore.getState().currentNodeIndex;
+      useGameStore.getState().chooseRoute(choices.find((id) => id !== selected.id)!);
+      assert.equal(useGameStore.getState().currentNodeIndex, before);
     }
     useGameStore.getState().dismissDiceNotification();
   }
-  assert.equal(useGameStore.getState().currentEnemy?.id, 'r6_boss');
-  assert.equal(useGameStore.getState().dicePool.length, 7);
-  assert.equal(new Set(useGameStore.getState().dicePool.map((die) => die.id)).size, 7);
+  const state = useGameStore.getState();
+  assert.equal(state.mapNodes[state.currentNodeIndex].id, CHAPTER_END_NODE);
+  assert.equal(state.dicePool.length, initialCount + Object.keys(PROGRESSION_DICE_REWARDS).length);
+  assert.equal(new Set(state.dicePool.map((die) => die.id)).size, state.dicePool.length);
+  assert.ok(state.princessGuaranteed);
 });
 
 test('one consumable can cover only one existing face and commit preserves the target base', () => {

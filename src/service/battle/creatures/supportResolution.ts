@@ -33,7 +33,7 @@ export function resolveSupport(c: ResolutionContext) {
         item.skillInputs = { count: c.speciesCount('sisters'), minimum: b.sisters.minimum };
         if (item.skillInputs.count! >= b.sisters.minimum) {
           participants(c.countParticipants((entry) => entry.creature === 'sisters').map((entry) => entry.diceId));
-          add(b.sisters.bonus);
+          add(b.sisters.bonus + item.baseValue * (item.skillInputs.count! - 1) * b.sisters.perSister);
         }
         break;
       case 'loner':
@@ -107,7 +107,7 @@ export function resolveSupport(c: ResolutionContext) {
     if (end > start) {
       const tail = c.items[end];
       c.attack(c.event(4, tail, '接力', c.items.slice(start, end + 1), 'adjacent'), tail,
-        tail.finalDamage + tail.baseValue * (end - start), `基礎 ×${end - start + 1}`);
+        tail.finalDamage + tail.baseValue * ((end - start) * b.porter.linear + (end - start) ** 2 * b.porter.chainGrowth), `接力 ${end - start + 1} 人`);
     }
     start = end;
   }

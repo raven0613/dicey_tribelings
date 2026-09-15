@@ -70,7 +70,7 @@ export const STORY_SCENES: Record<StoryId, StoryScene> = {
       { speaker: 'player', text: '你接過王冠捧在手裡。', illustration: 'crownHeld' },
       { speaker: 'narrator', text: '得到了土人王子的王冠' },
       { speaker: 'player', text: '就這樣，我體驗了一天王子的生活，除了吃喝玩樂以外的都體驗到了，又回歸平民' },
-      { speaker: 'narrator', text: '一周目結束' },
+      { speaker: 'narrator', text: '鱷魚人篇結束' },
       { speaker: 'narrator', text: '門外傳來暴力的敲門聲：咚咚咚！砰！砰！' },
       { speaker: 'crocodile', text: '開門！給我開門！你們這群只會動粗的土人！', shape: 'spiky' },
       { speaker: 'tribeling', text: '怎麼是你！你沒看到鱷魚人與爛水草請勿進入嗎？' },

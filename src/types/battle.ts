@@ -63,7 +63,7 @@ export interface SkillEvent {
 }
 
 export interface RepeatAttack { diceId: string; damage: number; sourceDiceId: string }
-export interface BattleContext { foodCapacity?: number;  control: number; maxControl: number; gold: number; currentEnemy?: { shield: number } | null }
+export interface BattleContext { foodCapacity?: number;  control: number; maxControl: number; gold: number; currentEnemy?: import('./enemy').Enemy | { shield: number } | null }
 
 export interface BattleComboSummary {
   items: CalculatedRollItem[];

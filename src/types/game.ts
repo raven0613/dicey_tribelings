@@ -108,6 +108,9 @@ export type { Enemy, EnemyIntent } from './enemy';
 export type MapNodeType = 'fight' | 'chest' | 'shop' | 'elite' | 'boss' | 'pack';
 
 export interface MapNode {
+  next: number[];
+  skipped?: boolean;
+  route?: 'safe' | 'challenge';
   id: number;
   region: RegionId;
   regionNode: number;

@@ -23,7 +23,7 @@ import { DiceUnlockModal } from './dice/DiceUnlockModal';
 export function GameScreen() {
   const {
     screenShakeIntensity,
-    currentNodeIndex,
+    currentNodeIndex, routeChoices,
     mapNodes,
     currentEnemy,
     combatPhase,
@@ -60,9 +60,10 @@ export function GameScreen() {
       <main className="app-main">
         {/* Map Route Progress */}
         <MapProgress />
+        {routeChoices.length > 0 && <PlayerVitals />}
 
         {/* Combat Area */}
-        {isCombatNode && (
+        {routeChoices.length === 0 && isCombatNode && (
           <div className={`combat-arena ${isConfiguring ? 'is-preparing' : ''}`}>
             {/* Enemy Display */}
             <EnemyCard
@@ -81,10 +82,10 @@ export function GameScreen() {
         )}
 
         {/* Chest Event Area */}
-        {currentNode?.type === 'chest' && <ChestModal />}
+        {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
 
         {/* Merchant Shop Area */}
-        {currentNode?.type === 'shop' && <ShopModal />}
+        {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
       </main>
       <Footbar onOpenDiceBag={() => setIsDiceBagOpen(true)} />
 

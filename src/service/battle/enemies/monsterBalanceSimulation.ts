@@ -1,7 +1,10 @@
 import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
 import { MONSTER_BALANCE_CONFIG, getEncounterDamageBudget } from '../../../configs/monsters/monsterBalanceConfig';
 import { createEnemy } from './enemyFactory';
-import { applyEnemyDamage, resolveEnemyIntent } from './enemyIntent';
+import { resolveEnemyRound } from './enemyRound';
+import { calculateRollResolution } from '../battleEngine';
+import { configuredDice } from '../../dice/diceFactory';
+import { createCreatureBattleState } from '../creatures/creatureState';
 
 type Scenario = keyof typeof MONSTER_BALANCE_CONFIG.scenarios;
 export interface MonsterBalanceResult {
@@ -48,16 +51,17 @@ export function simulateMonsterBalance(): MonsterBalanceResult[] {
           const damage = Math.max(1, Math.ceil(getEncounterDamageBudget(monster.id)
             * config.scenarios[scenario] * variance));
           turn++;
-          const damaged = applyEnemyDamage(enemy, damage);
-          enemy = damaged.enemy;
-          if (enemy.hp <= 0) break;
           const intent = enemy.intents[enemy.currentIntentIndex];
           if ('counter' in intent && intent.counter) counterOpportunities++;
-          const resolution = resolveEnemyIntent(enemy, damaged.damageTaken);
-          incomingDamage += resolution.damage;
-          if (resolution.counterTriggered) counters++;
-          enemy.shield += resolution.shieldGain;
-          enemy.currentIntentIndex = resolution.nextIntentIndex;
+          const diceCount = config.diceCountByRegion[monster.region];
+          const pool = Array.from({ length: diceCount }, (_, index) => configuredDice(`envelope-${index}`, '輸出包絡', 'd6', 'emerald',
+            Array.from({ length: 6 }, () => ['food', damage / diceCount] as const)));
+          const round = { ...createCreatureBattleState(), round: turn };
+          const summary = calculateRollResolution(pool, pool.map(() => 0), [], round);
+          const resolution = resolveEnemyRound(enemy, summary, [], { hp: config.playerHp, shield: 0 }, round);
+          incomingDamage += config.playerHp - resolution.hp;
+          if (resolution.resolution.counterTriggered) counters++;
+          enemy = resolution.enemy;
         }
         if (enemy.hp > 0) stalledRuns++;
         turns.push(turn);

@@ -1,3 +1,4 @@
+import { CREATURE_BALANCE } from '../../../configs/creatures/creatureBalanceConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { configuredDice } from '../../dice/diceFactory';
@@ -44,7 +45,7 @@ test('imposter priest witnesses rerolls immediately and retains its own source',
   const roll = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
   const step = resolveRerollChain(pool, [0, 0, 0], roll.creatureBattleState, 2, [], () => 0)[0];
   const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
-  assert.equal(result.bonusDice.filter((b) => b.source.kind === 'creature' && b.source.diceId === 'a')[0].bonusDamage, 2);
+  assert.equal(result.bonusDice.filter((b) => b.source.kind === 'creature' && b.source.diceId === 'a')[0].bonusDamage, CREATURE_BALANCE.priest.damagePerReroll);
 });
 
 test('shared storage admits leftmost food first and iridescent characters count as food', () => {
@@ -135,7 +136,7 @@ test('echo priest retains ownership and echoes after being rerolled away', () =>
   const pool = [die('a', 'priest', 4, 'echo')]; pool[0].faces[1].creature = 'food';
   const step = resolveRerollChain(pool, [0], createCreatureBattleState(), 0, [], () => 0)[0];
   const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
-  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage), [2, 2]);
+  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage), Array(2).fill(CREATURE_BALANCE.priest.damagePerReroll));
   assert.deepEqual(result.nextEchoUsed, [pool[0].faces[0].id]);
 });
 

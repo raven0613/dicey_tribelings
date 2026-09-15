@@ -1,7 +1,7 @@
 @use '../variables' as *;
 
 .combat-arena.is-preparing {
-  grid-template-rows: 6rem 3rem minmax(0, 1fr);
+  grid-template-rows: max-content 3rem minmax(0, 1fr);
   .player-vitals { grid-row: 2; }
   .battle-preparation { grid-row: 3; }
 }

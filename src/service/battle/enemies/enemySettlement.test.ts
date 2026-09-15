@@ -9,7 +9,7 @@ import type { GameState } from '../../../store/gameStore.types';
 import { calculateRollResolution, type BattleComboSummary } from '../battleEngine';
 import { runBattleSettlement } from '../battleSettlement';
 import { createEnemy } from './enemyFactory';
-import { previewEnemyIntent } from './enemyDescription';
+import { resolveEnemyRound } from './enemyRound';
 import type { Dice } from '../../../types/game';
 
 function summaryWithDamage(damage: number): BattleComboSummary {
@@ -54,7 +54,7 @@ test('production settlement counts each normal and additional attack once includ
   summary.items = [{ ...item, baseValue: 3, finalDamage: 3 }];
   summary.bonusDice = [4, 5].map((bonusDamage, index) => ({ id: `bonus-${index}`,
     source: { kind: 'equipment', equipmentId: 'test' }, sourceName: '測試', bonusDamage, label: '追加', description: '追加' }));
-  assert.equal(previewEnemyIntent(enemy, summary.totalDamage), '可打斷');
+  assert.equal(resolveEnemyRound(enemy, summary, [], { hp: enemy.maxHp, shield: 0 }, createCreatureBattleState()).resolution.cancelled, true);
   const { state, rolls } = await settle(context, enemy, summary);
   assert.equal(state.currentEnemy?.hp, 94);
   assert.equal(state.currentEnemy?.shield, 0);

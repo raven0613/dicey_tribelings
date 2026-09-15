@@ -62,6 +62,8 @@ export interface GameState {
   consumableStickers: ConsumableSticker[];
   mapNodes: MapNode[];
   currentNodeIndex: number;
+  routeChoices: number[];
+  chooseRoute: (nodeId: number) => void;
   currentEnemy: Enemy | null;
   combatPhase: CombatPhase;
   rolledIndices: number[];

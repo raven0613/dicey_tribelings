@@ -5,7 +5,7 @@ import { soundService } from '../audio/soundService';
 import { waitForAnimation } from './settlementAnimation';
 
 /** 命中節拍同時提交受傷與視覺回饋，返回完成後交還回合流程。 */
-export async function animateEnemyAttack({ get, set }: BattleStoreMethods, damage: number,
+export async function animateEnemyAttack({ get, set }: BattleStoreMethods, result: { hp: number; shield: number },
   heavy: boolean, isCurrent: () => boolean): Promise<void> {
   const feedback = { heavy, healthDamage: 0, shieldDamage: 0 };
   set({ enemyAttack: { ...feedback, stage: 'windup' } });
@@ -15,11 +15,11 @@ export async function animateEnemyAttack({ get, set }: BattleStoreMethods, damag
   await waitForAnimation(timing.enemyDashMs);
   if (!isCurrent()) return;
   const state = get();
-  const shieldDamage = Math.min(state.playerShield, damage);
-  const playerHp = combatNumber(Math.max(0, state.playerHp - (damage - shieldDamage)));
+  const shieldDamage = combatNumber(state.playerShield - result.shield);
+  const playerHp = result.hp;
   const impact = { heavy, shieldDamage, healthDamage: combatNumber(state.playerHp - playerHp) };
   soundService.playEnemyHit(heavy);
-  set({ playerHp, playerShield: combatNumber(state.playerShield - shieldDamage), playerShieldDisplay: null,
+  set({ playerHp, playerShield: result.shield, playerShieldDisplay: null,
     enemyAttack: { ...impact, stage: 'impact' } });
   await waitForAnimation(timing.enemyImpactMs);
   if (!isCurrent()) return;

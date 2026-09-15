@@ -22,10 +22,10 @@ test('family reads other effective faces and twins use the highest effective bas
   assert.equal(result.items[1].finalDamage, 9);
 });
 
-test('porters retain every attack and only multiply the tail base by chain length', () => {
+test('porters retain every attack and concentrate linear and quadratic chain growth in the tail', () => {
   const result = resolve([die('a', 'porter', 1), die('b', 'porter', 1), die('c', 'porter', 10)]);
-  assert.deepEqual(result.items.map((item) => item.finalDamage), [1, 1, 30]);
-  assert.equal(result.totalDamage, 32);
+  assert.deepEqual(result.items.map((item) => item.finalDamage), [1, 1, 10 * (1 + 2 * b.porter.linear + 2 ** 2 * b.porter.chainGrowth)]);
+  assert.equal(result.totalDamage, result.items.reduce((sum, item) => sum + Math.ceil(item.finalDamage), 0));
 });
 
 test('farmers transform simultaneously and chefs accumulate without consuming food or mutating previews', () => {
@@ -90,7 +90,7 @@ test('princesses can gain herald damage and order each other without recursive s
 test('imposter becomes a real sister and executes its ability without adding physical dice', () => {
   const result = resolve([die('a', 'sisters'), die('b', 'imposter'), die('c', 'imposter')]);
   assert.deepEqual(result.items.map((item) => item.creature), ['sisters', 'sisters', 'sisters']);
-  assert.deepEqual(result.items.map((item) => item.finalDamage), Array(3).fill(4 + b.sisters.bonus));
+  assert.deepEqual(result.items.map((item) => item.finalDamage), Array(3).fill(4 + b.sisters.bonus + 4 * 2 * b.sisters.perSister));
   assert.equal(result.items.length, 3);
   assert.equal(result.repeatAttacks.length, 0);
   assert.equal(result.bonusDice.length, 0);
@@ -149,7 +149,7 @@ test('imposter count supports sister threshold and identifies its actual partici
   let found = false;
   for (let seed = 0; seed < 20; seed++) {
     const result = calculateRollResolution(pool, [0, 0], [], { ...createCreatureBattleState(), seed });
-    if (result.items[0].finalDamage === 4 + b.sisters.bonus) {
+    if (result.items[0].finalDamage === 4 + b.sisters.bonus + 4 * b.sisters.perSister) {
       found = true;
       assert.deepEqual(result.events.find((event) => event.ability === '互相提攜')!.participantDiceIds, ['a', 'b']);
       assert.equal(result.items.length, 2);

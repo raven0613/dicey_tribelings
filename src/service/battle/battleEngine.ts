@@ -24,7 +24,7 @@ export function calculateRollResolution(dicePool: Dice[], rolledIndices: number[
     ? choose(Array.from({ length: eq.stolenGoldMax - eq.stolenGoldMin + 1 }, (_, index) => eq.stolenGoldMin + index), state.seed, 'purse')! : 0;
   if (bonusControlGranted) c.triggeredEquipmentIds.add(equipments.find((item) => item.ruleId === 'ABACUS')!.id);
   if (goldGranted) c.triggeredEquipmentIds.add(equipments.find((item) => item.ruleId === 'PURSE')!.id);
-  const totalDamage = combatNumber(buildAttackPlan(c, battle.currentEnemy?.shield ?? 0, equipments)
+  const totalDamage = combatNumber(buildAttackPlan(c, battle.currentEnemy && 'id' in battle.currentEnemy ? battle.currentEnemy : battle.currentEnemy?.shield ?? 0, equipments)
     .reduce((sum, attack) => sum + attack.value, 0));
   for (const event of c.events) event.activated ||= Boolean(event.changes.length || event.identities.length || event.repeatDiceIds.length);
   return { items: c.items, bonusDice: c.bonusDice, repeatAttacks: c.repeatAttacks,

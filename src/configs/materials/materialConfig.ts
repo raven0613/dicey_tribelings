@@ -14,7 +14,7 @@ export const MATERIAL_CONFIG = {
 } satisfies Record<FaceMaterial, { name: string; symbol: string; color: string; surface: string; description: string }>;
 export const SPECIAL_MATERIALS: readonly FaceMaterial[] = ['mirror', 'resonance', 'shock', 'vial', 'ripple', 'gilded', 'foil', 'negative'];
 export const ULTRA_MATERIALS: readonly FaceMaterial[] = ['iridescent', 'echo'];
-export const MATERIAL_CHANCES = { ordinary: 0.01, special: 0.98, ultra: 0.01 } as const;
+export const MATERIAL_CHANCES = { ordinary: 0.95, special: 0.04, ultra: 0.01 } as const;
 export const MATERIAL_BALANCE = { mirror: 3, resonance: 2, shock: 2, vial: 2, ripple: 4, gilded: 3, foil: 3, negative: 5, decay: 2 } as const;
 export const ALL_FACE_TAGS: readonly CreatureTag[] = ['common', 'warrior', 'craftsman', 'noble', 'mystery', 'food'];
 export const FOOD_CAPACITY = { crocodile: 150, underground: 200 } as const;

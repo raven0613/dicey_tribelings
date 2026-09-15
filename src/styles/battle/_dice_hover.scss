@@ -58,8 +58,8 @@
 @media (max-width: 600px) {
   .dice-board .board-footer { flex-direction: column; gap: 0.125rem; }
   .dice-board { grid-template-rows: 1.5rem minmax(7rem, 1fr) 9rem; }
-  .combat-arena { min-height: 33rem; grid-template-rows: 6rem minmax(19rem, 1fr) 3rem 3.75rem; }
-  .combat-arena.is-preparing { grid-template-rows: 6rem 3rem minmax(0, 1fr); }
+  .combat-arena { min-height: 33rem; grid-template-rows: max-content minmax(19rem, 1fr) 3rem 3.75rem; }
+  .combat-arena.is-preparing { grid-template-rows: max-content 3rem minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .hover-link .hover-link-flow { animation: none; }

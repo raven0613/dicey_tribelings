@@ -1,30 +1,29 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { Swords, Gift, Store, Skull, Crown, Check, ChevronRight } from 'lucide-react';
 import { REGION_CONFIG, REGION_IDS } from '../../configs/regions/regionConfig';
-import type { MapNodeType } from '../../types/game';
+import { ROUTE_CONFIG } from '../../configs/regions/mapConfig';
+import './mapRoutes.scss';
+import { RouteConnector } from './RouteConnector';
+import { MapRouteNode } from './MapRouteNode';
 
-const icons = { fight: Swords, chest: Gift, pack: Gift, shop: Store, elite: Skull, boss: Crown } satisfies Record<MapNodeType, typeof Swords>;
 export const MapProgress: React.FC = () => {
-  const { mapNodes, currentNodeIndex } = useGameStore();
+  const { mapNodes, currentNodeIndex, routeChoices, chooseRoute } = useGameStore();
   const region = mapNodes[currentNodeIndex].region;
   const nodes = mapNodes.filter((node) => node.region === region);
+  const depths = [...new Set(nodes.map((node) => node.regionNode))].sort((a, b) => a - b);
   return <nav className="region-progress" aria-label="救援路線">
     <div className="region-route">{REGION_IDS.map((id) => <span key={id} aria-current={id === region ? 'step' : undefined}>
       {id < region ? '✓ ' : ''}{id}．{REGION_CONFIG[id].name}
     </span>)}</div>
-    <div className="map-progress-container">
-      {nodes.map((node, index) => {
-        const completed = node.completed || node.id < currentNodeIndex;
-        const Icon = completed ? Check : icons[node.type];
-        return <React.Fragment key={node.id}>
-          <div className={`map-node-pill ${node.id === currentNodeIndex ? 'current' : completed ? 'completed' : 'upcoming'}`}
-            aria-current={node.id === currentNodeIndex ? 'step' : undefined}>
-            <Icon size={18} /><span className="node-title">{node.title}</span>
-          </div>
-          {index < nodes.length - 1 && <ChevronRight size={16} className="node-divider" />}
-        </React.Fragment>;
-      })}
+    {routeChoices.length > 0 && <h3>{ROUTE_CONFIG.choose}</h3>}
+    <div className="region-map">
+      {depths.map((depth, index) => <React.Fragment key={depth}>
+        <div className="region-map-column">{nodes.filter((node) => node.regionNode === depth).map((node) =>
+          <MapRouteNode key={node.id} node={node} selectable={routeChoices.includes(node.id)} onChoose={chooseRoute} />
+        )}</div>
+        {index < depths.length - 1 && <RouteConnector split={nodes.filter((node) => node.regionNode === depths[index + 1]).length > 1}
+          merge={nodes.filter((node) => node.regionNode === depth).length > 1} />}
+      </React.Fragment>)}
     </div>
   </nav>;
 };

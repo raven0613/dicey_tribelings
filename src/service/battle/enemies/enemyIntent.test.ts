@@ -1,18 +1,27 @@
+import { REGION_IDS } from '../../../configs/regions/regionConfig';
+import { calculateRollResolution } from '../battleEngine';
+import { INITIAL_DICE_POOL, INITIAL_PLAYER_STATS } from '../../../configs/gameConfig';
+import { createCreatureBattleState } from '../creatures/creatureState';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
 import { INITIAL_MAP_NODES } from '../../../configs/gameConfig';
 import { createEnemy } from './enemyFactory';
 import { applyEnemyDamage, resolveEnemyIntent } from './enemyIntent';
-import { describeEnemyIntent, previewEnemyIntent } from './enemyDescription';
+import { describeEnemyIntent, previewEnemyRound } from './enemyDescription';
 import { getEnemyForNode } from '../nodeService';
 
-test('catalog contains the documented 28 monsters and damaging, nonempty cycles', () => {
-  assert.equal(MONSTER_CONFIG.length, 28);
-  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.id)).size, 28);
-  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.name)).size, 28);
-  assert.deepEqual([1, 2, 3, 4, 5, 6].map((region) =>
-    MONSTER_CONFIG.filter((enemy) => enemy.region === region).length), [5, 5, 5, 5, 5, 3]);
+function previewDamage(enemy: ReturnType<typeof createEnemy>, damage: number) {
+  const summary = calculateRollResolution(INITIAL_DICE_POOL, INITIAL_DICE_POOL.map(() => 0), []);
+  summary.items = summary.items.slice(0, 1).map((item) => ({ ...item, finalDamage: damage }));
+  summary.bonusDice = []; summary.repeatAttacks = [];
+  return previewEnemyRound(enemy, summary, [], INITIAL_PLAYER_STATS.hp, INITIAL_PLAYER_STATS.maxHp, 0, createCreatureBattleState());
+}
+
+test('catalog has unique monsters and damaging, nonempty cycles in each region', () => {
+  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.id)).size, MONSTER_CONFIG.length);
+  assert.equal(new Set(MONSTER_CONFIG.map((enemy) => enemy.name)).size, MONSTER_CONFIG.length);
+  for (const region of REGION_IDS) assert.ok(MONSTER_CONFIG.some((enemy) => enemy.region === region && enemy.rank !== 'normal'));
   for (const monster of MONSTER_CONFIG) {
     assert.ok(Number.isInteger(monster.maxHp) && monster.maxHp > 0);
     assert.ok(Number.isInteger(monster.initialShield) && monster.initialShield >= 0);
@@ -116,9 +125,9 @@ test('descriptions derive numbers and charge previews from current config', () =
   const goblin = createEnemy('r1_slinger');
   const intent = goblin.intents[0];
   assert.ok('counter' in intent && intent.counter?.type === 'damage_taken');
-  assert.match(previewEnemyIntent(goblin, intent.counter.threshold - 1), /尚差 1/);
-  assert.match(previewEnemyIntent(goblin, intent.counter.threshold), /可打斷/);
-  assert.match(previewEnemyIntent(goblin, 999), /可擊殺/);
+  assert.match(previewDamage(goblin, intent.counter.threshold - 1), /尚差 1/);
+  assert.match(previewDamage(goblin, intent.counter.threshold), /可打斷/);
+  assert.match(previewDamage(goblin, 999), /可擊殺/);
   for (const monster of MONSTER_CONFIG) {
     const enemy = createEnemy(monster.id);
     enemy.intents.forEach((_, index) => {
@@ -129,8 +138,6 @@ test('descriptions derive numbers and charge previews from current config', () =
 });
 
 test('current combat nodes explicitly reference regional monsters of matching rank', () => {
-  assert.equal(INITIAL_MAP_NODES[13].enemyId, 'r2_waterway_bully');
-  assert.equal(INITIAL_MAP_NODES[13].title, '水路鱷霸');
   for (const node of INITIAL_MAP_NODES.filter((node) => ['fight', 'elite', 'boss'].includes(node.type))) {
     const enemy = getEnemyForNode(node, node.id);
     assert.equal(enemy.id, node.enemyId);

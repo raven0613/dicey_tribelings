@@ -4,7 +4,7 @@
 .enemy-card {
   position: relative;
   width: 100%;
-  max-width: 28rem; // 448px
+  max-width: 40rem;
   margin: 0 auto;
   background-color: rgba($slate-900, 0.9);
   border: 2px solid rgba($slate-700, 0.8);
@@ -14,7 +14,9 @@
   backdrop-filter: blur(12px);
   transition: filter 0.1s ease;
   display: grid;
-  grid-template-rows: 2rem minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: .4rem;
+  .enemy-status:empty { display: none; }
   user-select: none;
 
   &.boss {
@@ -70,6 +72,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
     gap: 0.5rem;
     min-width: 0;
 
@@ -116,11 +120,13 @@
 
     .intent-bubble {
       min-width: 0;
-      max-width: 65%;
-      height: 2rem;
+      max-width: 100%;
+      min-height: 2rem;
+      height: auto;
+      line-height: 1.5;
 
       svg { flex-shrink: 0; }
-      span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      span { white-space: normal; overflow-wrap: anywhere; }
       display: flex;
       align-items: center;
       gap: 0.375rem;
@@ -265,8 +271,6 @@
 
 @media (max-height: 740px) {
   .enemy-card {
-    grid-template-rows: 1.75rem minmax(0, 1fr);
-    .enemy-header .intent-bubble { height: 1.75rem; }
     .enemy-body .enemy-avatar-box { width: 2.25rem; height: 2.25rem; }
   }
 }

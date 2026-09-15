@@ -80,7 +80,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
       case 'porter': {
         const chain = summary.events.find((event) => event.skill === 'porter' && event.participantDiceIds.includes(die.id));
         const change = chain?.changes.find((entry) => entry.kind === 'attack');
-        return chain && change ? `${chain.participantDiceIds.length} 名土人搬運工接力，隊尾土人搬運工攻擊力 x ${chain.participantDiceIds.length}，為 ${ceilDamage(change.after)}。`
+        return chain && change ? `${chain.participantDiceIds.length} 名土人搬運工接力，隊尾土人搬運工攻擊力 +${combatNumber(change.after - change.before)}，為 ${ceilDamage(change.after)}。`
           : `目前接力隊列共 ${count} 名土人搬運工，需要至少 2 名；本回合攻擊力 +0。`;
       }
       case 'imposter': return '本回合首次出現時偽裝成場上最多的角色，全場皆為偽裝者；維持原身分。';

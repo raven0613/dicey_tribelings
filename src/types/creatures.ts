@@ -21,6 +21,8 @@ export interface AuthorityTarget { diceId: string; version: number }
 
 export interface CreatureBattleState {
   round: number;
+  sealedDice?: string[];
+  rerolledDice?: string[];
   imposterTargets: Record<string, CreatureId>;
   echoUsed: string[];
   gildedFaces: string[];

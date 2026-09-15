@@ -1,3 +1,4 @@
+import { completeRouteNode, selectRouteNode } from '../service/regions/routeService';
 import { useStoryStore } from './storyStore';
 import { syncStoryProgress } from '../service/story/syncStoryProgress';
 import { create } from 'zustand';
@@ -55,7 +56,7 @@ function getInitialValues() {
     equipments: clone(INITIAL_EQUIPMENT),
     consumableStickers: [] as ConsumableSticker[],
     mapNodes: clone(INITIAL_MAP_NODES),
-    currentNodeIndex: 0,
+    currentNodeIndex: 0, routeChoices: [] as number[],
     currentEnemy: null,
     combatPhase: 'PREPARATION' as const,
     rolledIndices: [] as number[],
@@ -155,7 +156,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
       const common = {
         enemyAttack: null,
-        currentNodeIndex: nodeIndex,
+        currentNodeIndex: nodeIndex, routeChoices: [],
         battleRewardOptions: [],
         battleRewardPickCount: 0,
         chestRewardOptions: [],
@@ -398,6 +399,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
     advanceToNextNode: () => {
       const { currentNodeIndex, dicePool, mapNodes } = get();
+      if (mapNodes[currentNodeIndex].completed || get().routeChoices.length) return;
       if (currentNodeIndex === CREATURE_BALANCE.princess.guaranteedNode && !get().princessGuaranteed) {
         set({ princessGuaranteed: true });
         startStickerFlow([ALL_STICKERS_CATALOG.find((item) => item.creature === 'princess')!], 'advance');
@@ -405,17 +407,25 @@ export const useGameStore = create<GameState>((set, get) => {
       }
       const rewardDie = checkProgressionDiceReward(currentNodeIndex, dicePool);
       const nextDicePool: Dice[] = rewardDie ? [...dicePool, rewardDie] : dicePool;
-      const nextIndex = currentNodeIndex + 1;
-      const nextNodes = mapNodes.map((node, index) => ({
-        ...node,
-        completed: index === currentNodeIndex ? true : node.completed,
-        current: index === nextIndex,
-      }));
-
+      const nextNodes = completeRouteNode(mapNodes, mapNodes[currentNodeIndex].id);
+      const choices = mapNodes[currentNodeIndex].next;
       set({ dicePool: nextDicePool, mapNodes: nextNodes, unlockedDiceNotification: rewardDie });
       if (rewardDie) soundService.playVictory();
-      if (nextIndex < nextNodes.length) get().startNode(nextIndex);
+      if (choices.length === 1) {
+        const nodes = selectRouteNode(nextNodes, choices, choices[0])!;
+        set({ mapNodes: nodes });
+        get().startNode(nodes.findIndex((node) => node.id === choices[0]));
+      } else if (choices.length > 1) set({ routeChoices: choices, currentEnemy: null,
+        combatPhase: 'CONTROL_PHASE', comboSummary: null });
       else set({ combatPhase: 'VICTORY' });
+    },
+
+    chooseRoute: (nodeId) => {
+      const { mapNodes, routeChoices } = get();
+      const nodes = selectRouteNode(mapNodes, routeChoices, nodeId);
+      if (!nodes) return;
+      set({ mapNodes: nodes, routeChoices: [] });
+      get().startNode(nodes.findIndex((node) => node.id === nodeId));
     },
 
     restartGame: () => {

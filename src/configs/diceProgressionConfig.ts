@@ -9,7 +9,7 @@ export const PROGRESSION_DICE_REWARDS: Readonly<Partial<Record<number, Dice>>> =
   8: configuredDice('dice_support', '支援骰', 'd6', 'sapphire', [
     ['warrior', 4], ['follower', 3], ['follower', 3], ['guard', 3], ['artisan', 2], ['porter', 3],
   ]),
-  17: configuredDice('dice_court', '護衛骰', 'd6', 'obsidian', [
+  18: configuredDice('dice_court', '護衛骰', 'd6', 'obsidian', [
     ['royalGuard', 3], ['knight', 3], ['guard', 3], ['priest', 2], ['elder', 2], ['warrior', 4],
   ]),
   28: configuredDice('dice_supply', '糧隊骰', 'd6', 'amber', [

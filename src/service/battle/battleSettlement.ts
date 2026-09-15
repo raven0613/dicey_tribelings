@@ -1,7 +1,7 @@
 import { commitMaterialRound } from './creatures/materialResolution';
 import { MATERIAL_BALANCE } from '../../configs/materials/materialConfig';
 import { BATTLE_LIMIT } from '../../configs/battleConfig';
-import { buildAttackPlan } from './attackPlan';
+import { resolveEnemyRound } from './enemies/enemyRound';
 import { getAttackEmphases } from './attackPresentation';
 import { EQUIPMENT_BALANCE, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { combatNumber } from './creatures/creatureState';
@@ -13,7 +13,6 @@ import { BATTLE_PRESENTATION as timing, COMBAT_GOLD } from '../../configs/battle
 import { generateBattleRewardOptions, getBattleRewardCount } from '../rewards/rewardService';
 import { restoreTemporaryStickers } from '../inventory/inventoryService';
 import { createCreatureBattleState } from './creatures/creatureState';
-import { applyEnemyDamage, resolveEnemyIntent } from './enemies/enemyIntent';
 import { animateAttack, animateCalculatedNumbers, waitForAnimation } from './settlementAnimation';
 import { animateEnemyAttack } from './enemyAttackAnimation';
 
@@ -34,8 +33,6 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   const { comboSummary: summary, currentEnemy, dicePool } = initial;
   if (initial.combatPhase !== 'CONTROL_PHASE' || initial.activeRerollingIndex !== null
     || initial.diceAction.startsWith('teacher:') || !summary || !currentEnemy) return;
-  let activeEnemy = structuredClone(currentEnemy);
-  let damageTaken = 0;
   const isCurrent = () => get().comboSummary === summary;
   set({ combatPhase: 'RESOLVING_CALCULATION', visibleBonusIds: [], bonusSlotStates: {},
     creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood },
@@ -50,23 +47,39 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   if (!isCurrent()) return;
   set({ combatPhase: 'RESOLVING_ATTACK' });
 
-  const applyDamage = (damage: number) => {
-    const result = applyEnemyDamage(activeEnemy, damage);
-    activeEnemy = result.enemy;
-    damageTaken = combatNumber(damageTaken + result.damageTaken);
-    set({ currentEnemy: activeEnemy });
-  };
-  const attacks = buildAttackPlan(summary, currentEnemy.shield, initial.equipments);
+  const forecast = resolveEnemyRound(currentEnemy, summary, initial.equipments,
+    { hp: get().playerHp, shield: get().playerShield }, initial.creatureBattleState);
+  const attacks = forecast.events.flatMap((event) => event.attack ? [event.attack] : []);
   const emphases = getAttackEmphases(attacks);
-  for (const [position, attack] of attacks.entries()) {
+  let position = 0;
+  for (const event of forecast.events) {
     if (!isCurrent()) return;
-    const defeated = activeEnemy.hp <= 0;
-    const completed = await animateAttack(methods, attack.index, attack.bonus,
-      { value: attack.value, creature: attack.creature, label: defeated ? '追擊!' : attack.label || undefined },
-      () => { if (isCurrent()) applyDamage(attack.value); }, isCurrent, emphases[position]);
-    if (!completed) return;
+    if (event.kind === 'player' && event.attack) {
+      set({ combatPhase: 'RESOLVING_ATTACK' });
+      const attack = event.attack;
+      const completed = await animateAttack(methods, attack.index, attack.bonus,
+        { value: event.damage, creature: attack.creature, label: attack.label || undefined },
+        () => { if (isCurrent()) set({ currentEnemy: event.enemy }); }, isCurrent, emphases[position++]);
+      if (!completed) return;
+    } else if (event.kind === 'enemy') {
+      set({ combatPhase: 'ENEMY_TURN' });
+      await waitForAnimation(timing.enemyThinkMs);
+      if (!isCurrent()) return;
+      await animateEnemyAttack(methods, event, Boolean(event.heavy), isCurrent);
+    } else {
+      set({ currentEnemy: event.enemy });
+      methods.addDamagePop({ value: event.damage, label: '鏡面反射' });
+    }
+    if (!isCurrent()) return;
+    set({ currentEnemy: event.enemy, playerHp: event.hp, playerShield: event.shield });
   }
-  if (!isCurrent()) return;
+  const activeEnemy = forecast.enemy;
+  set({ currentEnemy: activeEnemy, playerHp: forecast.hp, playerShield: forecast.shield });
+  if (forecast.hp <= 0) {
+    set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool),
+      creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
+    return;
+  }
 
   const finishVictory = async () => {
     await waitForAnimation(timing.victoryMs);
@@ -86,32 +99,12 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   };
   if (activeEnemy.hp <= 0) { await finishVictory(); return; }
 
-  set({ combatPhase: 'ENEMY_TURN' });
-  await waitForAnimation(timing.enemyThinkMs);
-  if (!isCurrent()) return;
-  const intent = activeEnemy.intents[activeEnemy.currentIntentIndex];
-  const resolution = resolveEnemyIntent(activeEnemy, damageTaken);
-  if (resolution.damage > 0) {
-    const hpBeforeAttack = get().playerHp;
-    await animateEnemyAttack(methods, resolution.damage, intent.type === 'heavy_attack', isCurrent);
-    if (!isCurrent()) return;
-    if (get().playerHp < hpBeforeAttack && summary.reflection > 0) {
-      applyDamage(summary.reflection);
-      methods.addDamagePop({ value: summary.reflection, label: '鏡面反射' });
-    }
-    if (get().playerHp <= 0) {
-      set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
-      return;
-    }
-  }
-  if (activeEnemy.hp <= 0) { await finishVictory(); return; }
   if (initial.creatureBattleState.round >= BATTLE_LIMIT.rounds) {
     set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool),
       creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
     return;
   }
   set({ dicePool: commitMaterialRound(dicePool, initial.rolledIndices) });
-  activeEnemy = { ...activeEnemy, currentIntentIndex: resolution.nextIntentIndex, shield: activeEnemy.shield + resolution.shieldGain };
   set({ currentEnemy: activeEnemy });
   await waitForAnimation(timing.nextRoundMs);
   if (!isCurrent()) return;
