@@ -16,8 +16,8 @@ export interface IntentMechanics {
   unshieldedBonus?: number;
   shieldMultiplier?: number;
   expose?: number;
-  retaliate?: { hits: number; damage: number };
-  heal?: { amount: number; uses: number; consumeShield?: boolean };
+  retaliate?: { bonusHits: number; damage: number };
+  heal?: { amount: number; uses: number; consumeShield?: boolean; belowHp?: number };
   strength?: number;
   seal?: boolean;
   grapple?: number;

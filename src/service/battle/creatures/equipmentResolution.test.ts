@@ -15,18 +15,18 @@ const die = (id: string, creature: CreatureId, value = 4) => configuredDice(id, 
   Array.from({ length: 6 }, () => [creature, value] as [CreatureId, number]));
 const equipment = (...rules: string[]) => ALL_EQUIPMENT_CATALOG.filter((item) => rules.includes(item.ruleId));
 
-test('virtual rations count once for food skills and store separately in each chef die', () => {
+test('virtual rations count as one food and distribute one total across chef dice', () => {
   const pool = [die('a', 'chef'), die('b', 'food'), die('c', 'farmer'), die('d', 'glutton')];
   pool[1].faces[1].creature = 'chef';
   const state = { ...createCreatureBattleState(), virtualFood: 9 };
   const result = calculateRollResolution(pool, [0, 0, 0, 0], equipment('RATIONS'), state);
   assert.equal(result.items[2].creature, 'farmer');
   assert.equal(result.nextStoredFood.a, 0);
-  assert.equal(result.bonusDice[0].bonusDamage, 9);
-  assert.equal(result.nextStoredFood.b, 9 + result.items[1].baseValue);
+  assert.equal(result.bonusDice[0].bonusDamage, Math.ceil(state.virtualFood / 2));
+  assert.equal(result.nextStoredFood.b, Math.floor(state.virtualFood / 2) + pool[1].faces[0].baseValue + b.farmer.foodBonus);
   assert.equal(result.items[3].finalDamage, 12);
   assert.equal(result.items.length, 4);
-  assert.equal(result.leftoverFood, 9 + result.items[1].baseValue);
+  assert.equal(result.leftoverFood, pool[1].faces[0].baseValue + b.farmer.foodBonus);
 });
 
 test('extra barricade shield feeds each bulwark; resonator and reserve affect their specified attack types', () => {
@@ -124,7 +124,7 @@ test('robbery halves odd attack values precisely and zero attacks stay out of th
 test('nearest food receives the full farmer boost in the attack plan', () => {
   const pool = [die('a', 'farmer', 1), ...['b', 'c', 'd', 'e'].map((id) => die(id, 'food', 1))];
   const summary = calculateRollResolution(pool, pool.map(() => 0), []);
-  assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [4, 1, 1, 1]);
+  assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [1, 1, 1, 1]);
   assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 4, 1, 1, 1]);
   assert.equal(summary.totalDamage, 8);
 });

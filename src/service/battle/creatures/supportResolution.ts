@@ -1,5 +1,5 @@
+import { storeRoundFood } from './foodResolution';
 import { getFaceTags } from '../../dice/diceFaces';
-import { FOOD_CAPACITY } from '../../../configs/materials/materialConfig';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
 import { CREATURE_CONFIG } from '../../../configs/creatures/creatureConfig';
 import { EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentConfig';
@@ -28,12 +28,12 @@ export function resolveSupport(c: ResolutionContext) {
     switch (item.creature) {
       case 'family':
         item.skillInputs = { count: c.faceCount(index, 'family') - 1 };
-        add(item.skillInputs.count! * b.family.bonus); break;
+        add(item.baseValue * item.skillInputs.count! * b.family.perFace); break;
       case 'sisters':
         item.skillInputs = { count: c.speciesCount('sisters'), minimum: b.sisters.minimum };
         if (item.skillInputs.count! >= b.sisters.minimum) {
           participants(c.countParticipants((entry) => entry.creature === 'sisters').map((entry) => entry.diceId));
-          add(b.sisters.bonus + item.baseValue * (item.skillInputs.count! - 1) * b.sisters.perSister);
+          add(item.baseValue * (b.sisters.multiplier - 1));
         }
         break;
       case 'loner':
@@ -103,34 +103,27 @@ export function resolveSupport(c: ResolutionContext) {
     if (c.items[start].creature !== 'porter') continue;
     let end = start;
     while (c.items[end + 1]?.creature === 'porter') end++;
-    for (const member of c.items.slice(start, end + 1)) member.skillInputs = { count: end - start + 1 };
-    if (end > start) {
-      const tail = c.items[end];
-      c.attack(c.event(4, tail, '接力', c.items.slice(start, end + 1), 'adjacent'), tail,
-        tail.finalDamage + tail.baseValue * ((end - start) * b.porter.linear + (end - start) ** 2 * b.porter.chainGrowth), `接力 ${end - start + 1} 人`);
+    let preceding = 0;
+    const members = c.items.slice(start, end + 1);
+    for (const member of members) {
+      member.skillInputs = { count: members.length, value: preceding };
+      if (preceding > 0) c.attack(c.event(4, member, undefined, members, 'adjacent'), member,
+        member.finalDamage + preceding);
+      preceding = combatNumber(preceding + member.baseValue);
     }
     start = end;
   }
   const barricade = c.equipment.find((item) => item.ruleId === 'BARRICADE');
-  if (barricade && c.items[0]) c.shield(c.equipmentEvent(4, barricade), c.items[0], eq.barricadeShield);
+  if (barricade) {
+    const e = c.equipmentEvent(4, barricade, []);
+    e.changes.push({ kind: 'shield', targetId: 'player', before: c.teamShield.value, after: c.teamShield.value + eq.barricadeShield });
+    c.teamShield.value += eq.barricadeShield;
+  }
 }
 
 export function resolveFoodAndBonuses(c: ResolutionContext) {
+  storeRoundFood(c);
   for (const [index, item] of c.items.entries()) {
-    if (c.faceCount(index, 'chef') > 0) {
-      const foodValue = (item.tags.includes('food') ? item.baseValue : 0) + c.virtualFood;
-      if (foodValue > 0) {
-        const before = c.nextStoredFood[item.diceId] ?? 0;
-        const total = Object.values(c.nextStoredFood).reduce((sum, value) => sum + value, 0);
-        const room = Math.max(0, (c.battle.foodCapacity ?? FOOD_CAPACITY.crocodile) - total);
-        const after = combatNumber(before + Math.min(foodValue, room));
-        if (after > before) {
-        c.nextStoredFood[item.diceId] = after;
-        c.event(5, item, '儲糧', [], 'support', 'storage').changes.push({ kind: 'food', targetId: item.diceId, before, after });
-        item.bonusTags.push(`儲糧 ${before}→${after}`);
-        }
-      }
-    }
     if (item.creature === 'chef') item.skillInputs = { value: c.nextStoredFood[item.diceId] ?? 0 };
     if (item.creature === 'chef' && item.skillInputs.value! > 0) {
       const value = c.nextStoredFood[item.diceId];

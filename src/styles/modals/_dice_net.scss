@@ -137,3 +137,8 @@
   .dice-net-tags { color: $slate-300; font-size: 0.875rem; }
   .dice-net-sticker { color: $rose-300; font-size: 0.875rem; }
 }
+
+.dice-net-face.is-match { background-color: #66551f; }
+.dice-net-face.is-muted { opacity: .45; }
+.dice-tab-btn.is-match { box-shadow: inset 0 0 0 1px #fbbf24; }
+.dice-tab-btn.is-muted { opacity: .5; }

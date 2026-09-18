@@ -1,3 +1,8 @@
+import { getPaidRerollCost } from '../../service/battle/rerollCost';
+import { RerollPulse, useRerollFeedback } from './useRerollFeedback';
+import { DieStatusBadge, RationsAllocation } from './BattleStatusBadges';
+import { getActionTargets, getEquipmentAction } from '../../service/battle/rollService';
+import { EQUIPMENT_ACTIONS } from '../../configs/equipment/equipmentActionConfig';
 import { ceilDamage } from '../../service/battle/damageValue';
 import { SkillFeedback } from './SkillFeedback';
 import { PlayerImpact } from './PlayerImpact';
@@ -7,8 +12,6 @@ import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
 import { DICE_TRAY_PRESENTATION } from '../../configs/dicePresentationConfig';
 import { describeBattleSkills } from '../../service/battle/battleSkillDescription';
-import { EQUIPMENT_BALANCE as eq, hasEquipment } from '../../configs/equipment/equipmentConfig';
-import { getOppositeFace, teacherTargets } from '../../service/battle/rollService';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
@@ -31,7 +34,7 @@ export const DiceBoard: React.FC = () => {
     equipments,
     rolledIndices,
     combatPhase,
-    control,
+    currentEnemy, hoveredEquipmentId, control,
     activeRerollingIndex,
     finishRollAnimation,
     useControlReroll,
@@ -44,14 +47,24 @@ export const DiceBoard: React.FC = () => {
     diceSlotStates,
     bonusSlotStates,
     visibleBonusIds, skillFeedback, displayedIdentities, displayedShields, displayedFood,
-    diceAction, rerollAnimationId, gold,
+    diceAction, rerollAnimationId,
     creatureBattleState,
     enemyAttack,
   } = useGameStore();
+  const { feedback: rerollFeedback, finish: finishRerollFeedback } = useRerollFeedback(comboSummary, rerollAnimationId, combatPhase);
   const actionState = useGameStore.getState();
   const unrolled = combatPhase === 'PREPARATION';
-  const selectingTeacher = diceAction.startsWith('teacher:') && combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null;
-  const teacherCandidates = selectingTeacher ? teacherTargets(actionState, diceAction.slice(8)) : [];
+  const actionTargets = getActionTargets(diceAction, actionState);
+  const selectingAction = diceAction !== 'reroll' && combatPhase === 'CONTROL_PHASE';
+  const hoveredAction = getEquipmentAction(equipments.find((item) => item.id === hoveredEquipmentId)?.ruleId ?? '');
+  const highlightAction = selectingAction ? diceAction : hoveredAction?.action;
+  const highlightedTargets = highlightAction ? getActionTargets(highlightAction, actionState) : [];
+  const actionConfig = Object.values(EQUIPMENT_ACTIONS).find((item) => item.action === diceAction);
+  let controlHint = '選擇裝備能力，或結算本輪';
+  if (actionConfig) controlHint = `${actionConfig.prompt}・${actionConfig.cost} ${actionConfig.currency}`;
+  else if (diceAction.startsWith('teacher:')) controlHint = '選擇基礎攻擊力最低的土人';
+  else if (actionTargets.length) controlHint = control > 0 ? '點擊骰子重骰，每次花費 1 Control'
+    : `點擊骰子重骰，每次花費 ${getPaidRerollCost(creatureBattleState.paidRerolls, equipments)} 金幣`;
   const reducedMotion = useReducedMotion() === true;
   const bulgeId = `dice-bulge-${useId()}`;
   const attackPose = getAttackPose(attackingStage, attackEmphasis, { x: 0, y: 0 }, reducedMotion);
@@ -63,6 +76,7 @@ export const DiceBoard: React.FC = () => {
   const trayLayout = getDiceTrayLayout(traySize.width, traySize.height, dicePool, detailsHeight);
   const bonusPositions = placeBonusDice(comboSummary?.bonusDice ?? [], trayLayout.bonusPositions);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const rationsEquipment = equipments.find((equipment) => equipment.ruleId === 'RATIONS');
   const canShowRelations = combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null;
   const identities = dicePool.map((die, index) => {
     const effective = getEffectiveFace(die.faces[rolledIndices[index] ?? 0]);
@@ -201,6 +215,7 @@ export const DiceBoard: React.FC = () => {
           hasFinishedRerollRef.current = true;
           const rIdx = finishedRerollIdx;
           setTimeout(() => {
+            finishRerollFeedback(dicePool[rIdx].id);
             finishRerollAnimation(rIdx);
           }, 0);
         }
@@ -219,13 +234,13 @@ export const DiceBoard: React.FC = () => {
     return () => {
       if (reqAnimRef.current) cancelAnimationFrame(reqAnimRef.current);
     };
-  }, [combatPhase, activeRerollingIndex, finishRollAnimation, finishRerollAnimation]);
+  }, [combatPhase, activeRerollingIndex, finishRollAnimation, finishRerollAnimation, finishRerollFeedback, dicePool]);
 
   return (
     <div
       id="battle-player-target"
       onKeyDown={(event) => {
-        if (selectingTeacher && event.key === 'Escape') actionState.setDiceAction('reroll');
+        if (selectingAction && event.key === 'Escape') actionState.setDiceAction('reroll');
       }}
       style={{ '--player-impact-duration': `${timing.enemyImpactMs + timing.enemyRecoilMs}ms` } as React.CSSProperties}
       className={`dice-board ${enemyAttack?.stage === 'impact' || enemyAttack?.stage === 'recoil' ? 'is-hit' : ''} ${enemyAttack?.heavy ? 'heavy-hit' : ''} ${enemyAttack && enemyAttack.healthDamage === 0 ? 'shield-hit' : ''}`}
@@ -237,7 +252,8 @@ export const DiceBoard: React.FC = () => {
         <span>
           {combatPhase === 'PREPARATION' && '初始骰池已就位，按下擲骰開始'}
           {combatPhase === 'ROLLING' && '骰子拋擲翻滾中…'}
-          {combatPhase === 'CONTROL_PHASE' && (diceAction === 'swap' ? '點擊左側骰子，與右側鄰骰交換' : diceAction === 'lock' ? '點擊骰子，本回合保護並提高基礎值' : diceAction === 'flip' ? '點擊有相對面的骰子進行翻面' : diceAction.startsWith('teacher:') ? '選擇基礎值最低的土人骰，發動老師' : control > 0 ? '點擊骰子重骰，每次花費 1 Control' : hasEquipment(equipments, 'COUNTERWEIGHT') ? `點擊骰子，花 ${eq.paidReroll} 金幣重骰` : '鎖定結果，結算本輪')}
+          {combatPhase === 'CONTROL_PHASE' && controlHint}
+
           {combatPhase === 'RESOLVING_CALCULATION' && '角色技能連鎖結算中'}
           {combatPhase === 'RESOLVING_ATTACK' && '骰子衝鋒撞擊敵人！'}
           {combatPhase === 'ENEMY_TURN' && '敵方行動中…'}
@@ -247,8 +263,10 @@ export const DiceBoard: React.FC = () => {
 
       {/* Normal dice and additional attacks share the tray coordinate system. */}
       <div ref={trayRef} className="dice-tray-area">
-        <DiceHoverOverlay anchors={hoverAnchors} hoveredId={canShowRelations ? hoveredId : null}
-          summary={comboSummary} width={traySize.width} />
+        <DiceHoverOverlay anchors={hoverAnchors} hoveredId={canShowRelations ? hoveredId ?? hoveredEquipmentId : null}
+          summary={comboSummary} width={traySize.width} passiveEnabled={combatPhase === 'CONTROL_PHASE'}
+          rolling={activeRerollingIndex !== null} roundKey={`${currentEnemy?.id}:${creatureBattleState.round}`}
+          targetIds={canShowRelations ? highlightedTargets.flatMap((index) => highlightAction === 'swap' ? [dicePool[index].id, dicePool[index + 1].id] : [dicePool[index].id]) : []} />
         {dicePool.map((die, idx) => {
           const roll = rollStates[idx];
           const targetFaceIdx = rolledIndices[idx] ?? 0;
@@ -269,11 +287,10 @@ export const DiceBoard: React.FC = () => {
           const dieSize = trayLayout.size;
           const pumpVal = slotState?.displayValue;
           const identity = identities[idx].creature;
-          const available = diceAction.startsWith('teacher:') ? teacherCandidates.includes(idx)
-            : diceAction === 'swap' ? idx < dicePool.length - 1 && control >= eq.formationCost && !creatureBattleState.formationUsed
-              : diceAction === 'lock' ? control >= eq.whistleCost && !creatureBattleState.whistleUsed
-                : diceAction === 'flip' ? control >= eq.prismCost && getOppositeFace(die, targetFaceIdx) !== null
-                  : control > 0 || (hasEquipment(equipments, 'COUNTERWEIGHT') && gold >= eq.paidReroll);
+          const available = actionTargets.includes(idx);
+          const rationsStored = comboSummary?.events.filter((event) => rationsEquipment && event.equipmentId === rationsEquipment.id)
+            .flatMap((event) => event.changes).filter((change) => change.kind === 'food' && change.targetId === die.id)
+            .reduce((sum, change) => sum + change.after - change.before, 0) ?? 0;
 
           const isRerolling = activeRerollingIndex === idx || (combatPhase === 'ROLLING' && (!roll || !roll.isFinished));
           const isAttacking = combatPhase === 'RESOLVING_ATTACK' && attackingDieIndex === idx;
@@ -288,7 +305,7 @@ export const DiceBoard: React.FC = () => {
             <div
               key={die.id}
               data-attack-die={idx}
-              className={`die-anchor ${resolving && pumpVal === 0 ? 'is-depleted' : ''} ${selectingTeacher ? available ? 'is-teacher-target' : 'is-not-teacher-target' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
+              className={`die-anchor ${resolving && pumpVal === 0 ? 'is-depleted' : ''} ${selectingAction ? available ? 'is-action-target' : 'is-not-action-target' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
               style={{
                 width: dieSize, height: dieSize,
                 '--detail-width': `${trayLayout.spacing - 8}px`,
@@ -301,7 +318,12 @@ export const DiceBoard: React.FC = () => {
                 zIndex: isAttacking ? 100 : isRerolling ? 20 : 10,
               } as React.CSSProperties}
             >
+              {!unrolled && combatPhase !== 'ROLLING' && (creatureBattleState.sealedDice?.includes(die.id)
+                ? <DieStatusBadge sealed /> : currentEnemy?.grapple?.diceId === die.id && !creatureBattleState.rerolledDice?.includes(die.id)
+                  ? <DieStatusBadge damage={currentEnemy.grapple.damage} /> : null)}
               <SkillFeedback diceId={die.id} feedback={skillFeedback} />
+              {combatPhase === 'CONTROL_PHASE' && !isRerolling && rerollFeedback?.diceIds.includes(die.id)
+                && <RerollPulse key={rerollFeedback.id} />}
               {/* Dash Motion Speed Trail */}
               {isAttacking && (attackingStage === 'dash' || attackingStage === 'impact') && (
                 <div className="speed-trail animate-pulse" />
@@ -324,9 +346,10 @@ export const DiceBoard: React.FC = () => {
               {calcItem && activeRerollingIndex === null && combatPhase !== 'ROLLING' && (
                 <div className="die-result-label">
                   {resultLabels.map((label, index) => <span key={index}>{label}</span>)}
+                  {combatPhase === 'CONTROL_PHASE' && rationsEquipment && rationsStored > 0
+                    && <RationsAllocation equipment={rationsEquipment} amount={rationsStored} />}
                 </div>
               )}
-
 
             </div>
           );

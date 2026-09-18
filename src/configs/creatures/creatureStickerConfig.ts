@@ -26,7 +26,7 @@ export const DISPOSABLE_STICKERS: DisposableSticker[] = DISPOSABLE_CREATURES.map
   const meta = CREATURE_CONFIG[creature];
   return { id: `st_${creature}_disposable`, name: `本場 ${meta.name}`, isDisposable: true,
     creature, rarity: meta.rarity, cost: SHOP_CONFIG.disposableCost,
-    description: `本場變為${meta.name}，沿用目標面的基礎值。${meta.description}` };
+    description: `本場變為${meta.name}，沿用目標面的基礎攻擊力。${meta.description}` };
 });
 export const ALL_STICKERS_CATALOG: StickerItem[] = [
   ...REGION_IDS.flatMap((region) => CREATURE_IDS.filter((id) => id !== 'princess' || region === 1)

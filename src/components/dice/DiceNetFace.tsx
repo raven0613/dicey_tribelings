@@ -10,6 +10,7 @@ import { CREATURE_CONFIG, CREATURE_TAG_NAMES } from '../../configs/creatures/cre
 
 interface DiceNetFaceProps {
   face: DiceFace;
+  matched?: boolean;
   index: number;
   geometry: NetFace;
   scale: number;
@@ -49,7 +50,7 @@ const FaceContent: React.FC<{ face: DiceFace; sticker?: StickerItem }> = ({ face
 };
 
 export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry, scale, relation, neighbors,
-  onHover, onFocus, sticker, previewing, onApply }) => {
+  onHover, onFocus, sticker, previewing, onApply, matched }) => {
   const showPreview = !!sticker && previewing;
   const effective = previewFace(face, showPreview ? sticker : undefined);
   const creature = CREATURE_CONFIG[effective.creature];
@@ -58,8 +59,8 @@ export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry,
     `${(x - bounds.x) / bounds.width * 100}% ${(y - bounds.y) / bounds.height * 100}%`).join(',');
   const label = relation === 'current' ? showPreview ? '覆蓋預覽' : '目前檢視' : relation === 'neighbor' ? '相鄰面' : '';
 
-  return <button type="button" className={`dice-net-face is-${relation}`} data-material={effective.material}
-    aria-label={`第 ${index + 1} 面，${creature.name}，基礎攻擊 ${effective.baseValue}。${creature.description} ${effective.material ? MATERIAL_CONFIG[effective.material].name : ''} 相鄰面：${neighbors.map((n) => n + 1).join('、')}。${onApply ? '點擊套用貼紙。' : ''}`}
+  return <button type="button" className={`dice-net-face is-${relation} ${matched === undefined ? '' : matched ? 'is-match' : 'is-muted'}`} data-material={effective.material}
+    aria-label={`第 ${index + 1} 面，${creature.name}，基礎攻擊力 ${effective.baseValue}。${creature.description} ${effective.material ? MATERIAL_CONFIG[effective.material].name : ''} 相鄰面：${neighbors.map((n) => n + 1).join('、')}。${onApply ? '點擊套用貼紙。' : ''}`}
     onMouseEnter={() => onHover(index)} onMouseLeave={() => onHover(null)}
     onFocus={(event) => { if (event.currentTarget.matches(':focus-visible')) onFocus(index); }}
     onBlur={() => onFocus(null)}
@@ -71,7 +72,7 @@ export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry,
       left: (contentBounds.x + contentBounds.width / 2 - bounds.x) * scale,
       top: (contentBounds.y + contentBounds.height / 2 - bounds.y) * scale,
     }}>
-      <span className="dice-net-face-heading"><span>第 {index + 1} 面</span><span className="dice-net-relation">{label}</span></span>
+      <span className="dice-net-face-heading"><span>第 {index + 1} 面</span><span className="dice-net-relation">{matched ? '相同貼紙' : label}</span></span>
       <span className="dice-net-copies">
         <span className={showPreview ? 'is-hidden' : ''} aria-hidden={showPreview}><FaceContent face={face} /></span>
         {sticker && <span className={showPreview ? '' : 'is-hidden'} aria-hidden={!showPreview}>

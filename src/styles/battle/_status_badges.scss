@@ -1,0 +1,30 @@
+.battle-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 11px;
+  line-height: 1.3;
+  cursor: help;
+}
+.exposure-badge {
+  color: #fbbf24;
+  background: #78350f66;
+  outline: 1px solid #fbbf2488;
+  box-shadow: 0 0 8px #fbbf2440;
+  animation: weak-point-appear 450ms ease-out;
+}
+.die-status-badge { position: absolute; top: -10px; right: -8px; z-index: 5; color: #fbbf24; background: #172033; }
+.rations-badge { color: #fcd9a0; background: #78350f33; }
+.player-shield-value.is-highlighted, .forecast-shield.is-highlighted {
+  color: #bae6fd;
+  text-shadow: 0 0 5px #7dd3fc, 0 0 14px #38bdf8;
+  svg { filter: drop-shadow(0 0 5px #38bdf8); }
+}
+.rations-allocation { display: inline-flex; align-items: center; justify-content: center; gap: 3px; color: #fcd9a0; cursor: help; pointer-events: auto; }
+.equipment-action { flex-shrink: 0; margin-left: auto; border: 1px solid #a5b4fc66; border-radius: 5px; padding: 3px 5px; color: #e0e7ff; background: #312e81; font-size: 10px; cursor: pointer; }
+.equipment-action:disabled { opacity: .45; cursor: default; }
+.equipment-action[aria-pressed=true] { border-color: #fbbf24; }
+@keyframes weak-point-appear { from { box-shadow: 0 0 18px #fbbf24; } to { box-shadow: 0 0 8px #fbbf2440; } }
+@media (prefers-reduced-motion: reduce) { .exposure-badge { animation: none; } }

@@ -33,6 +33,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   initialShield: number, initialFood: Record<string, number>) {
   const { get, set } = methods;
   const schedule = scheduleSkills(summary.events);
+  let displayedHp = get().playerHpDisplay ?? get().playerHp;
   const diceIndex = new Map(summary.items.map((item, index) => [item.diceId, index]));
   const dice = Object.fromEntries(summary.items.map((item, index) => [index, still(ceilDamage(item.rolledBaseValue))]));
   const bonuses: Record<string, NumberDisplay> = {};
@@ -47,7 +48,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   const duration = schedule.length ? Math.max(...schedule.map((entry) => entry.start)) + nameLifetime : 0;
   const valueFor = (change: SkillChange) => {
     if (change.kind === 'attack') return dice[diceIndex.get(change.targetId)!];
-    if (change.kind === 'shield') return shields[change.targetId];
+    if (change.kind === 'shield') return shields[change.targetId] ??= still(change.before);
     if (change.kind === 'food') return food[change.targetId] ??= still(change.before);
     return bonuses[change.targetId] ??= still(0);
   };
@@ -64,6 +65,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
       }
       if (elapsed >= start + timing.nameDelayMs + timing.nameFadeInMs && !numbered.has(event.id)) {
         numbered.add(event.id);
+        if (event.healing) displayedHp = Math.min(get().maxHp, displayedHp + event.healing);
         event.identities.forEach((item) => { identities[item.diceId] = { creature: item.creature, tags: item.tags }; });
         event.bonusIds.forEach((id) => visible.add(id));
         for (const change of event.changes) {
@@ -98,7 +100,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
     const shieldDisplays = Object.values(shields);
     const totalShield = combatNumber(initialShield + shieldDisplays.reduce((sum, value) => sum + value.displayValue, 0));
     set({ diceSlotStates: copy(dice), bonusSlotStates: copy(bonuses), displayedShields: copy(shields), displayedFood: copy(food),
-      displayedIdentities: { ...identities }, visibleBonusIds: [...visible],
+      playerHpDisplay: displayedHp, displayedIdentities: { ...identities }, visibleBonusIds: [...visible],
       playerShieldDisplay: shieldDisplays.some((display) => display.isSpinning) ? Math.floor(totalShield) : totalShield,
       skillFeedback: get().skillFeedback.filter((feedback) => performance.now() - feedback.startedAt < nameLifetime) });
     await waitForAnimation(timing.frameMs);
@@ -106,7 +108,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   if (get().combatPhase !== 'RESOLVING_CALCULATION' || get().comboSummary !== summary) return;
   set({ diceSlotStates: Object.fromEntries(summary.items.map((item, index) => [index, { ...still(ceilDamage(item.finalDamage)), isBuffed: item.finalDamage > item.rolledBaseValue }])),
     bonusSlotStates: Object.fromEntries(summary.bonusDice.map((bonus) => [bonus.id, still(ceilDamage(bonus.bonusDamage))])),
-    visibleBonusIds: summary.bonusDice.map((bonus) => bonus.id), playerShieldDisplay: null, skillFeedback: [] });
+    visibleBonusIds: summary.bonusDice.map((bonus) => bonus.id), playerShieldDisplay: null, playerHpDisplay: null, skillFeedback: [] });
 }
 
 export async function animateAttack(methods: BattleStoreMethods, index: number, bonus: boolean,

@@ -17,7 +17,7 @@ export interface CalculatedRollItem {
   faceIndex: number;
   rolledCreature: CreatureId;
   rolledBaseValue: number;
-  baseValue: number;
+  readonly baseValue: number;
   creature: CreatureId;
   tags: CreatureTag[];
   finalDamage: number;
@@ -54,6 +54,7 @@ export interface SkillEvent {
   equipmentId?: string;
   sourceFaceId?: string;
   echoed?: boolean;
+  healing?: number;
   ability: string;
   participantDiceIds: string[];
   changes: SkillChange[];
@@ -81,6 +82,7 @@ export interface BattleComboSummary {
   goldGranted: number;
   nextStoredFood: Record<string, number>;
   leftoverFood: number;
+  virtualFood: number;
 }
 
 export interface NumberDisplay {

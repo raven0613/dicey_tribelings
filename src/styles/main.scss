@@ -20,3 +20,7 @@
 
 @use 'story';
 @use './materials';
+
+@use 'battle/status_badges';
+
+@use 'modals/paid_reroll';

@@ -1,3 +1,5 @@
+import { ExposureBadge } from './BattleStatusBadges';
+import { getRoundFace } from '../../service/battle/creatures/imposterResolution';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
@@ -14,7 +16,7 @@ interface EnemyCardProps {
 }
 
 export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) => {
-  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack, equipments, playerHp, maxHp, playerShield, creatureBattleState, dicePool } = useGameStore();
+  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack, equipments, playerHp, maxHp, playerShield, creatureBattleState, dicePool, rolledIndices } = useGameStore();
   const enemyRef = useRef<HTMLDivElement>(null);
   const [attackDistance, setAttackDistance] = useState(0);
   const intentDescription = enemy ? describeEnemyIntent(enemy) : '';
@@ -29,6 +31,10 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
   }, [enemyAttack?.stage]);
   if (!enemy) return null;
 
+  const targetName = (id: string) => {
+    const index = dicePool.findIndex((die) => die.id === id);
+    return index >= 0 ? CREATURE_CONFIG[getRoundFace(dicePool[index], rolledIndices[index], creatureBattleState).creature].name : '';
+  };
   const isImpacted = isHit || attackingStage === 'impact';
   const hpPercent = Math.max(0, Math.min(100, (enemy.hp / enemy.maxHp) * 100));
   const currentIntent = enemy.intents[enemy.currentIntentIndex] || enemy.intents[0];
@@ -130,9 +136,9 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
       <div className="enemy-status text-xs leading-relaxed">
         {!!enemy.armor && <span>次數甲 {enemy.armor} 層；</span>}
         {!!enemy.strength && <span>攻擊 +{enemy.strength}；</span>}
-        {!!enemy.exposure && <span>暴露弱點：受到傷害 ×{enemy.exposure}；</span>}
-        {enemy.sealedDie && <span>本輪封鎖：{dicePool.find((die) => die.id === enemy.sealedDie)?.name}；</span>}
-        {enemy.grapple && <span>鉤索：{dicePool.find((die) => die.id === enemy.grapple!.diceId)?.name}，
+        {!!enemy.exposure && <ExposureBadge multiplier={enemy.exposure} />}
+        {enemy.sealedDie && <span>本輪封鎖：{targetName(enemy.sealedDie)}；</span>}
+        {enemy.grapple && <span>鉤索：{targetName(enemy.grapple.diceId)}，
           {creatureBattleState.rerolledDice?.includes(enemy.grapple.diceId) ? '已解除' : `額外重骰解除，否則受到 ${enemy.grapple.damage} 傷害`}；</span>}
       </div>
       {/* Center Avatar & Health */}

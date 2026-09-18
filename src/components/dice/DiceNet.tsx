@@ -1,3 +1,5 @@
+import type { CreatureId } from '../../types/creatures';
+import { getEffectiveFace } from '../../service/dice/diceFaces';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import type { Dice, StickerItem } from '../../types/game';
 import { getDiceNet } from '../../service/dice/diceNet';
@@ -6,11 +8,12 @@ import { DiceNetFace } from './DiceNetFace';
 
 interface DiceNetProps {
   dice: Dice;
+  highlightCreature?: CreatureId;
   sticker?: StickerItem;
   onApplyFace?: (faceIndex: number) => void;
 }
 
-export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace }) => {
+export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, highlightCreature }) => {
   const net = getDiceNet(dice.dieType);
   const geometry = getDiceGeometry(dice.dieType);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -63,6 +66,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace }) 
               className="dice-net-fold" vectorEffect="non-scaling-stroke" />)}
           </svg>
           {net.faces.map((face, index) => <DiceNetFace key={dice.faces[index].id}
+            matched={highlightCreature ? getEffectiveFace(dice.faces[index]).creature === highlightCreature : undefined}
             face={dice.faces[index]} index={index} geometry={face} scale={scale}
             relation={index === activeFace ? 'current' : neighbors.includes(index) ? 'neighbor' : 'none'}
             neighbors={geometry[index].neighbors} onHover={setHoveredFace} onFocus={setFocusedFace}

@@ -23,13 +23,13 @@
   }
 }
 
-.die-anchor.is-teacher-target .battle-die {
+.die-anchor.is-action-target .battle-die {
   outline: 3px solid #fbbf24;
   outline-offset: 5px;
   border-radius: 14px;
   background: #fbbf2420;
 }
-.die-anchor.is-not-teacher-target { opacity: 0.45; }
+.die-anchor.is-not-action-target { opacity: 0.45; }
 .dice-filter-definitions { position: absolute; pointer-events: none; }
 .is-carry .battle-die-rim { stroke: #fff0a6; stroke-width: 3px; }
 .is-carry .phantom-face { border-color: #fff0a6; }

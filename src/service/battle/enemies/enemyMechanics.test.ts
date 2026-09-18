@@ -66,13 +66,45 @@ const player = { hp: INITIAL_PLAYER_STATS.maxHp, shield: 0 };
 test('反擊每輪一次，致命一擊不反擊，玩家倒下立刻停止其餘攻擊', () => {
   const enemy = withIntent((intent) => !!intent.retaliate);
   const counter = enemy.intents[enemy.currentIntentIndex].retaliate!;
-  const summary = attacks(Array(counter.hits + 1).fill(1));
+  const summary = attacks(Array(counter.bonusHits + 1).fill(1));
   const result = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
   assert.equal(result.events.filter((event) => event.kind === 'enemy').length, 2);
   const deadPlayer = resolveEnemyRound(enemy, summary, [], { hp: counter.damage, shield: 0 }, createCreatureBattleState());
-  assert.equal(deadPlayer.events.filter((event) => event.kind === 'player').length, counter.hits);
-  const lethal = resolveEnemyRound({ ...enemy, hp: 1, shield: 0, hitsTaken: counter.hits - 1 }, attacks([1]), [], player, createCreatureBattleState());
+  assert.equal(deadPlayer.events.filter((event) => event.kind === 'player').length, counter.bonusHits);
+  const lethal = resolveEnemyRound({ ...enemy, hp: 1, shield: 0, bonusHits: counter.bonusHits - 1 }, attacks([1]), [], player, createCreatureBattleState());
   assert.ok(lethal.events.every((event) => event.kind === 'player'));
+  let ordinary = enemy;
+  for (let hit = 0; hit <= counter.bonusHits; hit++) {
+    const normal = resolvePlayerHit(ordinary, 1, false);
+    assert.equal(normal.retaliation, 0);
+    ordinary = normal.enemy;
+  }
+});
+
+test('藥劑在回合交界按血量預告，使用完畢後繼續攻擊', () => {
+  const enemy = createEnemy(MONSTER_CONFIG.find((entry) => entry.intents.some((intent) => intent.heal?.belowHp))!.id);
+  assert.equal(enemy.intents[0].type, 'attack');
+  const potion = enemy.intents.find((intent) => intent.heal?.belowHp)!;
+  const healthy = finishEnemyRound(enemy, resolveEnemyIntent(enemy), 0);
+  assert.equal(healthy.intents[healthy.currentIntentIndex].type, 'attack');
+  const wounded = { ...enemy, hp: enemy.maxHp * potion.heal!.belowHp! };
+  const next = finishEnemyRound(wounded, resolveEnemyIntent(wounded), 0);
+  assert.equal(next.intents[next.currentIntentIndex].name, potion.name);
+  const spent = finishEnemyRound({ ...wounded, healsUsed: { [potion.name]: potion.heal!.uses } }, resolveEnemyIntent(wounded), 0);
+  assert.equal(spent.intents[spent.currentIntentIndex].type, 'attack');
+});
+
+test('資深吞盾怪物在受傷後架盾，下一輪可破盾阻止恢復', () => {
+  const definition = MONSTER_CONFIG.find((entry) => entry.intents[0].type === 'defend'
+    && entry.intents[1].heal?.consumeShield)!;
+  const enemy = createEnemy(definition.id);
+  const first = resolveEnemyRound(enemy, attacks([enemy.maxHp / 2]), [], player, createCreatureBattleState());
+  assert.ok(first.enemy.hp < first.enemy.maxHp && first.enemy.shield > 0);
+  assert.ok(first.enemy.intents[first.enemy.currentIntentIndex].heal?.consumeShield);
+  const healed = resolveEnemyRound(first.enemy, attacks([]), [], player, createCreatureBattleState());
+  assert.ok(healed.enemy.hp > first.enemy.hp);
+  const broken = resolveEnemyRound(first.enemy, attacks([first.enemy.shield]), [], player, createCreatureBattleState());
+  assert.equal(broken.resolution.healing, 0);
 });
 
 test('吞盾只消耗真正恢復的量，受缺血、上限及使用次數限制', () => {

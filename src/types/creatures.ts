@@ -37,6 +37,8 @@ export interface CreatureBattleState {
   lockedDice: string[];
   rerollCount: number;
   controlSpent: number;
+  paidRerolls: number;
+  paidRerollUsed: boolean;
   formationUsed: boolean;
   whistleUsed: boolean;
   pipeUsed: boolean;

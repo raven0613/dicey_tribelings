@@ -1,3 +1,4 @@
+import type { CreatureId } from '../../types/creatures';
 import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
 import { getEffectiveFace } from '../../service/dice/diceFaces';
 import { SkillText } from '../common/SkillText';
@@ -8,8 +9,8 @@ import { useGameStore } from '../../store/gameStore';
 import { CreatureBadge } from '../dice/CreatureBadge';
 import { RarityBadge } from '../dice/RarityBadge';
 
-export const RewardModal: React.FC<{ onOpenDiceBag: () => void; inspectingDice: boolean }> = ({ onOpenDiceBag, inspectingDice }) => {
-  const { battleRewardOptions, battleRewardPickCount, combatPhase, currentEnemy, currentNodeIndex,
+export const RewardModal: React.FC<{ onOpenDiceBag: (creature?: CreatureId) => void; inspectingDice: boolean }> = ({ onOpenDiceBag, inspectingDice }) => {
+  const { battleRewardOptions, battleRewardPickCount, battleRecovery, combatPhase, currentEnemy, currentNodeIndex,
     selectBattleRewards, skipBattleReward } = useGameStore();
   const [selected, setSelected] = useState<string[]>([]);
   useEffect(() => setSelected([]), [currentNodeIndex, combatPhase]);
@@ -31,15 +32,15 @@ export const RewardModal: React.FC<{ onOpenDiceBag: () => void; inspectingDice: 
       <div className="reward-header"><div className="victory-badge">
         <div className="victory-icon-box"><Trophy size={24} /></div>
         <div><div className="victory-title" id="reward-title">擊敗 {currentEnemy?.name}</div>
-          <div className="victory-subtitle">選擇 {battleRewardPickCount} 份戰利品，接著改造骰面。</div></div>
+          <div className="victory-subtitle">選擇 {battleRewardPickCount} 份戰利品，接著改造骰面。{battleRecovery > 0 && ` 首領恢復 +${battleRecovery} HP`}</div></div>
       </div>
-        <button type="button" className="btn-view-dice" onClick={onOpenDiceBag}><Dices size={18} />查看骰池</button>
+        <button type="button" className="btn-view-dice" onClick={() => onOpenDiceBag()}><Dices size={18} />查看骰池</button>
       </div>
       <div className="reward-options-grid">
-        {battleRewardOptions.map((option) => <button type="button" key={option.id}
-          aria-pressed={selected.includes(option.id)} onClick={() => choose(option.id)} className="reward-option-card"
+        {battleRewardOptions.map((option) => <article key={option.id} className="reward-option-card"
           data-material={option.kind === 'sticker' && option.sticker.isDisposable === false ? option.sticker.material : undefined}
           style={materialStyle(option.kind === 'sticker' && option.sticker.isDisposable === false ? option.sticker.material : undefined)}>
+          <button type="button" className="reward-option-main" aria-pressed={selected.includes(option.id)} onClick={() => choose(option.id)}>
           {option.kind === 'stickerPack' ? <>
             <div className="card-tag-row"><span className="type-badge pack">貼紙包</span><RarityBadge rarity={option.pack.rarity} /></div>
             <div className="card-value-box"><Gift size={36} /><strong>{option.pack.stickerCount} 張</strong></div>
@@ -52,7 +53,10 @@ export const RewardModal: React.FC<{ onOpenDiceBag: () => void; inspectingDice: 
             <div className="sticker-name">{option.sticker.name}</div><div className="sticker-desc"><SkillText text={option.sticker.description} /></div>
           </>}
           <div className="btn-pick-reward">{selected.includes(option.id) ? '✓ 已選取' : battleRewardPickCount === 1 ? '選擇並處理 →' : '選取'}</div>
-        </button>)}
+          </button>
+          {option.kind === 'sticker' && <button type="button" className="btn-view-dice reward-inspect"
+            onClick={() => onOpenDiceBag(option.sticker.creature)}><Dices size={14} />查看配置</button>}
+        </article>)}
       </div>
       <div className="reward-footer">
         <button type="button" onClick={skipBattleReward} className="btn-skip-reward">略過獎勵並前進</button>

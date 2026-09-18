@@ -16,7 +16,7 @@ export interface HoverRelations { diceIds: string[]; links: HoverLink[] }
 export function getHoverRelations(summary: BattleComboSummary | null, hoveredId: string | null): HoverRelations {
   if (!summary || !hoveredId) return { diceIds: [], links: [] };
   const isFood = summary.items.find((item) => item.diceId === hoveredId)?.tags.includes('food');
-  const events = summary.events.filter((event) => event.sourceDiceId === hoveredId
+  const events = summary.events.filter((event) => event.equipmentId === hoveredId || event.sourceDiceId === hoveredId
     || event.bonusIds.includes(hoveredId)
     || ((event.skill === 'porter' || (isFood && (event.skill === 'farmer' || event.skill === 'glutton')))
       && event.participantDiceIds.includes(hoveredId)));
@@ -31,7 +31,15 @@ export function getHoverRelations(summary: BattleComboSummary | null, hoveredId:
     links.set(id, { id, from, to, kind, color, loss: (links.get(id)?.loss ?? 0) + loss });
   };
   for (const event of events) {
-    for (const id of [...event.participantDiceIds, ...event.bonusIds]) diceIds.add(id);
+    const affected = event.equipmentId ? [...event.changes.map((change) => change.targetId),
+      ...event.identities.map((identity) => identity.diceId)] : event.participantDiceIds;
+    for (const id of [...affected, ...event.bonusIds]) {
+      diceIds.add(id);
+      if (event.equipmentId) {
+        const source = summary.bonusDice.find((bonus) => bonus.id === id)?.source;
+        if (source?.kind === 'creature') diceIds.add(source.diceId);
+      }
+    }
     if (event.relation === 'support') continue;
     const participants = summary.items.filter((item) => event.participantDiceIds.includes(item.diceId));
     if (event.relation === 'adjacent') {
@@ -48,4 +56,37 @@ export function getHoverRelations(summary: BattleComboSummary | null, hoveredId:
     }
   }
   return { diceIds: [...diceIds], links: [...links.values()] };
+}
+
+/** 共用既有關係判定，涵蓋發動者與接受者；常駐提示將同一條線合併。 */
+export function getBoardRelations(summary: BattleComboSummary | null): HoverRelations {
+  const diceIds = new Set<string>();
+  const links = new Map<string, HoverLink>();
+  const sources = new Set([
+    ...(summary?.items.map((item) => item.diceId) ?? []),
+    ...(summary?.bonusDice.map((item) => item.id) ?? []),
+    ...(summary?.events.flatMap((event) => event.equipmentId ? [event.equipmentId] : []) ?? []),
+  ]);
+  for (const source of sources) {
+    const relations = getHoverRelations(summary, source);
+    relations.diceIds.forEach((id) => diceIds.add(id));
+    for (const link of relations.links) {
+      const endpoints = link.kind === 'adjacent' ? [link.from, link.to].sort() : [link.from, link.to];
+      const key = `${link.kind}:${endpoints.join(':')}`;
+      if (!links.has(key)) links.set(key, { ...link, id: key });
+    }
+  }
+  return { diceIds: [...diceIds], links: [...links.values()] };
+}
+
+export function getRerollFeedbackDice(before: BattleComboSummary | null, after: BattleComboSummary, diceId: string): string[] {
+  const signature = ({ id: _id, ...event }: SkillEvent) => JSON.stringify(event);
+  const previous = new Set(before?.events.map(signature));
+  const changed = after.events.filter((event) => !previous.has(signature(event))
+    || event.sourceDiceId === diceId || (event.equipmentId
+      ? event.changes.some((change) => change.targetId === diceId)
+        || event.identities.some((identity) => identity.diceId === diceId)
+      : event.participantDiceIds.includes(diceId)));
+  const affected = getBoardRelations({ ...after, events: changed }).diceIds;
+  return [...new Set([diceId, ...affected])];
 }

@@ -1,3 +1,4 @@
+import { retainPlayerShield } from '../playerShield';
 import { commitMaterialRound } from '../creatures/materialResolution';
 import { restoreTemporaryStickers } from '../../inventory/inventoryService';
 import { MATERIAL_BALANCE } from '../../../configs/materials/materialConfig';
@@ -136,7 +137,7 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         pool = commitMaterialRound(pool, state.rolledIndices);
         const resolution = resolveEnemyRound(enemy, summary, gear, { hp, shield }, state.creatureBattleState);
         heavyActions += resolution.events.filter((event) => event.kind === 'enemy' && event.heavy).length;
-        enemy = resolution.enemy; hp = resolution.hp; shield = resolution.shield;
+        enemy = resolution.enemy; hp = resolution.hp; shield = retainPlayerShield(resolution.shield, gear);
         if (enemy.hp <= 0 && hp > 0) rations = hasEquipment(gear, 'RATIONS') ? summary.leftoverFood : 0;
         control = Math.min(maxControl + EQUIPMENT_BALANCE.controlHeadroom, control + summary.bonusControlGranted);
       }

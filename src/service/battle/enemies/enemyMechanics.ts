@@ -15,7 +15,7 @@ export function resolvePlayerHit(source: Enemy, damage: number, bonus: boolean) 
     largestHit: Math.max(source.largestHit ?? 0, hit.damageTaken),
     shieldBroken: source.shieldBroken || (source.shield > 0 && hit.enemy.shield === 0) };
   const counter = enemy.intents[enemy.currentIntentIndex].retaliate;
-  const retaliation = enemy.hp > 0 && !enemy.retaliated && counter && enemy.hitsTaken! >= counter.hits ? counter.damage : 0;
+  const retaliation = enemy.hp > 0 && !enemy.retaliated && counter && enemy.bonusHits! >= counter.bonusHits ? counter.damage : 0;
   if (retaliation > 0) enemy.retaliated = true;
   return { enemy, value, damageTaken: hit.damageTaken, retaliation };
 }
@@ -34,6 +34,15 @@ export function finishEnemyRound(source: Enemy, result: EnemyIntentResult, hpHit
     if (index + 1 > (enemy.phase ?? 0) && enemy.hp / enemy.maxHp <= phase.below) {
       enemy = { ...enemy, phase: index + 1, intents: structuredClone([...phase.intents]) as Enemy['intents'], currentIntentIndex: 0 };
     }
+  }
+  // 回合交界才選擇可執行的療傷招式，公開後保持不變。
+  for (let checked = 0; checked < enemy.intents.length; checked++) {
+    const next = enemy.intents[enemy.currentIntentIndex];
+    const heal = next.heal;
+    if (next.type !== 'rest' || !heal || ((enemy.healsUsed?.[enemy.intents[enemy.currentIntentIndex].name] ?? 0) < heal.uses
+      && enemy.hp < enemy.maxHp && enemy.hp / enemy.maxHp <= (heal.belowHp ?? 1)
+      && (!heal.consumeShield || enemy.shield > 0))) break;
+    enemy.currentIntentIndex = (enemy.currentIntentIndex + 1) % enemy.intents.length;
   }
   return enemy;
 }

@@ -11,7 +11,7 @@ export function resolveMaterials(c: ResolutionContext) {
       case 'resonance':
         e.participantDiceIds.push(...c.neighbors(index).map((target) => target.diceId));
         for (const target of c.neighbors(index)) {
-          target.baseValue += b.resonance;
+          c.foodValues[target.diceId] += b.resonance;
           c.attack(e, target, target.finalDamage + b.resonance);
         }
         break;
@@ -21,7 +21,7 @@ export function resolveMaterials(c: ResolutionContext) {
         break;
       case 'ripple': c.shield(e, item, b.ripple); break;
       case 'vial':
-        c.materials.healing += b.vial; e.activated = true; e.ability += ` +${b.vial} HP`; break;
+        c.materials.healing += b.vial; e.activated = true; e.healing = b.vial; break;
       case 'mirror': c.materials.reflection += b.mirror; break;
       case 'gilded':
         if (!c.materials.gildedFaces.has(item.faceId)) {

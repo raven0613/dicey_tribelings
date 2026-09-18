@@ -1,4 +1,6 @@
 import {
+  Backpack,
+  Shield,
   Flame,
   Layers,
   RotateCcw,
@@ -10,6 +12,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 const EQUIPMENT_ICONS: Record<string, LucideIcon> = {
+  Backpack,
+  Shield,
   Flame,
   FlameKindling: Flame,
   Layers,

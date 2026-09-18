@@ -1,3 +1,4 @@
+import { getPaidRerollCost } from '../rerollCost';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { configuredDice } from '../../dice/diceFactory';
@@ -5,7 +6,7 @@ import { createCreatureBattleState } from './creatureState';
 import { resolveRerollChain, refreshAuthorityTargets } from './rerollResolution';
 import { calculateRollResolution } from '../battleEngine';
 import { performControlReroll, performDiceAction, getOppositeFace } from '../rollService';
-import { ALL_EQUIPMENT_CATALOG, EQUIPMENT_BALANCE } from '../../../configs/equipment/equipmentConfig';
+import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
 import { CREATURE_BALANCE } from '../../../configs/creatures/creatureBalanceConfig';
 import type { CreatureId } from '../../../types/creatures';
 const die = (id: string, a: CreatureId, z: CreatureId, first = 3, rest = 5) => configuredDice(id, id, 'd6', 'amber',
@@ -60,8 +61,9 @@ test('paid reroll, smoke refund and formation use one common Control state', () 
   const state = { dicePool: pool, rolledIndices: [0, 0], equipments, creatureBattleState: createCreatureBattleState(),
     control: 0, maxControl: 3, gold: 40, combatPhase: 'CONTROL_PHASE' as const };
   const result = performControlReroll(0, state, () => 0)!;
-  assert.equal(result.gold, 40 - EQUIPMENT_BALANCE.paidReroll);
-  assert.equal(result.control, EQUIPMENT_BALANCE.pipeRefund);
+  assert.equal(result.gold, state.gold - getPaidRerollCost(state.creatureBattleState.paidRerolls, equipments));
+  assert.equal(result.control, state.control);
+  assert.equal(result.steps.at(-1)!.state.pipeUsed, false);
   const swapped = performDiceAction('swap', 0, { ...state, control: 2 })!;
   assert.equal(swapped.dicePool[0].id, 'b');
   assert.equal(swapped.creatureBattleState.formationUsed, true);

@@ -1,3 +1,4 @@
+import { getActionTargets, getEquipmentAction } from '../../service/battle/rollService';
 import { SkillText } from '../common/SkillText';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,7 +23,7 @@ export const EquipmentBar: React.FC = () => {
     combatPhase,
     currentEnemy,
     activeRerollingIndex,
-    equipmentSlotFeedback,
+    equipmentSlotFeedback, diceAction, setDiceAction, setHoveredEquipment,
   } = useGameStore();
   const maxSlots = INITIAL_PLAYER_STATS.maxEquipmentSlots;
   const [receivedSlotIndex, setReceivedSlotIndex] = useState<number | null>(null);
@@ -31,6 +32,11 @@ export const EquipmentBar: React.FC = () => {
     equip: Equipment;
     rect: DOMRect;
   } | null>(null);
+
+  useEffect(() => {
+    setHoveredEquipment(hoveredEquip?.equip.id ?? null);
+    return () => setHoveredEquipment(null);
+  }, [hoveredEquip, setHoveredEquipment]);
 
   // Dismiss on window scroll or resize so floating tooltip never gets misaligned
   useEffect(() => {
@@ -84,6 +90,10 @@ export const EquipmentBar: React.FC = () => {
           const IconComponent = getEquipmentIcon(equip.iconName);
           const isSelected = hoveredEquip?.equip.id === equip.id;
           const isTriggered = triggeredEquipmentIds.has(equip.id);
+          const action = getEquipmentAction(equip.ruleId);
+          const selecting = action?.action === diceAction;
+          const canActivate = !!action && activeRerollingIndex === null
+            && getActionTargets(action.action, useGameStore.getState()).length > 0;
           const isJustReceived = receivedSlotIndex === idx;
 
           return (
@@ -99,6 +109,9 @@ export const EquipmentBar: React.FC = () => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 setHoveredEquip((prev) => (prev?.equip.id === equip.id ? null : { equip, rect }));
               }}
+              tabIndex={0}
+              onFocus={(e) => setHoveredEquip({ equip, rect: e.currentTarget.getBoundingClientRect() })}
+              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHoveredEquip(null); }}
               className={`slot-occupied ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
             >
               <SkillFeedback diceId={equip.id} feedback={skillFeedback} />
@@ -116,7 +129,12 @@ export const EquipmentBar: React.FC = () => {
                 </div>
               </div>
 
-              {isTriggered && (
+              {action && <button type="button" className="equipment-action"
+                disabled={!selecting && !canActivate} aria-pressed={selecting}
+                onClick={(event) => { event.stopPropagation(); setDiceAction(selecting ? 'reroll' : action.action); }}>
+                {selecting ? '取消' : `${action.label} ${action.cost} ${action.currency}`}
+              </button>}
+              {isTriggered && !action && (
                 <span className="equipment-trigger-badge">
                   <Zap size={9} />
                   發動

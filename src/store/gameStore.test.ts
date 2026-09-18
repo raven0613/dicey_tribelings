@@ -1,3 +1,5 @@
+import { getPaidRerollCost } from '../service/battle/rerollCost';
+import { EQUIPMENT_BALANCE } from '../configs/equipment/equipmentConfig';
 import { INITIAL_MAP_NODES, CHAPTER_END_NODE } from '../configs/regions/mapConfig';
 import { PROGRESSION_DICE_REWARDS } from '../configs/diceProgressionConfig';
 import { chapterPath } from '../service/regions/routeService';
@@ -158,4 +160,58 @@ test('one consumable can cover only one existing face and commit preserves the t
   assert.equal(useGameStore.getState().consumableStickers.length, 0);
   assert.equal(useGameStore.getState().dicePool[0].faces[0].baseValue, die.faces[0].baseValue);
   assert.equal(useGameStore.getState().combatPhase, 'ROLLING');
+});
+
+
+test('next round expires player shields or preserves the configured share as existing shield', () => {
+  for (const retain of [false, true]) {
+    useGameStore.getState().restartGame();
+    const shield = useGameStore.getState().maxHp;
+    useGameStore.setState({ playerShield: shield,
+      equipments: retain ? ALL_EQUIPMENT_CATALOG.filter((item) => item.ruleId === 'SHIELD_RETENTION') : [] });
+    useGameStore.getState().startBattleRoll();
+    assert.equal(useGameStore.getState().playerShield, retain ? shield * EQUIPMENT_BALANCE.shieldRetention : 0);
+    assert.deepEqual(useGameStore.getState().creatureBattleState.cowardShields, {});
+  }
+});
+
+test('each paid reroll awaits confirmation before charging, including retries after cancellation', () => {
+  const store = useGameStore;
+  store.getState().restartGame();
+  store.getState().confirmBattlePreparation([]);
+  store.getState().finishRollAnimation();
+  store.setState({ control: 0 });
+  const initial = store.getState();
+  const cost = getPaidRerollCost(initial.creatureBattleState.paidRerolls, initial.equipments);
+  store.getState().useControlReroll(0);
+  assert.equal(store.getState().pendingPaidRerollDiceId, initial.dicePool[0].id);
+  assert.equal(store.getState().gold, initial.gold);
+  store.getState().cancelPaidReroll();
+  assert.equal(store.getState().gold, initial.gold);
+  assert.equal(store.getState().creatureBattleState.paidRerolls, 0);
+  store.getState().useControlReroll(0);
+  store.getState().confirmPaidReroll(false);
+  assert.equal(store.getState().gold, initial.gold - cost);
+  assert.equal(store.getState().creatureBattleState.paidRerolls, 1);
+  assert.equal(store.getState().pendingPaidRerollDiceId, null);
+  store.getState().confirmPaidReroll(false);
+  assert.equal(store.getState().gold, initial.gold - cost);
+  while (store.getState().activeRerollingIndex !== null) {
+    store.getState().finishRerollAnimation(store.getState().activeRerollingIndex!);
+  }
+  const second = store.getState();
+  const nextCost = getPaidRerollCost(second.creatureBattleState.paidRerolls, second.equipments);
+  store.getState().useControlReroll(0);
+  assert.equal(store.getState().pendingPaidRerollDiceId, initial.dicePool[0].id);
+  assert.equal(store.getState().gold, second.gold);
+  assert.equal(store.getState().creatureBattleState.paidRerolls, second.creatureBattleState.paidRerolls);
+  store.getState().cancelPaidReroll();
+  assert.equal(store.getState().gold, second.gold);
+  store.getState().useControlReroll(0);
+  assert.equal(store.getState().pendingPaidRerollDiceId, initial.dicePool[0].id);
+  store.getState().confirmPaidReroll(false);
+  assert.equal(store.getState().gold, second.gold - nextCost);
+  assert.equal(store.getState().creatureBattleState.paidRerolls, second.creatureBattleState.paidRerolls + 1);
+  store.getState().startNode(initial.currentNodeIndex);
+  assert.equal(store.getState().creatureBattleState.paidRerolls, 0);
 });

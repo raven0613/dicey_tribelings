@@ -37,7 +37,7 @@ export function resolveRobbery(c: ResolutionContext) {
 }
 
 export function resolveFinalAttacks(c: ResolutionContext) {
-  const shield = combatNumber(c.items.reduce((sum, item) => sum + item.shieldGranted, 0));
+  const shield = combatNumber(c.items.reduce((sum, item) => sum + item.shieldGranted, c.teamShield.value));
   for (const bulwark of c.items.filter((item) => item.creature === 'bulwark')) {
     bulwark.skillInputs = { value: shield };
     c.bonus(c.event(8, bulwark, undefined, c.items.filter((item) => item.shieldGranted > 0)), bulwark, shield);
@@ -59,12 +59,12 @@ export function resolveFinalAttacks(c: ResolutionContext) {
   }
   const reserve = c.equipment.find((item) => item.ruleId === 'RESERVE');
   if (reserve && c.battle.control > 0 && c.items.length > 0) {
-    const e = c.equipmentEvent(9, reserve);
     const target = c.items.reduce((best, item) => item.finalDamage > best.finalDamage ? item : best);
+    const e = c.equipmentEvent(9, reserve, [target]);
     c.attack(e, target, target.finalDamage + c.battle.control * eq.reserveDamage);
   }
   const frugal = c.equipment.find((item) => item.ruleId === 'FRUGAL');
-  if (frugal && c.state.controlSpent === 0) {
+  if (frugal && c.state.controlSpent === 0 && !c.state.paidRerollUsed) {
     const e = c.equipmentEvent(9, frugal);
     for (const item of c.items) c.attack(e, item, item.finalDamage * eq.frugalMultiplier, `×${eq.frugalMultiplier}`);
     for (const bonus of c.bonusDice) {

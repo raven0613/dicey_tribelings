@@ -69,7 +69,9 @@ function getInitialValues() {
     enemyAttack: null,
     damagePops: [],
     visibleBonusIds: [],
-    skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null,
+    skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null, playerHpDisplay: null,
+    hoveredEquipmentId: null,
+    pendingPaidRerollDiceId: null,
     diceAction: 'reroll' as const, pendingRerolls: [], rerollAnimationId: 0,
     storedRations: 0, princessPackCount: 0, princessGuaranteed: false,
     diceSlotStates: {},
@@ -84,7 +86,7 @@ function getInitialValues() {
     pendingEquipment: null,
     equipmentSlotFeedback: null,
     battleRewardOptions: [],
-    battleRewardPickCount: 0,
+    battleRewardPickCount: 0, battleRecovery: 0,
     chestRewardOptions: [],
     shopStickers: [],
     shopEquipments: [],
@@ -155,10 +157,10 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!targetNode) return;
 
       const common = {
-        enemyAttack: null,
+        enemyAttack: null, hoveredEquipmentId: null, pendingPaidRerollDiceId: null,
         currentNodeIndex: nodeIndex, routeChoices: [],
         battleRewardOptions: [],
-        battleRewardPickCount: 0,
+        battleRewardPickCount: 0, battleRecovery: 0,
         chestRewardOptions: [],
         openedPackResult: null,
         stickerFlow: null,
@@ -177,7 +179,7 @@ export const useGameStore = create<GameState>((set, get) => {
           creatureBattleState: createCreatureBattleState(),
           combatPhase: 'PREPARATION',
           rolledIndices: [],
-          skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null,
+          skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null, playerHpDisplay: null,
           pendingRerolls: [], diceAction: 'reroll', activeRerollingIndex: null,
           comboSummary: null,
           damagePops: [],
@@ -218,6 +220,7 @@ export const useGameStore = create<GameState>((set, get) => {
       get().startBattleRoll();
     },
 
+    setHoveredEquipment: (hoveredEquipmentId) => set({ hoveredEquipmentId }),
     ...createBattleActions(set, get),
 
     executeBattleSettlement: async (waitForAttackMotion) => {

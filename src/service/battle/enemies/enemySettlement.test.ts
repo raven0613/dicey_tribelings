@@ -13,7 +13,7 @@ import { resolveEnemyRound } from './enemyRound';
 import type { Dice } from '../../../types/game';
 
 function summaryWithDamage(damage: number): BattleComboSummary {
-  return { healing: 0, reflection: 0, nextEchoUsed: [], nextGildedFaces: [], items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
+  return { healing: 0, reflection: 0, nextEchoUsed: [], nextGildedFaces: [], items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, virtualFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
     sourceName: '測試', bonusDamage: damage, label: '追加', description: '追加' }] : [], triggeredEquipmentIds: [], totalDamage: damage,
     totalShield: 0, bonusControlGranted: 0, nextStoredFood: {} };
 }

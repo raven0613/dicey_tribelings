@@ -17,7 +17,7 @@ function describeRules(intent: EnemyIntent): string[] {
   if (intent.unshieldedBonus) rules.push(`玩家無盾時 +${intent.unshieldedBonus} 傷害`);
   if (intent.shieldMultiplier) rules.push(`自身持盾時傷害 ×${intent.shieldMultiplier}`);
   if (intent.expose) rules.push(`出手後下一輪受到傷害 ×${intent.expose}`);
-  if (intent.retaliate) rules.push(`本輪受到 ${intent.retaliate.hits} 次攻擊後反擊 ${intent.retaliate.damage}，每輪一次`);
+  if (intent.retaliate) rules.push(`本輪受到 ${intent.retaliate.bonusHits} 次追加攻擊後反擊 ${intent.retaliate.damage}，每輪一次`);
   if (intent.heal) rules.push(`${intent.heal.consumeShield ? '消耗自身護盾等量' : ''}回血最多 ${intent.heal.amount}，每戰 ${intent.heal.uses} 次`);
   if (intent.strength) rules.push(`後續攻擊 +${intent.strength}`);
   if (intent.seal) rules.push('封鎖下輪一顆骰子的額外重骰與翻面');

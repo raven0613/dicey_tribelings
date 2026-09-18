@@ -10,9 +10,9 @@
   z-index: 0;
   inset: -8% 4% 0;
   border-radius: 45% 45% 20% 20%;
-  border: 2px solid $yellow-300;
-  background: linear-gradient(to top, $amber-400, $yellow-200 45%, #fffbe8 65%, transparent);
-  box-shadow: 0 0 28px 8px rgba($yellow-300, 0.9), inset 0 0 16px rgba($yellow-200, 0.35);
+  border: 2px solid var(--pulse-color, #{$yellow-300});
+  background: linear-gradient(to top, var(--pulse-color, #{$amber-400}), var(--pulse-core, #{$yellow-200}) 45%, #fffbe8 65%, transparent);
+  box-shadow: 0 0 28px 8px color-mix(in srgb, var(--pulse-color, #{$yellow-300}) 90%, transparent), inset 0 0 16px color-mix(in srgb, var(--pulse-core, #{$yellow-200}) 35%, transparent);
   transform-origin: bottom;
   animation: skillPulseRise var(--pulse-ms) ease-out both;
   &.is-source { inset: -14% -4% 0; }
@@ -40,6 +40,7 @@
   transform: translateX(-50%);
   animation: skillNameFloat var(--name-ms) ease-out var(--name-delay) both;
 }
+.skill-name.is-healing { color: var(--pulse-core); border-color: var(--pulse-color); }
 .skill-ability { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .skill-change { flex-shrink: 0; color: #fff; }
 @keyframes skillPulseRise {

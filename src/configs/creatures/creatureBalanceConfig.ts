@@ -1,5 +1,5 @@
 export const CREATURE_BALANCE = {
-  family: { bonus: 2 }, sisters: { minimum: 2, bonus: 3, perSister: 0.35 }, porter: { linear: 1, chainGrowth: 0.35 },
+  family: { perFace: 0.5 }, sisters: { minimum: 2, multiplier: 2 },
   gang: { damagePerNeighbor: 2 }, boss: { multiplier: 1.2 }, loner: { multiplier: 2 },
   follower: { range: 1 }, cheerleader: { damagePerWarrior: 2 },
   guard: { shield: 2 }, warrior: { bonusPerFollower: 2 }, elder: { bonusPerSpecies: 2 },

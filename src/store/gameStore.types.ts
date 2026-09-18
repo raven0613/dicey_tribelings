@@ -81,7 +81,13 @@ export interface GameState {
   displayedShields: Record<string, NumberDisplay>;
   displayedFood: Record<string, NumberDisplay>;
   playerShieldDisplay: number | null;
+  playerHpDisplay: number | null;
+  hoveredEquipmentId: string | null;
+  setHoveredEquipment: (id: string | null) => void;
   diceAction: DiceAction;
+  pendingPaidRerollDiceId: string | null;
+  confirmPaidReroll: (dontShowAgain: boolean) => void;
+  cancelPaidReroll: () => void;
   pendingRerolls: RerollStep[];
   rerollAnimationId: number;
   storedRations: number;
@@ -100,6 +106,7 @@ export interface GameState {
   equipmentSlotFeedback: EquipmentSlotFeedback | null;
   battleRewardOptions: BattleRewardOption[];
   battleRewardPickCount: number;
+  battleRecovery: number;
   chestRewardOptions: ChestRewardOption[];
   shopStickers: StickerItem[];
   shopEquipments: Equipment[];

@@ -66,3 +66,18 @@
   .hover-link .hover-link-stroke { transition: none; }
   .hover-ally-frame, .hover-loss, .hover-ability > span { transform: none; transition-property: opacity; }
 }
+
+
+.passive-relations {
+  opacity: 0;
+  transition: opacity var(--hover-fade) var(--hover-ease);
+  &.is-visible { opacity: var(--passive-opacity); }
+}
+.hover-link.passive-link {
+  .hover-link-stroke { stroke-dashoffset: 0; animation: passiveLinkDraw var(--hover-line) var(--hover-ease) both; }
+}
+.hover-ally-frame.passive-frame.is-visible { opacity: var(--passive-opacity); transform: scale(1); }
+@keyframes passiveLinkDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .hover-link.passive-link .hover-link-stroke { animation: none; }
+}

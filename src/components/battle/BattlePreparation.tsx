@@ -37,7 +37,7 @@ export const BattlePreparation: React.FC = () => {
       </button>)}
     </div>}
     <div className="preparation-editor">
-      <div className="preparation-editor-header"><span>{selected ? `${selected.name}・沿用目標基礎值` : '骰池配置・選貼紙可暫時換面'}</span>
+      <div className="preparation-editor-header"><span>{selected ? `${selected.name}・沿用目標基礎攻擊力` : '骰池配置・選貼紙可暫時換面'}</span>
         {selected && <button type="button" onClick={() => setSelectedId(null)}>取消選取</button>}</div>
       <DiceTabs dicePool={previewPool} selectedDiceId={die.id} onSelect={setDiceId} />
       <DiceNet key={die.id} dice={die} sticker={sticker} onApplyFace={selected ? assign : undefined} />

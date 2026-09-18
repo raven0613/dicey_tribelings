@@ -36,6 +36,8 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
   }
   const bonusDice: BonusAttackDice[] = [];
   const repeatAttacks: RepeatAttack[] = [];
+  const teamShield = { value: 0 };
+  const foodValues = Object.fromEntries(items.map((item) => [item.diceId, item.baseValue]));
   const nextStoredFood = { ...state.storedFood };
   const triggeredEquipmentIds = new Set<string>();
   const event = (stage: number, source: CalculatedRollItem | undefined, ability?: string, participants: CalculatedRollItem[] = [],
@@ -105,7 +107,7 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
   const neighbors = (index: number) => items.filter((_, other) => Math.abs(index - other) === 1);
   const faceCount = (index: number, creature: CreatureId) => faces[index].filter((face) => face.creature === creature).length;
   const adjacentFaces = (index: number) => getDiceGeometry(dice[index].dieType)[items[index].faceIndex].neighbors.map((neighbor) => faces[index][neighbor]);
-  return { dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, nextStoredFood, echoUsed, echoMultiplier, materials, virtualFood: state.virtualFood,
+  return { teamShield, foodValues, dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, nextStoredFood, echoUsed, echoMultiplier, materials, virtualFood: state.virtualFood,
     countParticipants, triggeredEquipmentIds, event, equipmentEvent, attack, shield, bonus,
     identify, speciesCount, tagCount, neighbors, faceCount, adjacentFaces };
 }

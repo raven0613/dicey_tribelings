@@ -47,14 +47,12 @@ export function resolveIdentities(c: ResolutionContext) {
       item.skillInputs = { count: c.faceCount(index, 'twins'), before: item.baseValue, after: value };
       const before = item.baseValue;
       c.attack(e, item, item.finalDamage + value - before);
-      item.baseValue = before + (value - before) * (e.echoed ? 2 : 1);
     }
     if (item.creature === 'princess') c.attack(c.event(3, item, '公主就位', [], 'support', 'princessReady'), item, 0);
     if (state.lockedDice.includes(item.diceId)) {
       const whistle = c.equipment.find((entry) => entry.ruleId === 'WHISTLE');
       if (whistle) {
         const e = c.equipmentEvent(3, whistle, [item]);
-        item.baseValue += eq.whistleBonus;
         if (item.creature !== 'princess') c.attack(e, item, item.finalDamage + eq.whistleBonus);
       }
     }
@@ -79,7 +77,7 @@ export function resolveFoodBoost(c: ResolutionContext) {
     const distance = (food: typeof farmer) => Math.abs(c.items.indexOf(food) - index);
     const food = foods.reduce((nearest, candidate) => distance(candidate) < distance(nearest) ? candidate : nearest);
     const e = c.event(4, farmer, undefined, [food]);
-    food.baseValue = combatNumber(food.baseValue + b.farmer.foodBonus * c.echoMultiplier(e));
+    c.foodValues[food.diceId] = combatNumber(c.foodValues[food.diceId] + b.farmer.foodBonus * c.echoMultiplier(e));
     c.attack(e, food, food.finalDamage + b.farmer.foodBonus);
   }
 }

@@ -8,6 +8,7 @@ export const SKILL_KEYWORD_COLORS: Record<string, string> = {
 
 export const HOVER_PRESENTATION = {
   colors: { support: '#fbbf24', adjacent: '#79d8c7', shield: '#93c5fd', robbery: '#fb9988', attack: '#d5b4ff' },
+  passiveOpacity: 0.3,
   fadeMs: 160, lineMs: 220, flowMs: 900, nameRise: 5,
   lineWidth: 3.5, glowWidth: 8, glowBlur: 5,
   ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)',

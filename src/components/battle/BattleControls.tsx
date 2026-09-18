@@ -1,6 +1,10 @@
+import { getPaidRerollCost } from '../../service/battle/rerollCost';
+import { ExposureBadge } from './BattleStatusBadges';
+import { buildAttackPlan } from '../../service/battle/attackPlan';
+import { EQUIPMENT_ACTIONS } from '../../configs/equipment/equipmentActionConfig';
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { Play, Swords, RotateCcw, Shield } from 'lucide-react';
+import { Play, Swords, RotateCcw, Shield, Coins } from 'lucide-react';
 import { TeacherControls } from './TeacherControls';
 
 interface BattleControlsProps {
@@ -9,8 +13,8 @@ interface BattleControlsProps {
 }
 
 export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isResolving }) => {
-  const { combatPhase, control, maxControl, comboSummary, activeRerollingIndex,
-    confirmBattlePreparation, unlockedDiceNotification, stickerFlow, diceAction } = useGameStore();
+  const { currentEnemy, equipments, setDiceAction, combatPhase, control, maxControl, comboSummary, activeRerollingIndex,
+    confirmBattlePreparation, unlockedDiceNotification, stickerFlow, diceAction, hoveredEquipmentId, creatureBattleState, gold, pendingPaidRerollDiceId } = useGameStore();
 
   if (combatPhase === 'PREPARATION') return <div className="battle-controls first-roll-controls">
     <span>擲出骰子，開始救援！</span>
@@ -18,15 +22,19 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
       onClick={() => confirmBattlePreparation([])}><Play size={20} />擲骰</button>
   </div>;
 
+  const paidCost = getPaidRerollCost(creatureBattleState.paidRerolls, equipments);
   const isControlPhase = combatPhase === 'CONTROL_PHASE';
-  const selectingTeacher = diceAction.startsWith('teacher:');
-  const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving && !selectingTeacher;
+  const selectingAction = diceAction !== 'reroll';
+  const action = Object.values(EQUIPMENT_ACTIONS).find((item) => item.action === diceAction);
+  const beforeExposure = isControlPhase && activeRerollingIndex === null && currentEnemy?.exposure && comboSummary ? buildAttackPlan(comboSummary, { ...currentEnemy, exposure: undefined }, equipments).reduce((sum, attack) => sum + attack.value, 0) : undefined;
+  const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving && !selectingAction && !pendingPaidRerollDiceId;
   const totalForecastDamage = comboSummary?.totalDamage || 0;
+  const highlightShield = isControlPhase && equipments.some((equipment) => equipment.id === hoveredEquipmentId && equipment.ruleId === 'BARRICADE');
   const totalForecastShield = comboSummary?.totalShield || 0;
   let resolveLabel = '鎖定結果 • 結算攻擊';
   if (isResolving) resolveLabel = '結算連續撞擊中...';
   else if (activeRerollingIndex !== null) resolveLabel = '等待重骰落定...';
-  else if (selectingTeacher) resolveLabel = '請選擇老師目標或取消';
+  else if (selectingAction) resolveLabel = '請選擇目標或取消';
 
   return (
     <div className="battle-controls">
@@ -53,10 +61,10 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
         </div>
 
         <div className="tactics-tip">
-          {selectingTeacher ? <span>點擊亮框骰子，或取消老師操作</span> : control > 0 ? (
+          {selectingAction ? <span>{action ? `${action.label}・${action.cost} ${action.currency}` : '選擇老師目標'} <button type="button" onClick={() => setDiceAction('reroll')}>取消</button></span> : control > 0 ? (
             <span>點擊骰子重骰，調整本輪組合</span>
           ) : (
-            <span className="exhausted">確認本輪結果，準備攻擊</span>
+            <span className="paid-reroll-price">重骰：{paidCost}<Coins size={14} aria-label="金幣" />{gold < paidCost && '（金幣不足）'}</span>
           )}
         </div>
       </div>
@@ -71,8 +79,9 @@ export const BattleControls: React.FC<BattleControlsProps> = ({ onResolve, isRes
               <Swords style={{ width: '16px', height: '16px', marginRight: '2px' }} />
               {totalForecastDamage} 傷
             </span>
+            {isControlPhase && !!currentEnemy?.exposure && <ExposureBadge multiplier={currentEnemy.exposure} before={beforeExposure} after={totalForecastDamage} />}
           </div>
-          <div className="forecast-shield" style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>
+          <div className={`forecast-shield ${highlightShield ? 'is-highlighted' : ''}`} style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>
             <Shield style={{ width: '12px', height: '12px', marginRight: '2px' }} />
             +{totalForecastShield} 護盾
           </div>

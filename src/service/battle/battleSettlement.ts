@@ -32,11 +32,12 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   const initial = get();
   const { comboSummary: summary, currentEnemy, dicePool } = initial;
   if (initial.combatPhase !== 'CONTROL_PHASE' || initial.activeRerollingIndex !== null
-    || initial.diceAction.startsWith('teacher:') || !summary || !currentEnemy) return;
+    || initial.pendingPaidRerollDiceId || initial.diceAction !== 'reroll' || !summary || !currentEnemy) return;
   const isCurrent = () => get().comboSummary === summary;
   set({ combatPhase: 'RESOLVING_CALCULATION', visibleBonusIds: [], bonusSlotStates: {},
     creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood },
       echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces },
+    playerHpDisplay: initial.playerHp,
     playerHp: Math.min(initial.maxHp, initial.playerHp + summary.healing),
     playerShield: combatNumber(initial.playerShield + summary.totalShield),
     gold: initial.gold + summary.goldGranted,
@@ -92,6 +93,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
     const earnedGold = currentEnemy.isBoss ? COMBAT_GOLD.boss : currentEnemy.isElite ? COMBAT_GOLD.elite : COMBAT_GOLD.normal;
     set({ combatPhase: 'VICTORY', gold: state.gold + earnedGold + summary.nextGildedFaces.length * MATERIAL_BALANCE.gilded, battleRewardOptions,
       battleRewardPickCount: getBattleRewardCount(rank),
+      battleRecovery: Math.min(state.maxHp - state.playerHp, rank === 'boss' ? REWARD_CONFIG.bossHeal : 0),
       playerHp: Math.min(state.maxHp, state.playerHp + (rank === 'boss' ? REWARD_CONFIG.bossHeal : 0)),
       dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round },
       storedRations: hasEquipment(initial.equipments, 'RATIONS') ? summary.leftoverFood : 0 });

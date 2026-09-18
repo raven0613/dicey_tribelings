@@ -1,3 +1,4 @@
+import { usePreferencesStore } from './preferencesStore';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { StoryId } from '../types/story';
@@ -44,7 +45,10 @@ export const useStoryStore = create<StoryState>()(persist((set, get) => ({
     get().enqueue('intro');
   },
   previewEnding: () => set({ screen: 'menu', queue: ['ending'], preview: true }),
-  resetRecords: () => set({ screen: 'menu', seen: {}, temporaryUnlocked: false, queue: [], preview: false }),
+  resetRecords: () => {
+    usePreferencesStore.getState().resetPreferences();
+    set({ screen: 'menu', seen: {}, temporaryUnlocked: false, queue: [], preview: false });
+  },
 }), {
   name: 'tribelings-story-progress',
   storage: createJSONStorage(() => localStorage),

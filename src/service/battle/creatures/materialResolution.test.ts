@@ -100,7 +100,7 @@ test('imposter preserves its base and material and reuses the first identity aft
 
 test('resonance stacks on facing neighbors, foil is readable by followers and negative remains nonnegative', () => {
   const pool = [die('a', 'food', 4, 'resonance'), die('b', 'food'), die('c', 'food', 4, 'resonance')];
-  assert.deepEqual(calculateRollResolution(pool, [0, 0, 0], []).items.map((i) => i.baseValue), [4, 8, 4]);
+  assert.deepEqual(calculateRollResolution(pool, [0, 0, 0], []).items.map((i) => i.finalDamage), [4, 8, 4]);
   const warrior = die('w', 'warrior', 4, 'foil');
   const follower = die('f', 'follower');
   assert.equal(calculateRollResolution([warrior, follower], [1, 0], []).items[1].finalDamage, 11);
@@ -111,7 +111,7 @@ test('storage caps virtual food too and supports underground capacity', () => {
   pool.forEach((d) => { d.faces[1].creature = 'chef'; });
   const state = createCreatureBattleState(); state.storedFood.a = 190; state.virtualFood = 5;
   const result = calculateRollResolution(pool, [0, 0], [], state, { control: 0, maxControl: 3, gold: 0, foodCapacity: 200 });
-  assert.deepEqual(result.nextStoredFood, { a: 200 });
+  assert.deepEqual(result.nextStoredFood, { a: 198, b: 2 });
 });
 
 test('echo chef spends food once and repeats the full additional attack', () => {
@@ -167,10 +167,10 @@ test('iridescent tags survive authority and contribute each tag only once', () =
   assert.equal(result.items[2].shieldGranted, 4);
 });
 
-test('echo farmer doubles base and attack boost before storage, and echo herald buffs the full team', () => {
+test('echo farmer doubles food and attack boost while preserving base attacks, and echo herald buffs the full team', () => {
   const pool = [die('a', 'farmer', 4, 'echo'), die('b', 'food')]; pool[1].faces[1].creature = 'chef';
   const result = calculateRollResolution(pool, [0, 0], []);
-  assert.equal(result.items[1].baseValue, 10);
+  assert.equal(result.items[1].baseValue, pool[1].faces[0].baseValue);
   assert.equal(result.items[1].finalDamage, 10);
   assert.equal(result.nextStoredFood.b, 10);
   const team = [die('a', 'herald', 4, 'echo'), die('b', 'food', 4, 'shock')];

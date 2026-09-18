@@ -17,14 +17,14 @@ test('family reads other effective faces and twins use the highest effective bas
   const twins = die('b', 'twins', 2);
   twins.faces[5].baseValue = 9;
   const result = resolve([family, twins]);
-  assert.equal(result.items[0].finalDamage, 4 + 4 * b.family.bonus);
-  assert.equal(result.items[1].baseValue, 9);
+  assert.equal(result.items[0].finalDamage, 4 + 4 * 4 * b.family.perFace);
+  assert.equal(result.items[1].baseValue, twins.faces[0].baseValue);
   assert.equal(result.items[1].finalDamage, 9);
 });
 
-test('porters retain every attack and concentrate linear and quadratic chain growth in the tail', () => {
+test('porters add preceding base attacks without propagating already boosted values', () => {
   const result = resolve([die('a', 'porter', 1), die('b', 'porter', 1), die('c', 'porter', 10)]);
-  assert.deepEqual(result.items.map((item) => item.finalDamage), [1, 1, 10 * (1 + 2 * b.porter.linear + 2 ** 2 * b.porter.chainGrowth)]);
+  assert.deepEqual(result.items.map((item) => item.finalDamage), [1, 2, 12]);
   assert.equal(result.totalDamage, result.items.reduce((sum, item) => sum + Math.ceil(item.finalDamage), 0));
 });
 
@@ -90,7 +90,7 @@ test('princesses can gain herald damage and order each other without recursive s
 test('imposter becomes a real sister and executes its ability without adding physical dice', () => {
   const result = resolve([die('a', 'sisters'), die('b', 'imposter'), die('c', 'imposter')]);
   assert.deepEqual(result.items.map((item) => item.creature), ['sisters', 'sisters', 'sisters']);
-  assert.deepEqual(result.items.map((item) => item.finalDamage), Array(3).fill(4 + b.sisters.bonus + 4 * 2 * b.sisters.perSister));
+  assert.deepEqual(result.items.map((item) => item.finalDamage), Array(3).fill(4 * b.sisters.multiplier));
   assert.equal(result.items.length, 3);
   assert.equal(result.repeatAttacks.length, 0);
   assert.equal(result.bonusDice.length, 0);
@@ -116,16 +116,16 @@ test('equipment bonuses are applied before princess snapshots and never replay a
   assert.equal(result.bonusDice.length, 4);
 });
 
-test('farmers concentrate fixed boosts on nearest food and storage reads strengthened bases', () => {
+test('farmers concentrate fixed boosts on nearest food and storage reads strengthened food while bases remain unchanged', () => {
   const foods = Array.from({ length: 7 }, (_, index) => {
     const food = die(`food-${index}`, 'food', 4);
     food.faces[1].creature = 'chef';
     return food;
   });
   const result = resolve([...foods, die('farmer-a', 'farmer'), die('farmer-b', 'farmer')]);
-  assert.equal(Math.round(result.items.slice(0, 7).reduce((sum, item) => sum + item.baseValue, 0) * 100),
+  assert.equal(Math.round(result.items.slice(0, 7).reduce((sum, item) => sum + item.finalDamage, 0) * 100),
     (7 * 4 + b.farmer.foodBonus * 2) * 100);
-  for (const food of result.items.slice(0, 7)) assert.equal(result.nextStoredFood[food.diceId], food.baseValue);
+  for (const food of result.items.slice(0, 7)) assert.equal(result.nextStoredFood[food.diceId], food.finalDamage);
 });
 
 test('warriors count neighboring follower faces and followers read effective neighboring warrior bases', () => {
@@ -149,7 +149,7 @@ test('imposter count supports sister threshold and identifies its actual partici
   let found = false;
   for (let seed = 0; seed < 20; seed++) {
     const result = calculateRollResolution(pool, [0, 0], [], { ...createCreatureBattleState(), seed });
-    if (result.items[0].finalDamage === 4 + b.sisters.bonus + 4 * b.sisters.perSister) {
+    if (result.items[0].finalDamage === 4 * b.sisters.multiplier) {
       found = true;
       assert.deepEqual(result.events.find((event) => event.ability === '互相提攜')!.participantDiceIds, ['a', 'b']);
       assert.equal(result.items.length, 2);

@@ -1,3 +1,5 @@
+import { PaidRerollDialog } from './battle/PaidRerollDialog';
+import type { CreatureId } from '../types/creatures';
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useStoryStore } from '../store/storyStore';
@@ -27,10 +29,11 @@ export function GameScreen() {
     mapNodes,
     currentEnemy,
     combatPhase,
-    activeRerollingIndex,
+    activeRerollingIndex, pendingPaidRerollDiceId,
     executeBattleSettlement,
   } = useGameStore();
 
+  const [inspectCreature, setInspectCreature] = useState<CreatureId | undefined>();
   const [isDiceBagOpen, setIsDiceBagOpen] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const currentNode = mapNodes[currentNodeIndex];
@@ -87,7 +90,7 @@ export function GameScreen() {
         {/* Merchant Shop Area */}
         {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
       </main>
-      <Footbar onOpenDiceBag={() => setIsDiceBagOpen(true)} />
+      <Footbar onOpenDiceBag={() => { setInspectCreature(undefined); setIsDiceBagOpen(true); }} />
 
       {/* Modals & Overlays */}
       <StickerApplierModal />
@@ -95,9 +98,10 @@ export function GameScreen() {
       <ConsumableReplacementModal />
       <EquipmentReplacementModal />
       <DiceUnlockModal />
-      <RewardModal onOpenDiceBag={() => setIsDiceBagOpen(true)} inspectingDice={isDiceBagOpen} />
-      <DiceInspectModal isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
+      <RewardModal onOpenDiceBag={(creature) => { setInspectCreature(creature); setIsDiceBagOpen(true); }} inspectingDice={isDiceBagOpen} />
+      <DiceInspectModal creature={inspectCreature} isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
       <GameOverModal />
+      {pendingPaidRerollDiceId && <PaidRerollDialog />}
     </div>
   );
 }

@@ -46,7 +46,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
       case 'sisters': return `場上有 ${count} 名土人姐妹花，需要 ${inputs.minimum} 名；${currentGain}`;
       case 'twins': return `同骰有 ${count} 個土人雙胞胎面，本回合取最高基礎攻擊力 ${ceilDamage(inputs.after!)}。`;
       case 'gang': return `同骰相鄰面有 ${count} 個土人混混，本回合追加 ${count} 次攻擊，每次 ${inputs.value} 點。`;
-      case 'loner': return `同骰有 ${count} 個土人獨行俠面，基礎攻擊 ×${balance.loner.multiplier}；${currentGain}`;
+      case 'loner': return `同骰有 ${count} 個土人獨行俠面，基礎攻擊力 ×${balance.loner.multiplier}；${currentGain}`;
       case 'follower': return `左右鄰骰有 ${count} 個土人勇士面，最高基礎攻擊力 ${ceilDamage(inputs.value!)}；${currentGain}`;
       case 'warrior': return `左右鄰骰有 ${count} 個土人跟班面，${currentGain}`;
       case 'elder': return `場上有 ${count} 種不同土人，${currentGain}`;
@@ -77,12 +77,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
         const change = primary.flatMap((event) => event.changes).find((entry) => entry.kind === 'attack' && entry.targetId !== die.id);
         return `場上有 ${count} 份 [食物]，強化最近的 1 份好吃的，攻擊力 +${change ? combatNumber(change.after - change.before) : 0}。`;
       }
-      case 'porter': {
-        const chain = summary.events.find((event) => event.skill === 'porter' && event.participantDiceIds.includes(die.id));
-        const change = chain?.changes.find((entry) => entry.kind === 'attack');
-        return chain && change ? `${chain.participantDiceIds.length} 名土人搬運工接力，隊尾土人搬運工攻擊力 +${combatNumber(change.after - change.before)}，為 ${ceilDamage(change.after)}。`
-          : `目前接力隊列共 ${count} 名土人搬運工，需要至少 2 名；本回合攻擊力 +0。`;
-      }
+      case 'porter': return `連線共 ${count} 名；前方基礎攻擊力合計 ${inputs.value ?? 0}，${currentGain}`;
       case 'imposter': return '本回合首次出現時偽裝成場上最多的角色，全場皆為偽裝者；維持原身分。';
       case 'authority': {
         const target = primary.flatMap((event) => event.identities)[0];
@@ -118,7 +113,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
     const material = MATERIAL_CONFIG[face.material];
     const status = face.material === 'echo' ? state.echoUsed.includes(face.id) ? '已發動' : '尚未發動' : '';
     description.push(`${material.name}：${material.description}${status}`);
-    if (face.material === 'negative') description.push(`目前有效基礎值 ${face.baseValue}，結算後 ${Math.max(0, face.baseValue - MATERIAL_BALANCE.decay)}。`);
+    if (face.material === 'negative') description.push(`目前基礎攻擊力 ${face.baseValue}，結算後 ${Math.max(0, face.baseValue - MATERIAL_BALANCE.decay)}。`);
   }
   if (item?.tags.includes('food') || roleId === 'chef') description.push(`全隊儲糧 ${Object.values(state.storedFood).reduce((sum, value) => sum + value, 0)}／${FOOD_CAPACITY.crocodile}，從左側依序入庫。`);
   if (state.lockedDice.includes(die.id)) description.push('免疫強制重骰。');
