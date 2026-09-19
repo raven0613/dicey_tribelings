@@ -4,6 +4,7 @@ import type { BattleComboSummary } from '../../types/battle';
 import { getBoardRelations, getHoverRelations, type HoverLink } from '../../service/battle/hoverRelations';
 import { HOVER_PRESENTATION as timing } from '../../configs/skillPresentationConfig';
 import { SkillText } from '../common/SkillText';
+import { getDiceFrameGeometry } from '../../service/dice/diceFrameGeometry';
 
 export interface HoverAnchor { id: string; x: number; y: number; size: number; abilities: string[] }
 
@@ -88,9 +89,14 @@ export function DiceHoverOverlay({ anchors, hoveredId, summary, width, viewportL
       })}
     </svg>
     {anchors.map((anchor) => {
+      const frame = getDiceFrameGeometry(anchor.size);
       const highlighted = relations.diceIds.includes(anchor.id) || targetIds.includes(anchor.id);
       const loss = relations.links.filter((link) => link.to === anchor.id).reduce((sum, link) => sum + link.loss, 0);
-      return <div key={anchor.id} className="hover-die-marker" style={{ left: anchor.x, top: anchor.y, width: anchor.size, height: anchor.size }}>
+      return <div key={anchor.id} className="hover-die-marker" style={{
+        left: anchor.x, top: anchor.y, width: anchor.size, height: anchor.size,
+        '--frame-outset': `${frame.outset}px`, '--frame-radius': `${frame.radius}px`,
+        '--frame-width': `${frame.borderWidth}px`,
+      } as CSSProperties}>
         <span className={`hover-ally-frame passive-frame ${passiveEnabled && passive.diceIds.includes(anchor.id) ? 'is-visible' : ''}`} />
         <span className={`hover-ally-frame ${highlighted ? 'is-active' : ''}`} />
         <HoverLoss value={loss} />

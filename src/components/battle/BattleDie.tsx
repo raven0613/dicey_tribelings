@@ -57,7 +57,7 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
     aria-disabled={!canReroll} onClick={() => { if (canReroll) onReroll(); }}
     style={{ width: size, height: size }}>
     <span className="battle-die-shadow" />
-    <svg viewBox="0 0 100 100" aria-hidden="true" className="battle-die-art"
+    <svg viewBox={`0 0 ${appearance.viewBoxSize} ${appearance.viewBoxSize}`} aria-hidden="true" className="battle-die-art"
       style={{ transform: `rotate(${rotation}deg) scale(${scale})` }}>
       <defs>
         {material && <MaterialPaint material={material} id={`${id}-material`} />}
@@ -67,7 +67,7 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
       </defs>
       <g className="die-bulge-body" filter={bulgeFilter}>
         <rect className="battle-die-rim" x="1" y="1" width="98" height="98" rx={appearance.rimRadius}
-          fill={`url(#${id}-rim)`} stroke={appearance.edgeColor} strokeWidth="2" />
+          fill={`url(#${id}-rim)`} stroke={appearance.edgeColor} strokeWidth={appearance.rimStrokeWidth} />
         {/* <path className="battle-die-face" d={shape.outline} fill={appearance.bodyColor} /> */}
         <rect className="battle-die-face" x="7" y="7" width="86" height="86" rx="8" ry="8" fill="#ffffff" />
         <rect className="battle-die-sticker" x={appearance.stickerInset} y={appearance.stickerInset}

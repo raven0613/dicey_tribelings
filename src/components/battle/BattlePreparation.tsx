@@ -46,8 +46,8 @@ export const BattlePreparation: React.FC = () => {
       <DiceTabs dicePool={previewPool} selectedDiceId={die.id} onSelect={setDiceId} />
       <DiceNet key={die.id} dice={die} sticker={sticker} onApplyFace={selected ? assign : undefined} />
     </div>
-    <div className="preparation-summary">
+    {/* <div className="preparation-summary">
       <span>{placements.length ? `已配置 ${placements.length} 張・擲骰後維持整場` : '準備好了就擲骰，開始戰鬥！'}</span>
-    </div>
+    </div> */}
   </form>;
 };

@@ -2,22 +2,23 @@
 
 // Dice Board Arena
 .dice-board {
+  --board-padding-y: 0.5rem;
   position: relative;
   width: 100%;
-  max-height: 24rem;
-  flex: 0 1 40%;
+  height: calc(var(--board-body-height) + var(--board-padding-y) * 2);
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
   background: radial-gradient(circle at center, rgba($slate-900, 0.95), rgba($slate-950, 0.98));
   border-radius: $radius-2xl;
-  padding: 0.5rem 0.75rem;
+  padding: var(--board-padding-y) 0.75rem;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
   box-shadow: $shadow-2xl;
   user-select: none;
   overflow: clip;
 
-  &.is-event { flex: 1; max-height: none; }
+  &.is-event { flex: 1; height: auto; }
   &.is-event .board-content { flex-direction: column; }
 
   .dice-tray-viewport {
@@ -25,8 +26,10 @@
     min-width: 0;
     min-height: 0;
     align-self: stretch;
-    overflow: auto;
-    overscroll-behavior: contain;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    &::-webkit-scrollbar { height: var(--tray-scrollbar-size); }
   }
 
   .dice-tray-area {
@@ -90,7 +93,7 @@
     min-width: 0;
     min-height: 0;
     display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr);
+    grid-template-columns: var(--equipment-slot-size) minmax(0, 1fr);
     gap: 0.75rem;
     padding: 0 2rem;
   }
@@ -147,28 +150,32 @@
   filter: saturate(0.35);
 }
 
-.die-result-label {
+.die-result-panel {
   position: absolute;
-  top: calc(100% + 0.25rem);
+  top: calc(100% + var(--result-gap));
   left: 50%;
   transform: translateX(-50%);
   width: var(--detail-width);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  line-height: 1.4;
-  padding: 0.2rem 0.4rem;
+  line-height: var(--result-line-height);
+  padding: var(--result-padding-y) var(--result-padding-x);
   border-radius: 0.3rem;
   background: #0f172ae6;
   color: #e2e8f0;
-  font-size: 0.7rem;
-  &:empty { display: none; }
+  font-size: var(--result-font-size);
 }
 
-@media (max-height: 740px) {
-  .dice-board { padding-block: 0.25rem; }
+.die-result-row {
+  height: var(--result-line-height);
+  .die-result-text {
+    position: relative;
+    left: 50%;
+    display: block;
+    width: max-content;
+    white-space: nowrap;
+    transform: translateX(-50%) scaleX(var(--result-text-scale, 1));
+    transform-origin: center;
+  }
+  .rations-allocation { vertical-align: top; }
 }
 
 @media (max-width: 600px) {

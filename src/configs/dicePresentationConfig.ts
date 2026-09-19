@@ -17,12 +17,21 @@ export const DICE_ROLL_PRESENTATION = {
 } as const;
 
 export const DICE_TRAY_PRESENTATION = {
-  size: 87, mobileSize: 58, mobileBreakpoint: 600, slotGap: 29, sidePadding: 24,
-  topPadding: 32, bottomPadding: 12, detailsHeight: 64, phantomGap: 20,
+  size: 75, mobileSize: 58, mobileBreakpoint: 600, slotGap: 25, sidePadding: 20,
+  topPadding: 28, bottomPadding: 8, phantomGap: 12,
+} as const;
+
+export const DICE_RESULT_PRESENTATION = {
+  rows: 4, lineHeight: 14, gap: 4, paddingY: 2, paddingX: 4, fontSize: 11,
+} as const;
+
+export const PLAYER_BOARD_PRESENTATION = {
+  equipmentSlotSize: 48, equipmentSlotGap: 6, scrollbarSpace: 6,
 } as const;
 
 // Coordinates below use the shared 100 × 100 SVG canvas, scaled to the current dice footprint.
 export const DICE_FACE_PRESENTATION = {
+  viewBoxSize: 100, rimStrokeWidth: 2,
   bodyColor: '#ffffff', bevelShade: '#888c95', edgeColor: '#a8b0bc',
   rimRadius: 10, stickerInset: 11, stickerRadius: 6, stickerColor: '#ffffff',
   stickerEdgeColor: '#929bb1', stickerEdgeWidth: 0.6,

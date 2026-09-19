@@ -8,15 +8,18 @@ import { getDiceTrayLayout } from './diceTrayLayout';
 import { getNumberPaint } from './diceNumberPaint';
 import { getPhantomProjection } from './phantomProjection';
 
-test('small viewports extend the tray while normal and reserved bonus bodies stay separated', () => {
+test('tray rows keep fixed height and positions while narrow viewports extend horizontally', () => {
   const dice = Array.from({ length: 7 }, (_, i) => configuredDice(`${i}`, '測試', 'd6', 'amber',
     Array.from({ length: 6 }, () => ['gang', 4])));
   dice[0].faces[0].material = 'echo';
-  for (const size of [layout.size, layout.mobileSize]) for (const [width, height] of [[320, 140], [768, 300], [1440, 700]]) {
-    const tray = getDiceTrayLayout(width, height, dice, layout.detailsHeight, size);
+  for (const size of [layout.size, layout.mobileSize]) for (const width of [320, 768, 1440]) {
+    const tray = getDiceTrayLayout(width, dice, size);
     assert.equal(tray.size, size);
     assert.ok(tray.width >= width);
-    assert.ok(tray.height >= height);
+    const reference = getDiceTrayLayout(width / 2, dice.slice(0, 1), size);
+    assert.equal(tray.height, reference.height);
+    assert.deepEqual(tray.positions.map((position) => position.y), dice.map(() => reference.positions[0].y));
+    assert.equal(new Set(Object.values(tray.bonusPositions).flat().map((position) => position.y)).size, 1);
     const positions = [...tray.positions, ...Object.values(tray.bonusPositions).flat()];
     for (const p of positions) {
       assert.ok(p.x >= size / 2 && p.x <= tray.width - size / 2);

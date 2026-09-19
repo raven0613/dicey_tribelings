@@ -27,6 +27,7 @@ import {
 } from '../../service/dice/diceRollAnimation';
 import { Dices, Sparkles } from 'lucide-react';
 import { useDiceSize } from './useDiceSize';
+import { DiceResultPanel } from './DiceResultPanel';
 
 export const DiceBoard: React.FC = () => {
   const {
@@ -73,8 +74,7 @@ export const DiceBoard: React.FC = () => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [traySize, setTraySize] = useState({ width: 640, height: 280 });
   const [attackTarget, setAttackTarget] = useState({ x: 0, y: 0 });
-  const [detailsHeight, setDetailsHeight] = useState<number>(DICE_TRAY_PRESENTATION.detailsHeight);
-  const trayLayout = getDiceTrayLayout(traySize.width, traySize.height, dicePool, detailsHeight, diceSize);
+  const trayLayout = getDiceTrayLayout(traySize.width, dicePool, diceSize);
   const bonusPositions = placeBonusDice(comboSummary?.bonusDice ?? [], trayLayout.bonusPositions);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [viewportLeft, setViewportLeft] = useState(0);
@@ -101,15 +101,6 @@ export const DiceBoard: React.FC = () => {
     const index = comboSummary!.bonusDice.indexOf(bonus);
     hoverAnchors.push({ id: bonus.id, ...bonusPositions[index], size: trayLayout.size, abilities: [bonus.label] });
   }
-  useLayoutEffect(() => {
-    const labels = [...trayRef.current!.querySelectorAll<HTMLElement>('.die-result-label')];
-    const measure = () => setDetailsHeight(Math.max(DICE_TRAY_PRESENTATION.detailsHeight,
-      ...labels.map((label) => label.offsetHeight + 8)));
-    measure();
-    const observer = new ResizeObserver(measure);
-    labels.forEach((label) => observer.observe(label));
-    return () => observer.disconnect();
-  }, [comboSummary, combatPhase, activeRerollingIndex, diceSize]);
   const hoveredIndex = dicePool.findIndex((die) => die.id === hoveredId);
   const hoveredBonus = shownBonusDice.find((die) => die.id === hoveredId);
   let inspection: DiceInspection | null = null;
@@ -173,7 +164,7 @@ export const DiceBoard: React.FC = () => {
   // Initialize all dice when rolling starts
   useEffect(() => {
     if (combatPhase === 'ROLLING' && dicePool.length > 0 && rolledIndices.length === dicePool.length) {
-      const layout = getDiceTrayLayout(viewportRef.current!.clientWidth, viewportRef.current!.clientHeight, dicePool, detailsHeight, diceSize);
+      const layout = getDiceTrayLayout(viewportRef.current!.clientWidth, dicePool, diceSize);
       const inits = dicePool.map((die, index) => createDiceRollAnimation(
         layout.positions[index].x, layout.positions[index].y, rolledIndices[index], die.faces.length));
       rollStatesRef.current = inits;
@@ -188,7 +179,7 @@ export const DiceBoard: React.FC = () => {
       const die = dicePool[idx];
       if (!die) return;
 
-      const layout = getDiceTrayLayout(viewportRef.current!.clientWidth, viewportRef.current!.clientHeight, dicePool, detailsHeight, diceSize);
+      const layout = getDiceTrayLayout(viewportRef.current!.clientWidth, dicePool, diceSize);
       const newRoll = createDiceRollAnimation(layout.positions[idx].x, layout.positions[idx].y,
         rolledIndices[idx], die.faces.length, true);
 
@@ -367,11 +358,9 @@ export const DiceBoard: React.FC = () => {
                     onReroll={() => useControlReroll(idx)} onInspect={setHoveredId} />
 
                   {calcItem && activeRerollingIndex === null && combatPhase !== 'ROLLING' && (
-                    <div className="die-result-label">
-                      {resultLabels.map((label, index) => <span key={index}>{label}</span>)}
-                      {combatPhase === 'CONTROL_PHASE' && rationsEquipment && rationsStored > 0
-                        && <RationsAllocation equipment={rationsEquipment} amount={rationsStored} />}
-                    </div>
+                    <DiceResultPanel labels={resultLabels}
+                      allocation={combatPhase === 'CONTROL_PHASE' && rationsEquipment && rationsStored > 0
+                        ? <RationsAllocation equipment={rationsEquipment} amount={rationsStored} /> : undefined} />
                   )}
 
                 </div>

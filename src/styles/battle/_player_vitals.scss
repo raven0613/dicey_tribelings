@@ -11,12 +11,12 @@
   border: 1px solid $slate-700; border-radius: $radius-lg;
   > svg { flex-shrink: 0; }
 }
-.player-health-value { font-size: 1.5rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.player-health-value { font-size: 1.25rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 .player-health-track {
   flex: 1; 
   height: 0.75rem; 
-  min-width: 3rem;
+  min-width: 10rem;
   background: $slate-800; overflow: hidden; border-radius: $radius-full;
   > div { height: 100%; background: linear-gradient(90deg, $rose-600, $rose-400); transition: width 180ms ease-out; }
 }

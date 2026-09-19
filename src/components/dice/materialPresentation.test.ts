@@ -64,7 +64,7 @@ test('layout reserves all retained priest faces and current echoed gang bonuses'
   const first = resolveRerollChain([dice], [0], createCreatureBattleState(), 0, [], () => 0)[0];
   const second = resolveRerollChain([dice], [1], first.state, 0, [], () => 0.3)[0];
   const summary = calculateRollResolution([dice], second.rolledIndices, [], second.state);
-  const positions = placeBonusDice(summary.bonusDice, getDiceTrayLayout(640, 350, [dice]).bonusPositions);
+  const positions = placeBonusDice(summary.bonusDice, getDiceTrayLayout(640, [dice]).bonusPositions);
   assert.equal(positions.length, summary.bonusDice.length);
   assert.ok(positions.every((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)));
 });
