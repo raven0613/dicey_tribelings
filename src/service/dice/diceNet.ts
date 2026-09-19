@@ -3,6 +3,7 @@ import { getDiceGeometry, type DiceGeometryFace } from './diceGeometry';
 
 type Point = [number, number];
 type Hinge = [number, number];
+export type DiceNetOrientation = 'horizontal' | 'vertical';
 export interface NetBounds { x: number; y: number; width: number; height: number }
 export interface DiceNetFace {
   points: Point[];
@@ -13,7 +14,7 @@ export interface DiceNetFace {
 // Ordered parent/child hinges form a non-overlapping net for each supported solid.
 const NET_HINGES: Record<Dice['dieType'], Hinge[]> = {
   d4: [[0, 1], [0, 2], [0, 3]],
-  d6: [[0, 5], [5, 2], [0, 3], [2, 4], [3, 1]],
+  d6: [[0, 2], [0, 3], [0, 4], [0, 5], [5, 1]],
   d8: [[0, 4], [4, 5], [5, 1], [5, 7], [4, 6], [1, 3], [3, 2]],
   d10: [[0, 8], [0, 2], [8, 6], [0, 9], [2, 4], [9, 7], [0, 1], [1, 3], [7, 5]],
   d12: [[0, 6], [0, 5], [0, 2], [5, 7], [2, 1], [5, 11], [5, 10], [1, 8], [2, 4], [11, 9], [9, 3]],
@@ -47,7 +48,7 @@ function getContentBounds(points: Point[]): NetBounds {
     width: halfHeight * aspect * 2, height: halfHeight * 2 };
 }
 
-function buildDiceNet(type: Dice['dieType']) {
+function buildDiceNet(type: Dice['dieType'], orientation: DiceNetOrientation = 'horizontal') {
   const geometry = getDiceGeometry(type);
   const vertices = geometry.map(worldVertices);
   const polygons: Point[][] = Array.from({ length: geometry.length });
@@ -74,8 +75,12 @@ function buildDiceNet(type: Dice['dieType']) {
     folds.push([p, q]);
   }
 
-  const bounds = getBounds(polygons.flat());
-  const translate = ([x, y]: Point): Point => [x - bounds.x, y - bounds.y];
+  const orient = ([x, y]: Point): Point => type === 'd6' && orientation === 'horizontal' ? [y, -x] : [x, y];
+  const bounds = getBounds(polygons.flat().map(orient));
+  const translate = (point: Point): Point => {
+    const [x, y] = orient(point);
+    return [x - bounds.x, y - bounds.y];
+  };
   const faces: DiceNetFace[] = polygons.map((polygon) => {
     const points = polygon.map(translate);
     return { points, bounds: getBounds(points), contentBounds: getContentBounds(points) };
@@ -89,4 +94,7 @@ const nets = {
   d10: buildDiceNet('d10'), d12: buildDiceNet('d12'),
 };
 
-export const getDiceNet = (type: Dice['dieType']) => nets[type];
+const verticalCubeNet = buildDiceNet('d6', 'vertical');
+
+export const getDiceNet = (type: Dice['dieType'], orientation: DiceNetOrientation = 'horizontal') =>
+  type === 'd6' && orientation === 'vertical' ? verticalCubeNet : nets[type];

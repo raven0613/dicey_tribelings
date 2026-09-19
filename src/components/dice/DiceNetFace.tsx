@@ -1,7 +1,6 @@
 import { MaterialBadge, materialStyle } from './MaterialBadge';
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
 import { SkillText } from '../common/SkillText';
-import { RarityBadge } from './RarityBadge';
 import React, { type CSSProperties } from 'react';
 import type { DiceFace, StickerItem } from '../../types/game';
 import type { DiceNetFace as NetFace } from '../../service/dice/diceNet';
@@ -40,7 +39,6 @@ const FaceContent: React.FC<{ face: DiceFace; sticker?: StickerItem }> = ({ face
       <strong className="dice-net-attack">{sticker ? sticker.isDisposable === true ? `${effective.baseValue}（沿用）` : `${original.baseValue} → ${effective.baseValue}` : effective.baseValue}</strong>
     </span>
     <span className="dice-net-ability"><strong><SkillText text={creature.ability} />：</strong><SkillText text={creature.description} /></span>
-    <RarityBadge rarity={creature.rarity} />
     <MaterialBadge material={effective.material} description />
     <span className="dice-net-tags">{getFaceTags(effective).map((tag) => CREATURE_TAG_NAMES[tag]).join('・')}</span>
     {!sticker && face.temporarySticker && <span className="dice-net-sticker">
@@ -72,7 +70,7 @@ export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry,
       left: (contentBounds.x + contentBounds.width / 2 - bounds.x) * scale,
       top: (contentBounds.y + contentBounds.height / 2 - bounds.y) * scale,
     }}>
-      <span className="dice-net-face-heading"><span>第 {index + 1} 面</span><span className="dice-net-relation">{matched ? '相同貼紙' : label}</span></span>
+      <span className="dice-net-relation">{matched ? '相同貼紙' : label}</span>
       <span className="dice-net-copies">
         <span className={showPreview ? 'is-hidden' : ''} aria-hidden={showPreview}><FaceContent face={face} /></span>
         {sticker && <span className={showPreview ? '' : 'is-hidden'} aria-hidden={!showPreview}>

@@ -17,7 +17,7 @@ export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onCl
   const { dicePool, creatureBattleState } = useGameStore();
   const [selectedDiceId, setSelectedDiceId] = useState<string>(dicePool[0]?.id || '');
   const matchCounts = creature ? Object.fromEntries(dicePool.map((die) => [die.id,
-    die.faces.filter((face) => getEffectiveFace(face).creature === creature).length])) : undefined;
+  die.faces.filter((face) => getEffectiveFace(face).creature === creature).length])) : undefined;
   useEffect(() => {
     if (isOpen && creature) setSelectedDiceId(dicePool.find((die) => die.faces.some((face) => getEffectiveFace(face).creature === creature))?.id ?? dicePool[0]?.id ?? '');
   }, [isOpen, creature, dicePool]);
@@ -62,11 +62,6 @@ export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onCl
 
         {currentDie && (
           <div className="dice-net-body">
-            <div className="dice-meta-row">
-              <span>骰子類型：<strong className="strong-val">{currentDie.dieType} ({currentDie.faces.length} 面)</strong></span>
-              <span>儲糧：<strong className="theme-val">{creatureBattleState.storedFood[currentDie.id] ?? 0}</strong></span>
-            </div>
-
             <DiceNet key={currentDie.id} dice={currentDie} highlightCreature={creature} />
           </div>
         )}
