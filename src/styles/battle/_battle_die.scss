@@ -20,12 +20,6 @@
     display: block; width: 100%; height: 100%; overflow: visible;
     transition: transform var(--attack-motion-duration, 0ms) var(--attack-motion-easing, ease-out);
   }
-  .battle-die-creature { font-size: 25px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; }
-  .battle-die-value { fill: #152033; font: 900 29px ui-rounded, system-ui, sans-serif; paint-order: stroke; stroke: #fffc; stroke-width: 1px; }
-  .battle-die-value.is-boosted { fill: #92400e; }
-  .battle-die-value.is-spinning { opacity: 0.65; }
-  .battle-die-type { fill: #635a4f; font: 800 11px system-ui, sans-serif; letter-spacing: 1px; }
-
   .battle-die-shadow {
     position: absolute;
     left: 15%;
@@ -37,3 +31,6 @@
     pointer-events: none;
   }
 }
+
+.battle-die-creature { font-size: 42px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; }
+.dice-face-number { pointer-events: none; }

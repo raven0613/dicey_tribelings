@@ -1,12 +1,15 @@
 import { MaterialPaint } from '../dice/MaterialPaint';
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
 import { ceilDamage } from '../../service/battle/damageValue';
-import type { CreatureId } from '../../types/creatures';
+import type { CreatureId, CreatureTag } from '../../types/creatures';
 import React, { useId } from 'react';
 import type { Dice } from '../../types/game';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
-import { DICE_SHAPES } from '../../configs/dicePresentationConfig';
-import { getEffectiveFace } from '../../service/dice/diceFaces';
+import { DICE_SHAPES, DICE_FACE_PRESENTATION as appearance } from '../../configs/dicePresentationConfig';
+import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
+import { DiceFaceNumber } from '../dice/DiceFaceNumber';
+import { DiceCharacter } from '../dice/DiceCharacter';
+import { MaterialSheen } from '../dice/MaterialSheen';
 
 interface BattleDieProps {
   dice: Dice;
@@ -20,6 +23,8 @@ interface BattleDieProps {
   value?: number;
   numberScale: number;
   effectiveCreature?: CreatureId;
+  effectiveTags?: readonly CreatureTag[];
+  reducedMotion?: boolean;
   protectedDie: boolean;
   spinning: boolean;
   buffed: boolean;
@@ -30,16 +35,18 @@ interface BattleDieProps {
 }
 
 export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rotation, scale,
-  rolling, unrolled, bulgeFilter, value, numberScale, effectiveCreature, protectedDie, spinning, buffed, locked, canReroll, onReroll, onInspect }) => {
+  rolling, unrolled, bulgeFilter, value, numberScale, effectiveCreature, effectiveTags, reducedMotion,
+  protectedDie, spinning, buffed, locked, canReroll, onReroll, onInspect }) => {
   const id = useId();
   const face = dice.faces[faceIndex];
   const effective = getEffectiveFace(face);
-  const creature = CREATURE_CONFIG[effectiveCreature ?? effective.creature];
+  const creatureId = effectiveCreature ?? effective.creature;
+  const creature = CREATURE_CONFIG[creatureId];
+  const tags = effectiveTags ?? getFaceTags({ ...effective, creature: creatureId });
   const shape = DICE_SHAPES[dice.dieType];
   const shownValue = ceilDamage(rolling ? effective.baseValue : value ?? effective.baseValue);
   const material = unrolled ? undefined : face.material;
   const coating = material ? MATERIAL_CONFIG[material] : undefined;
-  const accent = unrolled ? '#94a3b8' : coating?.color ?? creature.color;
 
   return <button type="button" disabled={unrolled} data-material={material}
     className={`battle-die ${unrolled ? 'is-unrolled' : ''} ${rolling ? 'is-rolling' : ''} ${buffed && locked ? 'is-buffed' : ''}`}
@@ -48,32 +55,31 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
     onKeyDown={(event) => { if (event.key === 'Escape') onInspect(null); }} aria-describedby={unrolled ? undefined : 'dice-hover-information'}
     aria-label={unrolled ? `${dice.name}，尚未擲骰` : `${dice.name}，${creature.name} ${shownValue}${coating ? `，${coating.name}` : ''}${canReroll ? '，重骰' : ''}`}
     aria-disabled={!canReroll} onClick={() => { if (canReroll) onReroll(); }}
-    style={{ width: size, height: size, '--die-accent': accent } as React.CSSProperties}>
+    style={{ width: size, height: size }}>
     <span className="battle-die-shadow" />
-    <svg viewBox="0 0 100 104" aria-hidden="true" className="battle-die-art"
+    <svg viewBox="0 0 100 100" aria-hidden="true" className="battle-die-art"
       style={{ transform: `rotate(${rotation}deg) scale(${scale})` }}>
       <defs>
         {material && <MaterialPaint material={material} id={`${id}-material`} />}
         <linearGradient id={`${id}-rim`} x1="0" y1="0" x2="0.75" y2="1">
-          <stop stopColor="#fff5d6" /><stop offset="0.48" stopColor={accent} /><stop offset="1" stopColor="#334155" />
-        </linearGradient>
-        <linearGradient id={`${id}-face`} x1="0" y1="0" x2="0.3" y2="1">
-          <stop stopColor="#fffdf4" /><stop offset="0.55" stopColor="#f1eadb" /><stop offset="1" stopColor="#c3bbab" />
+          <stop stopColor={appearance.bodyColor} /><stop offset="1" stopColor={appearance.bevelShade} />
         </linearGradient>
       </defs>
       <g className="die-bulge-body" filter={bulgeFilter}>
-        <path d={shape.outline} fill="#151b26" stroke="#070d17" strokeWidth="3" transform="translate(0 5)" />
-        <path className="battle-die-rim" d={shape.outline} fill={`url(#${id}-rim)`} stroke="#111827" strokeWidth="2" />
-        <path d={shape.outline} fill={`url(#${id}-${material ? 'material' : 'face'})`} stroke="#fff8e3" strokeWidth="1.2" transform="translate(6 6) scale(.88)" />
+        <rect className="battle-die-rim" x="1" y="1" width="98" height="98" rx={appearance.rimRadius}
+          fill={`url(#${id}-rim)`} stroke={appearance.edgeColor} strokeWidth="2" />
+        {/* <path className="battle-die-face" d={shape.outline} fill={appearance.bodyColor} /> */}
+        <rect className="battle-die-face" x="7" y="7" width="86" height="86" rx="8" ry="8" fill="#ffffff" />
+        <rect className="battle-die-sticker" x={appearance.stickerInset} y={appearance.stickerInset}
+          width={100 - appearance.stickerInset * 2} height={100 - appearance.stickerInset * 2}
+          rx={appearance.stickerRadius} fill={material ? `url(#${id}-material)` : appearance.stickerColor}
+          stroke={appearance.stickerEdgeColor} strokeWidth={appearance.stickerEdgeWidth} />
         <path d={shape.facets} fill="none" stroke="#766e62" strokeOpacity="0.4" strokeWidth="1.4" strokeLinecap="round" />
+        {!unrolled && <DiceCharacter creature={creatureId} rolling={rolling} reducedMotion={reducedMotion} />}
+        {!unrolled && <MaterialSheen material={material} />}
       </g>
-      {unrolled ? <text x="50" y="61" textAnchor="middle" className="battle-die-value">?</text> : <>
-        <text x="35" y="58" textAnchor="middle" className="battle-die-creature">{creature.emoji}</text>
-        <text x="62" y="59" textAnchor="middle" style={{ fontSize: Math.min(29, 72 / String(shownValue).length), transform: `scale(${numberScale})`, transformOrigin: '62px 50px' }}
-          className={`battle-die-value ${spinning ? 'is-spinning' : ''} ${buffed && locked ? 'is-boosted' : ''}`}>{shownValue}</text>
-      </>}
-      <text x="50" y="76" textAnchor="middle" className="battle-die-type">{dice.dieType.toUpperCase()}</text>
-      {coating && <text x="50" y="89" textAnchor="middle" className="battle-die-material">{coating.symbol} {coating.name}</text>}
+      <DiceFaceNumber value={unrolled ? '?' : shownValue} tags={unrolled ? ['common'] : tags}
+        scale={numberScale} spinning={spinning} />
       {!unrolled && protectedDie && <text x="50" y="29" textAnchor="middle" fontSize="12">🛡</text>}
       {!unrolled && face.temporarySticker && <circle cx="50" cy="33" r="3" fill="#e11d48" stroke="#fff" strokeWidth="1.5" />}
     </svg>

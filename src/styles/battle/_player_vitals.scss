@@ -1,21 +1,31 @@
 @use '../variables' as *;
 
 .player-vitals {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem;
-  padding: 0.25rem 0.75rem; color: $rose-300;
-  background: $slate-900; border: 1px solid $slate-700; border-radius: $radius-lg;
+  display: flex; 
+  flex-wrap: wrap; 
+  align-items: center; 
+  gap: 0.625rem;
+  padding: 0.25rem 0.75rem; 
+  color: $rose-300;
+  background: $slate-900; 
+  border: 1px solid $slate-700; border-radius: $radius-lg;
   > svg { flex-shrink: 0; }
 }
 .player-health-value { font-size: 1.5rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
 .player-health-track {
-  flex: 1; height: 0.75rem; min-width: 1.5rem;
+  flex: 1; 
+  height: 0.75rem; 
+  min-width: 3rem;
   background: $slate-800; overflow: hidden; border-radius: $radius-full;
   > div { height: 100%; background: linear-gradient(90deg, $rose-600, $rose-400); transition: width 180ms ease-out; }
 }
+
 .player-shield-value {
   display: flex; align-items: center; gap: 0.375rem; color: $blue-300; font-size: 0.875rem; white-space: nowrap;
   strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .player-health-track > div { transition: none; }
 }

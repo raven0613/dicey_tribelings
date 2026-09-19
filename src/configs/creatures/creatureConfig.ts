@@ -5,11 +5,15 @@ export const CREATURE_TAG_NAMES: Record<CreatureTag, string> = {
   common: '普通', warrior: '戰士', craftsman: '職人', noble: '貴族', mystery: '神秘', food: '食物',
 };
 
-const colors: Record<CreatureTag, string> = {
+export const CREATURE_TAG_COLORS: Record<CreatureTag, string> = {
   common: '#fcd9a0', warrior: '#fb9988', craftsman: '#79d8c7', noble: '#d5b4ff', mystery: '#a9b6e9', food: '#f7df83',
 };
+
+export const CREATURE_TAG_COLORS_DICE: Record<CreatureTag, string> = {
+  common: '#2c2a26', warrior: '#e85e54', craftsman: '#34b0b2', noble: '#8b5acc', mystery: '#405dd4', food: '#d59527',
+};
 function role(name: string, emoji: string, tags: CreatureTag[], ability: string, description: string, rarity: CreatureDefinition['rarity'] = 'common'): CreatureDefinition {
-  return { name, emoji, tags, ability, description, rarity, color: colors[tags[0]] };
+  return { name, emoji, tags, ability, description, rarity, color: CREATURE_TAG_COLORS[tags[0]] };
 }
 export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
   family: role('土人家族', '👪', ['common'], '土人 在一起 強大', `同骰每有一個其他家族面，基礎攻擊力增加 ${b.family.perFace * 100}%。`),

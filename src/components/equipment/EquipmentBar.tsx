@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useGameStore } from '../../store/gameStore';
 import type { Equipment, EquipmentRarity } from '../../types/game';
 import { INITIAL_PLAYER_STATS } from '../../configs/gameConfig';
-import { Sparkles, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { SkillFeedback } from '../battle/SkillFeedback';
 import { getEquipmentIcon } from './equipmentIcons';
 
@@ -63,14 +63,6 @@ export const EquipmentBar: React.FC = () => {
 
   return (
     <div className="equipment-bar">
-      <div className="bar-header">
-        <span className="bar-title">
-          <Sparkles style={{ width: '14px', height: '14px', color: '#fbbf24' }} />
-          裝備槽位 ({equipments.length}/{maxSlots})
-        </span>
-        <span className="bar-tip">懸停或點擊槽位可檢視完整遺物技能效果</span>
-      </div>
-
       <div className="slots-grid" id="equipment-slots-container">
         {Array.from({ length: maxSlots }).map((_, idx) => {
           const equip = equipments[idx];
@@ -109,10 +101,11 @@ export const EquipmentBar: React.FC = () => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 setHoveredEquip((prev) => (prev?.equip.id === equip.id ? null : { equip, rect }));
               }}
+              aria-label={equip.name}
               tabIndex={0}
               onFocus={(e) => setHoveredEquip({ equip, rect: e.currentTarget.getBoundingClientRect() })}
               onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHoveredEquip(null); }}
-              className={`slot-occupied ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
+              className={`slot-occupied ${action ? 'has-action' : ''} ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
             >
               <SkillFeedback diceId={equip.id} feedback={skillFeedback} />
               {/* Type color accent */}
@@ -122,17 +115,12 @@ export const EquipmentBar: React.FC = () => {
                 <IconComponent style={{ width: '16px', height: '16px' }} />
               </div>
 
-              <div className="slot-text-box">
-                <div className="equip-name">{equip.name}</div>
-                <div className="equip-type">
-                  {equip.type === 'pattern' ? '組合' : equip.type === 'control' ? '控制' : '被動'} 裝備
-                </div>
-              </div>
-
               {action && <button type="button" className="equipment-action"
                 disabled={!selecting && !canActivate} aria-pressed={selecting}
+                aria-label={selecting ? `取消${action.label}` : `${action.label} ${action.cost} ${action.currency}`}
+                title={`${action.label} ${action.cost} ${action.currency}`}
                 onClick={(event) => { event.stopPropagation(); setDiceAction(selecting ? 'reroll' : action.action); }}>
-                {selecting ? '取消' : `${action.label} ${action.cost} ${action.currency}`}
+                {selecting ? '取消' : action.label}
               </button>}
               {isTriggered && !action && (
                 <span className="equipment-trigger-badge">
@@ -145,18 +133,17 @@ export const EquipmentBar: React.FC = () => {
         })}
       </div>
 
-      {/* Portal Tooltip: rendered on document.body strictly ABOVE the equipment slot so it is never clipped or blocked */}
+      {/* Slot details use the available space above or below the anchor. */}
       {hoveredEquip &&
         typeof document !== 'undefined' &&
         (() => {
           const { equip, rect } = hoveredEquip;
-          const tooltipWidth = 288;
+          const tooltipWidth = Math.min(288, window.innerWidth - 24);
+          const above = rect.top >= window.innerHeight - rect.bottom;
           const centerX = rect.left + rect.width / 2;
           const left = Math.max(12, Math.min(window.innerWidth - tooltipWidth - 12, centerX - tooltipWidth / 2));
-          const arrowLeft = Math.max(16, Math.min(tooltipWidth - 24, centerX - left - 6));
-          // Always position strictly above the slot with bottom anchoring
-          const bottom = Math.max(10, window.innerHeight - rect.top + 10);
-          const maxHeight = Math.max(160, rect.top - 20);
+          const maxHeight = (above ? rect.top : window.innerHeight - rect.bottom) - 22;
+          const action = getEquipmentAction(equip.ruleId);
 
           const rarityLabel = RARITY_LABELS[equip.rarity];
           const IconComponent = getEquipmentIcon(equip.iconName);
@@ -170,9 +157,10 @@ export const EquipmentBar: React.FC = () => {
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease',
                 left: `${left}px`,
-                bottom: `${bottom}px`,
+                ...(above ? { bottom: window.innerHeight - rect.top + 10 } : { top: rect.bottom + 10 }),
                 width: `${tooltipWidth}px`,
                 maxHeight: `${maxHeight}px`,
+                overflowY: 'auto',
               }}
             >
               <div className="equip-tooltip-box">
@@ -207,11 +195,10 @@ export const EquipmentBar: React.FC = () => {
                   <SkillText text={equip.description} />
                 </p>
 
-                {/* Direction Arrow strictly pointing down toward slot */}
-                <div
-                  className="tooltip-arrow"
-                  style={{ left: `${arrowLeft}px` }}
-                />
+                {action && <p className="tooltip-desc">
+                  {action.label}：{action.cost} {action.currency}
+                </p>}
+
               </div>
             </div>,
             document.body

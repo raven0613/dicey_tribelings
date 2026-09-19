@@ -2,7 +2,7 @@ import { SkillText } from '../common/SkillText';
 import React, { useRef, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { EquipmentTransferAnimation, getElementCenter } from './EquipmentTransferAnimation';
+import { EquipmentTransferAnimation, getElementCenter, getEquipmentSlotCenter } from './EquipmentTransferAnimation';
 import type { TransferPoint } from './EquipmentTransferAnimation';
 
 interface ReplacementTransferState {
@@ -30,13 +30,10 @@ export const EquipmentReplacementModal: React.FC = () => {
     }
     if (transfer || !incomingEquipmentRef.current) return;
     const slotIndex = equipments.findIndex((equipment) => equipment.id === equipmentId);
-    const targetSlot = document.getElementById(`equipment-slot-${slotIndex}`);
-    if (!targetSlot) return;
-
     setTransfer({
       replacedEquipmentId: equipmentId,
       start: getElementCenter(incomingEquipmentRef.current),
-      target: getElementCenter(targetSlot),
+      target: getEquipmentSlotCenter(slotIndex),
     });
   };
 

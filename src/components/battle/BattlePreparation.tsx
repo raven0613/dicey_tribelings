@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { TemporaryStickerPlacement } from '../../types/game';
 import { useGameStore } from '../../store/gameStore';
 import { applyTemporaryPlacements } from '../../service/inventory/inventoryService';
@@ -25,7 +25,11 @@ export const BattlePreparation: React.FC = () => {
       && !(item.diceId === die.id && item.faceIndex === faceIndex)), { consumable: selected, diceId: die.id, faceIndex }]);
     setSelectedId(null);
   };
-  return <section className="battle-preparation" aria-label="本場組合配置">
+  return <form id="battle-preparation" className="battle-preparation" aria-label="本場組合配置"
+    onSubmit={(event) => {
+      event.preventDefault();
+      if (!unlockedDiceNotification && !stickerFlow) confirmBattlePreparation(placements);
+    }}>
     <ConsumableBar selectedId={selectedId} onSelect={(id) => setSelectedId(id === selectedId ? null : id)} />
     {placements.length > 0 && <div className="preparation-assignments" aria-live="polite">
       {placements.map((placement) => <button type="button" key={placement.consumable.instanceId}
@@ -42,10 +46,8 @@ export const BattlePreparation: React.FC = () => {
       <DiceTabs dicePool={previewPool} selectedDiceId={die.id} onSelect={setDiceId} />
       <DiceNet key={die.id} dice={die} sticker={sticker} onApplyFace={selected ? assign : undefined} />
     </div>
-    <div className="preparation-start">
+    <div className="preparation-summary">
       <span>{placements.length ? `已配置 ${placements.length} 張・擲骰後維持整場` : '準備好了就擲骰，開始戰鬥！'}</span>
-      <button type="button" className="btn-resolve" disabled={!!unlockedDiceNotification || !!stickerFlow}
-        onClick={() => confirmBattlePreparation(placements)}><Play size={18} />擲骰</button>
     </div>
-  </section>;
+  </form>;
 };

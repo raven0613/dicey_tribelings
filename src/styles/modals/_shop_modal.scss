@@ -7,7 +7,7 @@
   margin: auto;
   flex: 1;
   min-height: 0;
-  max-height: calc(100vh - 140px);
+  max-height: 100%;
   background-color: rgba($slate-900, 0.95);
   border: 2px solid rgba($amber-500, 0.7);
   border-radius: $radius-2xl;

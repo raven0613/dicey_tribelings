@@ -43,9 +43,9 @@ function RelationPath({ link, source, target, flow = false }: {
   </>;
 }
 
-export function DiceHoverOverlay({ anchors, hoveredId, summary, width, targetIds = [], passiveEnabled, rolling, roundKey }: {
+export function DiceHoverOverlay({ anchors, hoveredId, summary, width, viewportLeft = 0, targetIds = [], passiveEnabled, rolling, roundKey }: {
   passiveEnabled: boolean; rolling: boolean; roundKey: string;
-  anchors: HoverAnchor[]; hoveredId: string | null; summary: BattleComboSummary | null; width: number; targetIds?: string[];
+  anchors: HoverAnchor[]; hoveredId: string | null; summary: BattleComboSummary | null; width: number; viewportLeft?: number; targetIds?: string[];
 }) {
   const relations = getHoverRelations(summary, hoveredId);
   const [settled, setSettled] = useState<{ summary: BattleComboSummary | null; roundKey: string }>({ summary: null, roundKey });
@@ -98,7 +98,7 @@ export function DiceHoverOverlay({ anchors, hoveredId, summary, width, targetIds
     })}
     {anchors.map((anchor) => <div key={`name:${anchor.id}`} className={`hover-ability ${hoveredId === anchor.id && anchor.abilities.length > 0 ? 'is-active' : ''}`}
       style={{ left: anchor.x, top: anchor.y - anchor.size / 2 - 12,
-        '--name-min-x': `${8 - anchor.x}px`, '--name-max-x': `${width - anchor.x - 8}px` } as CSSProperties}>
+        '--name-min-x': `${viewportLeft + 8 - anchor.x}px`, '--name-max-x': `${viewportLeft + width - anchor.x - 8}px` } as CSSProperties}>
       <span>{anchor.abilities.map((ability) => <span className="hover-ability-line" key={ability}><SkillText text={ability} /></span>)}</span>
     </div>)}
   </div>;

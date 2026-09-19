@@ -51,16 +51,10 @@
 }
 .hover-ability-line { display: block; }
 .hover-info-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0.375rem; }
-.footer-right p { white-space: pre-line; }
+.board-right p { white-space: pre-line; }
 .hover-info-tags { color: $slate-400; }
 .hover-info-placeholder { color: $slate-400; }
 @keyframes hoverFlow { to { stroke-dashoffset: -16; } }
-@media (max-width: 600px) {
-  .dice-board .board-footer { flex-direction: column; gap: 0.125rem; }
-  .dice-board { grid-template-rows: 1.5rem minmax(7rem, 1fr) 9rem; }
-  .combat-arena { min-height: 33rem; grid-template-rows: max-content minmax(19rem, 1fr) 3rem 3.75rem; }
-  .combat-arena.is-preparing { grid-template-rows: max-content 3rem minmax(0, 1fr); }
-}
 @media (prefers-reduced-motion: reduce) {
   .hover-link .hover-link-flow { animation: none; }
   .hover-link .hover-link-stroke { transition: none; }

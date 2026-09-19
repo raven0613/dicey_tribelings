@@ -4,12 +4,11 @@ import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useStoryStore } from '../store/storyStore';
 import { Footbar } from './common/Footbar';
-import { PlayerVitals } from './battle/PlayerVitals';
 import { MapProgress } from './map/MapProgress';
 import { EnemyCard } from './battle/EnemyCard';
 import { DiceBoard } from './battle/DiceBoard';
 import { waitForDiceAttackMotion } from './battle/waitForDiceAttackMotion';
-import { BattleControls } from './battle/BattleControls';
+import { PlayerBoard } from './battle/PlayerBoard';
 import { StickerApplierModal } from './stickers/StickerApplierModal';
 import { DiceInspectModal } from './dice/DiceInspectModal';
 import { RewardModal } from './rewards/RewardModal';
@@ -40,7 +39,8 @@ export function GameScreen() {
   const isCombatNode =
     currentNode?.type === 'fight' || currentNode?.type === 'elite' || currentNode?.type === 'boss';
   const temporaryUnlocked = useStoryStore((state) => state.temporaryUnlocked);
-  const isConfiguring = combatPhase === 'PREPARATION' && temporaryUnlocked;
+  const isCombat = routeChoices.length === 0 && isCombatNode;
+  const isConfiguring = isCombat && combatPhase === 'PREPARATION' && temporaryUnlocked;
 
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
@@ -59,38 +59,20 @@ export function GameScreen() {
             : 'none',
       }}
     >
-      {/* Main Content Arena */}
+      <MapProgress />
       <main className="app-main">
-        {/* Map Route Progress */}
-        <MapProgress />
-        {routeChoices.length > 0 && <PlayerVitals />}
-
-        {/* Combat Area */}
-        {routeChoices.length === 0 && isCombatNode && (
-          <div className={`combat-arena ${isConfiguring ? 'is-preparing' : ''}`}>
-            {/* Enemy Display */}
-            <EnemyCard
-              enemy={currentEnemy}
-            />
-
-            {/* Dice Board Arena */}
-            {!isConfiguring && <DiceBoard />}
-            <PlayerVitals />
-
-            {/* Tactical Control Bar & Resolve Action */}
-            {isConfiguring
+        <div className="combat-arena">
+          {isCombat && <EnemyCard enemy={currentEnemy} />}
+          <PlayerBoard isCombat={isCombat}>
+            {isCombat && (isConfiguring
               ? <BattlePreparation key={currentNodeIndex} />
-              : <BattleControls onResolve={handleResolveBattle} isResolving={isResolving} />}
-          </div>
-        )}
-
-        {/* Chest Event Area */}
-        {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
-
-        {/* Merchant Shop Area */}
-        {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
+              : <DiceBoard />)}
+            {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
+            {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
+          </PlayerBoard>
+        </div>
       </main>
-      <Footbar onOpenDiceBag={() => { setInspectCreature(undefined); setIsDiceBagOpen(true); }} />
+      <Footbar isCombat={isCombat} isConfiguring={isConfiguring} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => { setInspectCreature(undefined); setIsDiceBagOpen(true); }} />
 
       {/* Modals & Overlays */}
       <StickerApplierModal />

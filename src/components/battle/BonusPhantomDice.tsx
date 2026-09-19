@@ -2,13 +2,17 @@ import { ceilDamage } from '../../service/battle/damageValue';
 import { SkillFeedback } from './SkillFeedback';
 import type { SkillFeedback as Feedback } from '../../types/battle';
 import { getAttackPose } from '../../service/battle/attackPresentation';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BonusAttackDice, AttackStage } from '../../types/game';
 import { Sparkles } from 'lucide-react';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
-import { CreatureBadge } from '../dice/CreatureBadge';
+import { DiceCharacter } from '../dice/DiceCharacter';
+import { DiceFaceNumber } from '../dice/DiceFaceNumber';
+import { PHANTOM_DICE_PRESENTATION as config } from '../../configs/dicePresentationConfig';
+import { getPhantomProjection } from '../../service/dice/phantomProjection';
 
 interface BonusPhantomDiceProps {
+  size: number;
   dice: BonusAttackDice;
   attackIndex: number;
   sourceLabel: string;
@@ -26,12 +30,12 @@ interface BonusPhantomDiceProps {
   };
   x: number;
   y: number;
-  scale?: number;
   attackOffset: { x: number; y: number };
   onInspect: (id: string | null) => void;
 }
 
 export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
+  size,
   dice,
   attackIndex,
   sourceLabel,
@@ -44,19 +48,22 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   slotState,
   x,
   y,
-  scale = 1,
   attackOffset,
   onInspect,
 }) => {
+  const [spawned, setSpawned] = useState(false);
+  useEffect(() => { if (isAttacking) setSpawned(true); }, [isAttacking]);
   // Determine display number
   const displayNum = ceilDamage(slotState ? slotState.displayValue : dice.bonusDamage);
   const isSpinning = slotState?.isSpinning ?? false;
-  const isLocked = slotState?.isLocked ?? false;
 
   const color = dice.creature ? CREATURE_CONFIG[dice.creature].color : '#d8b4fe';
-  const renderCreatureIcon = () => dice.creature
-    ? <CreatureBadge creature={dice.creature} iconOnly size={18} showTooltip={false} />
-    : <Sparkles size={16} />;
+  const projection = getPhantomProjection(size);
+  const tags = dice.creature ? CREATURE_CONFIG[dice.creature].tags : ['mystery'] as const;
+  const renderFace = () => <svg className="phantom-face-art" viewBox="0 0 100 100" aria-hidden="true">
+    {dice.creature && <DiceCharacter creature={dice.creature} reducedMotion={reducedMotion} />}
+    <DiceFaceNumber value={displayNum} tags={tags} scale={slotState?.scale ?? 1} spinning={isSpinning} />
+  </svg>;
 
   const pose = getAttackPose(isAttacking ? attackingStage : 'idle', attackEmphasis, attackOffset, reducedMotion);
 
@@ -71,10 +78,17 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
       className={`phantom-die-anchor ${isAttacking ? 'is-attacking' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
       style={{
         '--creature-color': color,
+        '--phantom-side': `${config.side}px`,
+        '--phantom-depth': `${config.side / 2}px`,
+        '--phantom-radius': `${config.cornerRadius}px`,
+        '--phantom-rotate-x': `${config.rotateX}deg`,
+        '--phantom-rotate-y': `${config.rotateY}deg`,
+        '--phantom-float': `${config.floatDistance}px`,
+        width: size, height: size,
         color,
         left: `${x}px`,
         top: `${y}px`,
-        transform: `${pose.transform} rotate(${pose.rotation}deg) scale(${scale})`,
+        transform: `${pose.transform} rotate(${pose.rotation}deg)`,
         transition: pose.transition,
         zIndex: isAttacking ? 100 : undefined,
       } as React.CSSProperties}
@@ -95,39 +109,32 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
 
       {/* Only the outer spawn layer starts once; the stable cube keeps its six faces. */}
       <div className="phantom-distortion die-bulge-body" style={{ filter: bulgeFilter }}>
-        <div className="phantom-projection">
-          <div className="phantom-spawn">
+        <div className="phantom-projection" style={{ transform: `scale(${projection.scaleX}, ${projection.scaleY}) translate(${projection.offsetX}px, ${projection.offsetY}px)` }}>
+          <div className="phantom-spawn" style={{ animationName: spawned || isAttacking ? 'none' : undefined }}
+            onAnimationEnd={(event) => { if (event.target === event.currentTarget) setSpawned(true); }}>
             <div className="phantom-float" style={{ animationPlayState: isAttacking ? 'paused' : 'running' }}>
               <div className="phantom-cube-container">
                 {/* Front Face (Hero face showing slot machine number) */}
                 <div className="phantom-face face-front">
-                  <div className="slot-number-box">
-                    {renderCreatureIcon()}
-                    <div style={{ transform: `scale(${slotState?.scale ?? 1})` }} className={`slot-number ${isSpinning ? 'spinning' : ''} ${isLocked ? 'locked' : ''}`}>
-                      {displayNum}
-                    </div>
-                  </div>
+                  {renderFace()}
                 </div>
 
                 {/* Back Face */}
                 <div className="phantom-face face-back">
-                  <div className="slot-number-box">
-                    {renderCreatureIcon()}
-                    <div className="slot-number">{displayNum}</div>
-                  </div>
+                  {renderFace()}
                 </div>
 
                 {/* Right Face */}
                 <div className="phantom-face face-right">
                   <div className="slot-number-box">
-                    {renderCreatureIcon()}
+                    <Sparkles size={16} />
                   </div>
                 </div>
 
                 {/* Left Face */}
                 <div className="phantom-face face-left">
                   <div className="slot-number-box">
-                    {renderCreatureIcon()}
+                    <Sparkles size={16} />
                   </div>
                 </div>
 

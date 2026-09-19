@@ -16,6 +16,12 @@ export function getElementCenter(element: Element): TransferPoint {
   };
 }
 
+export function getEquipmentSlotCenter(slotIndex: number): TransferPoint {
+  const slot = document.getElementById(`equipment-slot-${slotIndex}`)!;
+  slot.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+  return getElementCenter(slot);
+}
+
 interface EquipmentTransferAnimationProps {
   equipment: Equipment;
   start: TransferPoint;

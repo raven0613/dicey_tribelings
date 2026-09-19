@@ -22,10 +22,6 @@
 [data-material="echo"] { --material-pattern: radial-gradient(circle at 40% 50%, transparent 30%, #2dd4bf35 31% 33%, transparent 34%), radial-gradient(circle at 60% 50%, transparent 30%, #2dd4bf35 31% 33%, transparent 34%); }
 .dice-net .dice-net-face[data-material] { background-image: var(--material-pattern); }
 .battle-die[data-material] { background: none; box-shadow: none; }
-.battle-die .battle-die-material { fill: #172033; font: 900 9px system-ui, sans-serif; paint-order: stroke; stroke: #fff; stroke-width: 2px; }
-.battle-die[data-material="negative"] {
-  .battle-die-value, .battle-die-type, .battle-die-material { fill: #fff; stroke: #0f172a; }
-}
 .battle-round { color: #cbd5e1; font-size: .8rem; font-weight: 800; white-space: nowrap; }
 .battle-round.is-warning { padding: .3rem .55rem; color: #fecaca; background: #7f1d1d; border: 1px solid #fb7185; border-radius: .4rem; }
 .food-capacity { color: #cbd5e1; font-size: .8rem; }

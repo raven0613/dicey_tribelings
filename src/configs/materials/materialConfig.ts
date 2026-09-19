@@ -18,3 +18,8 @@ export const MATERIAL_CHANCES = { ordinary: 0.95, special: 0.04, ultra: 0.01 } a
 export const MATERIAL_BALANCE = { mirror: 3, resonance: 2, shock: 2, vial: 2, ripple: 4, gilded: 3, foil: 3, negative: 5, decay: 2 } as const;
 export const ALL_FACE_TAGS: readonly CreatureTag[] = ['common', 'warrior', 'craftsman', 'noble', 'mystery', 'food'];
 export const FOOD_CAPACITY = { crocodile: 150, underground: 200 } as const;
+
+/** Trial coating above the character; the opaque material surface stays on the sticker. */
+export const MATERIAL_SHEEN: Partial<Record<FaceMaterial, { color: string; opacity: number; angle: number }>> = {
+  mirror: { color: '#ffffff', opacity: 0.22, angle: -30 },
+};

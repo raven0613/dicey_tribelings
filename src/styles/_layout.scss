@@ -19,34 +19,94 @@
   flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 64rem; // 1024px
+  max-width: 1920px;
   margin: 0 auto;
-  padding: 0.375rem 0.75rem 0.5rem;
+  padding: 0 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  overflow-y: auto;
-
-  > :not(.combat-arena) { flex-shrink: 0; }
+  overflow: hidden;
 }
 
 .combat-arena {
   flex: 1;
-  min-height: 30rem;
   min-width: 0;
-  display: grid;
-  grid-template-rows: max-content minmax(16rem, 1fr) 3rem minmax(3.75rem, max-content);
-  gap: 0.375rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   margin: 0;
-  overflow: visible;
 
   > * { min-width: 0; min-height: 0; }
-  .enemy-card { grid-row: 1; }
-  .dice-board { grid-row: 2; }
-  .player-vitals { grid-row: 3; }
-  .battle-controls { grid-row: 4; }
 }
 
-.region-progress { width: 100%; min-width: 0; }
-.region-route { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; color: $slate-400; font-size: 0.875rem; margin-bottom: 0.5rem; }
-.region-route [aria-current='step'] { color: $amber-300; font-weight: 800; text-decoration: underline; text-underline-offset: 0.3rem; }
+.region-progress { 
+  flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2cap;
+
+  button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      min-height: 2.5rem;
+      min-width: 2.5rem;
+      padding: 0.5rem;
+      background: $slate-800;
+      border: 1px solid $slate-600;
+      border-radius: $radius-md;
+      color: $slate-100;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+  
+      &:hover {
+        border-color: $amber-300;
+      }
+  
+      &:focus-visible {
+        outline: 3px solid $amber-300;
+        outline-offset: 2px;
+      }
+    }
+}
+.region-route { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 0.5rem 1rem; 
+  color: $slate-400; 
+  font-size: 0.875rem; 
+  margin-bottom: 0.5rem; 
+}
+.region-route [aria-current='step'] { 
+  color: $amber-300; 
+  font-weight: 800;
+  text-underline-offset: 0.3rem; 
+}
+.nav__info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+
+  .nav__gold {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      color: $amber-300;
+      font-size: 0.875rem;
+      white-space: nowrap;
+    }
+}
+
+@media (max-width: 600px) {
+  .app-main { padding: 0.25rem 0.375rem; }
+  .region-progress { flex-wrap: wrap; gap: 0.25rem; padding: 0.25rem 0.5rem; }
+  .region-route { margin: 0; }
+  .region-map { order: 3; flex: 1 0 100%; }
+  .nav__info { margin-left: auto; gap: 0.5rem; }
+}

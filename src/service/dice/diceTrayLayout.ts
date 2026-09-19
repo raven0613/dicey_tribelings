@@ -3,7 +3,7 @@ import { getAdjacentFaces, getEffectiveFace } from './diceFaces';
 import { DICE_TRAY_PRESENTATION as layout } from '../../configs/dicePresentationConfig';
 
 /** Reserve by build, so rolling and revealing bonuses never move the normal row. */
-export function getDiceTrayLayout(width: number, height: number, dice: Dice[], detailsHeight: number = layout.detailsHeight) {
+export function getDiceTrayLayout(width: number, height: number, dice: Dice[], detailsHeight: number = layout.detailsHeight, size: number = layout.size) {
   const sources = dice.map((die) => {
     const faces = die.faces.map(getEffectiveFace);
     const gangCapacity = Math.max(0, ...faces.map((face, index) => (face.creature === 'gang' || face.creature === 'imposter')
@@ -15,39 +15,35 @@ export function getDiceTrayLayout(width: number, height: number, dice: Dice[], d
       + Number(faces.some((face) => face.material === 'shock')) };
   });
   const slotCount = sources.reduce((total, source) => total + source.capacity, 0);
-  const availableWidth = Math.max(0, width - layout.sidePadding * 2);
-  const extentRatio = layout.phantomExtent * layout.normalBodyRatio / layout.phantomBodySize;
-  let size = 0;
-  let columns = 1;
-  // Evaluate each row arrangement and keep the largest common body size that fits.
-  for (let count = 1; count <= Math.max(1, slotCount); count++) {
-    const rows = Math.ceil(slotCount / count);
-    const candidate = Math.min(layout.maxSize,
-      availableWidth / Math.max(1, dice.length) - layout.slotGap,
-      (availableWidth / count - layout.phantomGap) / (extentRatio * 2),
-      (height - layout.topPadding - detailsHeight - rows * layout.phantomGap) / (1 + rows * extentRatio * 2));
-    if (candidate > size) { size = candidate; columns = count; }
-  }
-  const phantomScale = size * layout.normalBodyRatio / layout.phantomBodySize;
-  const pitch = layout.phantomExtent * 2 * phantomScale + layout.phantomGap;
+  const scale = size / layout.size;
+  const topPadding = layout.topPadding * scale;
+  const bottomPadding = layout.bottomPadding * scale;
+  const sidePadding = layout.sidePadding * scale;
+  const pitch = size + layout.phantomGap * scale;
+  const spacing = size + layout.slotGap * scale;
+  const availableRows = Math.max(1, Math.floor((height - topPadding - bottomPadding - size - detailsHeight) / pitch));
+  const columns = Math.max(1, Math.ceil(slotCount / availableRows));
   const rows = Math.ceil(slotCount / columns);
-  const occupiedHeight = rows * pitch + size + detailsHeight;
-  const top = Math.max(layout.topPadding, (height - occupiedHeight) / 2);
+  const occupiedHeight = rows * pitch + size + detailsHeight + topPadding + bottomPadding;
+  const contentHeight = Math.max(height, occupiedHeight);
+  const contentWidth = Math.max(width, sidePadding * 2 + Math.max(
+    Math.max(0, dice.length - 1) * spacing + size, (columns - 1) * pitch + size));
+  const top = topPadding + (contentHeight - occupiedHeight) / 2;
   const normalY = top + rows * pitch + size / 2;
-  const spacing = Math.min(layout.maxSpacing, availableWidth / Math.max(1, dice.length));
   const positions = dice.map((_, index) => ({
-    x: (width - (dice.length - 1) * spacing) / 2 + index * spacing, y: normalY,
+    x: Math.max(sidePadding + size / 2, (width - (dice.length - 1) * spacing) / 2) + index * spacing,
+    y: normalY,
   }));
   const bonusPositions: Record<string, { x: number; y: number }[]> = {};
   let slot = 0;
   for (const source of sources) {
     bonusPositions[source.key] = Array.from({ length: source.capacity }, () => {
       const index = slot++;
-      return { x: (width - (columns - 1) * pitch) / 2 + index % columns * pitch,
-        y: top + Math.floor(index / columns) * pitch + layout.phantomExtent * phantomScale };
+      return { x: (contentWidth - (columns - 1) * pitch) / 2 + index % columns * pitch,
+        y: top + Math.floor(index / columns) * pitch + size / 2 };
     });
   }
-  return { size, positions, spacing, phantomScale, bonusPositions };
+  return { size, width: contentWidth, height: contentHeight, positions, spacing, bonusPositions };
 }
 
 export function placeBonusDice(bonuses: BonusAttackDice[], positions: ReturnType<typeof getDiceTrayLayout>['bonusPositions']) {

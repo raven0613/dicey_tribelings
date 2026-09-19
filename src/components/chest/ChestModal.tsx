@@ -8,6 +8,7 @@ import { useGameStore } from '../../store/gameStore';
 import {
   EquipmentTransferAnimation,
   getElementCenter,
+  getEquipmentSlotCenter,
 } from '../equipment/EquipmentTransferAnimation';
 import type { TransferPoint } from '../equipment/EquipmentTransferAnimation';
 import { getEquipmentIcon } from '../equipment/equipmentIcons';
@@ -50,13 +51,10 @@ export const ChestModal: React.FC = () => {
       return;
     }
 
-    const targetSlot = document.getElementById(`equipment-slot-${equipments.length}`);
-    if (!targetSlot) return;
-
     setEquipmentTransfer({
       option,
       start: getElementCenter(event.currentTarget),
-      target: getElementCenter(targetSlot),
+      target: getEquipmentSlotCenter(equipments.length),
     });
   };
 

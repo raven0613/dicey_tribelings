@@ -1,43 +1,17 @@
 @use 'variables' as *;
 
 .equipment-bar {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
+  width: 3rem;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
   user-select: none;
-
-  .bar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.25rem;
-    height: 1.125rem;
-    gap: 0.5rem;
-    white-space: nowrap;
-
-    .bar-title {
-      font-size: 0.875rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: $slate-300;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
-    .bar-tip {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 11px;
-      color: $slate-400;
-    }
-  }
 
   .slots-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-rows: 3rem;
     gap: 0.375rem;
 
     .slot-empty {
@@ -68,10 +42,10 @@
       background-color: rgba($slate-800, 0.9);
       border: 1px solid rgba($amber-500, 0.4);
       border-radius: $radius-lg;
-      padding: 0.25rem 0.375rem;
+      padding: 0.125rem;
       display: flex;
       align-items: center;
-      gap: 0.375rem;
+      justify-content: center;
       transition: all $transition-fast;
       box-shadow: $shadow-md;
       cursor: pointer;
@@ -95,8 +69,11 @@
       }
 
       .accent-stripe {
+        position: absolute;
+        left: 0;
+        top: 0.25rem;
+        bottom: 0.25rem;
         width: 0.2rem;
-        align-self: stretch;
         border-radius: $radius-full;
 
         &.pattern {
@@ -118,29 +95,15 @@
         flex-shrink: 0;
       }
 
-      .slot-text-box {
-        flex: 1;
-        min-width: 0;
+      &.has-action { padding-bottom: 1.125rem; }
 
-        .equip-name {
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: $slate-200;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          line-height: 1.2;
-        }
-
-        .equip-type {
-          font-size: 0.75rem;
-          color: rgba($amber-300, 0.9);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-transform: capitalize;
-          line-height: 1.1;
-        }
+      .equipment-action {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 0.125rem;
+        line-height: 1;
       }
 
       .equipment-trigger-badge {
@@ -292,39 +255,7 @@
     line-height: 1.5;
   }
 
-  .tooltip-footer {
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba($slate-800, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 10px;
-    font-weight: 700;
 
-    .cooldown-text {
-      color: $indigo-300;
-    }
-    .unlimited-text {
-      color: $emerald-400;
-    }
-    .type-text {
-      color: $slate-400;
-      text-transform: uppercase;
-    }
-  }
-
-  .tooltip-arrow {
-    position: absolute;
-    bottom: -0.375rem;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 0.75rem;
-    height: 0.75rem;
-    background-color: $slate-900;
-    border-right: 2px solid rgba($amber-500, 0.7);
-    border-bottom: 2px solid rgba($amber-500, 0.7);
-  }
 }
 
 @keyframes slotImpactGlow {
