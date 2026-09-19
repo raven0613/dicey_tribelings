@@ -11,6 +11,7 @@ export function DiceBulgeFilter({ id, strength, duration }: DiceBulgeFilterProps
   useEffect(() => {
     const from = current.current;
     const target = strength * ATTACK_EMPHASIS.bulgeScale;
+    if (from === target) return;
     const started = performance.now();
     let frame: number;
     const tick = (now: number) => {

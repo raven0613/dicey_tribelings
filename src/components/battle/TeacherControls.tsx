@@ -1,9 +1,22 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../store/gameStore';
 import { teacherTargets } from '../../service/battle/rollService';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 
 export function TeacherControls() {
-  const state = useGameStore();
+  const state = useGameStore(useShallow((state) => ({
+    combatPhase: state.combatPhase,
+    diceAction: state.diceAction,
+    dicePool: state.dicePool,
+    creatureBattleState: state.creatureBattleState,
+    setDiceAction: state.setDiceAction,
+    activeRerollingIndex: state.activeRerollingIndex,
+    rolledIndices: state.rolledIndices,
+    control: state.control,
+    maxControl: state.maxControl,
+    gold: state.gold,
+    equipments: state.equipments,
+  })));
   if (state.combatPhase !== 'CONTROL_PHASE') return null;
   const selecting = state.diceAction.startsWith('teacher:');
   const teachers = state.dicePool.filter((die) => state.creatureBattleState.teachersAvailable.includes(die.id));

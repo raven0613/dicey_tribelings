@@ -1,3 +1,5 @@
+import { BattleScreenShake } from './battle/BattleScreenShake';
+import { useShallow } from 'zustand/react/shallow';
 import { PaidRerollDialog } from './battle/PaidRerollDialog';
 import type { CreatureId } from '../types/creatures';
 import React, { useState } from 'react';
@@ -23,14 +25,20 @@ import { DiceUnlockModal } from './dice/DiceUnlockModal';
 
 export function GameScreen() {
   const {
-    screenShakeIntensity,
     currentNodeIndex, routeChoices,
     mapNodes,
-    currentEnemy,
     combatPhase,
     activeRerollingIndex, pendingPaidRerollDiceId,
     executeBattleSettlement,
-  } = useGameStore();
+  } = useGameStore(useShallow((state) => ({
+    currentNodeIndex: state.currentNodeIndex,
+    routeChoices: state.routeChoices,
+    mapNodes: state.mapNodes,
+    combatPhase: state.combatPhase,
+    activeRerollingIndex: state.activeRerollingIndex,
+    pendingPaidRerollDiceId: state.pendingPaidRerollDiceId,
+    executeBattleSettlement: state.executeBattleSettlement,
+  })));
 
   const [inspectCreature, setInspectCreature] = useState<CreatureId | undefined>();
   const [isDiceBagOpen, setIsDiceBagOpen] = useState(false);
@@ -50,19 +58,11 @@ export function GameScreen() {
   };
 
   return (
-    <div
-      className="app-wrapper"
-      style={{
-        transform:
-          screenShakeIntensity > 0
-            ? `translate(${(Math.random() - 0.5) * screenShakeIntensity}px, ${(Math.random() - 0.5) * screenShakeIntensity}px)`
-            : 'none',
-      }}
-    >
+    <BattleScreenShake>
       <MapProgress />
       <main className="app-main">
         <div className="combat-arena">
-          {isCombat && <EnemyCard enemy={currentEnemy} />}
+          {isCombat && <EnemyCard />}
           <PlayerBoard isCombat={isCombat}>
             {isCombat && (isConfiguring
               ? <BattlePreparation key={currentNodeIndex} />
@@ -84,6 +84,6 @@ export function GameScreen() {
       <DiceInspectModal creature={inspectCreature} isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
       <GameOverModal />
       {pendingPaidRerollDiceId && <PaidRerollDialog />}
-    </div>
+    </BattleScreenShake>
   );
 }

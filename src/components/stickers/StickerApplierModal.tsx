@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
 import { getEffectiveFace } from '../../service/dice/diceFaces';
 import { SkillText } from '../common/SkillText';
@@ -9,7 +10,12 @@ import { DiceNet } from '../dice/DiceNet';
 import { DiceTabs } from '../dice/DiceTabs';
 
 export const StickerApplierModal: React.FC = () => {
-  const { stickerFlow, dicePool, applyCurrentPermanentSticker, discardCurrentSticker } = useGameStore();
+  const { stickerFlow, dicePool, applyCurrentPermanentSticker, discardCurrentSticker } = useGameStore(useShallow((state) => ({
+    stickerFlow: state.stickerFlow,
+    dicePool: state.dicePool,
+    applyCurrentPermanentSticker: state.applyCurrentPermanentSticker,
+    discardCurrentSticker: state.discardCurrentSticker,
+  })));
   const [selectedDiceId, setSelectedDiceId] = useState(dicePool[0]?.id ?? '');
   const sticker = stickerFlow?.items[stickerFlow.index];
 

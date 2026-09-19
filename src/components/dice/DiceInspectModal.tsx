@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import type { CreatureId } from '../../types/creatures';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { getEffectiveFace } from '../../service/dice/diceFaces';
@@ -14,7 +15,10 @@ interface DiceInspectModalProps {
 }
 
 export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onClose, creature }) => {
-  const { dicePool, creatureBattleState } = useGameStore();
+  const { dicePool, creatureBattleState } = useGameStore(useShallow((state) => ({
+    dicePool: state.dicePool,
+    creatureBattleState: state.creatureBattleState,
+  })));
   const [selectedDiceId, setSelectedDiceId] = useState<string>(dicePool[0]?.id || '');
   const matchCounts = creature ? Object.fromEntries(dicePool.map((die) => [die.id,
   die.faces.filter((face) => getEffectiveFace(face).creature === creature).length])) : undefined;

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { SkillText } from '../common/SkillText';
 import React, { useRef, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
@@ -18,7 +19,13 @@ export const EquipmentReplacementModal: React.FC = () => {
     replacePendingEquipment,
     cancelPendingEquipment,
     skipChestReward,
-  } = useGameStore();
+  } = useGameStore(useShallow((state) => ({
+    pendingEquipment: state.pendingEquipment,
+    equipments: state.equipments,
+    replacePendingEquipment: state.replacePendingEquipment,
+    cancelPendingEquipment: state.cancelPendingEquipment,
+    skipChestReward: state.skipChestReward,
+  })));
   const incomingEquipmentRef = useRef<HTMLDivElement>(null);
   const [transfer, setTransfer] = useState<ReplacementTransferState | null>(null);
   if (!pendingEquipment) return null;

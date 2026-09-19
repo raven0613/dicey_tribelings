@@ -1,7 +1,7 @@
 export const BATTLE_LIMIT = { rounds: 50, warningRemaining: 10 } as const;
 export const BATTLE_PRESENTATION = {
   pulseMs: 260, nameDelayMs: 20, nameFadeInMs: 80, nameHoldMs: 480, nameFadeOutMs: 160,
-  nameRisePx: 18, nameLanePx: 18, eventGapMs: 110, numberDurationMs: 240, frameMs: 16,
+  nameRisePx: 18, nameLanePx: 18, eventGapMs: 110, numberDurationMs: 240, numberSoundIntervalMs: 64,
   numberScaleSmall: 1.05, numberScaleLarge: 1.1, beforeAttackMs: 80,
   heavyDamage: 20, heavyShake: 14, lightShake: 7,
   windupMs: 25, dashMs: 50, impactMs: 70, recoilMs: 35, betweenAttackMs: 15,
@@ -16,3 +16,5 @@ export const SKILL_AUDIO = {
   roll: { frequency: 780, duration: 0.025, volume: 0.025 },
   settle: { frequency: 1046, duration: 0.06, volume: 0.045 },
 } as const;
+
+export const IMPACT_AUDIO = { noiseDurationSeconds: 0.05 } as const;

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { getActionTargets, getEquipmentAction } from '../../service/battle/rollService';
 import { SkillText } from '../common/SkillText';
 import React, { useState, useEffect } from 'react';
@@ -16,6 +17,24 @@ const RARITY_LABELS: Record<EquipmentRarity, string> = {
 };
 
 export const EquipmentBar: React.FC = () => {
+  const actionState = useGameStore(useShallow((state) => ({
+    equipments: state.equipments,
+    comboSummary: state.comboSummary,
+    skillFeedback: state.skillFeedback,
+    combatPhase: state.combatPhase,
+    currentEnemy: state.currentEnemy,
+    activeRerollingIndex: state.activeRerollingIndex,
+    equipmentSlotFeedback: state.equipmentSlotFeedback,
+    diceAction: state.diceAction,
+    setDiceAction: state.setDiceAction,
+    setHoveredEquipment: state.setHoveredEquipment,
+    control: state.control,
+    maxControl: state.maxControl,
+    gold: state.gold,
+    dicePool: state.dicePool,
+    rolledIndices: state.rolledIndices,
+    creatureBattleState: state.creatureBattleState,
+  })));
   const {
     equipments,
     comboSummary,
@@ -24,7 +43,7 @@ export const EquipmentBar: React.FC = () => {
     currentEnemy,
     activeRerollingIndex,
     equipmentSlotFeedback, diceAction, setDiceAction, setHoveredEquipment,
-  } = useGameStore();
+  } = actionState;
   const maxSlots = INITIAL_PLAYER_STATS.maxEquipmentSlots;
   const [receivedSlotIndex, setReceivedSlotIndex] = useState<number | null>(null);
 
@@ -85,7 +104,7 @@ export const EquipmentBar: React.FC = () => {
           const action = getEquipmentAction(equip.ruleId);
           const selecting = action?.action === diceAction;
           const canActivate = !!action && activeRerollingIndex === null
-            && getActionTargets(action.action, useGameStore.getState()).length > 0;
+            && getActionTargets(action.action, actionState).length > 0;
           const isJustReceived = receivedSlotIndex === idx;
 
           return (

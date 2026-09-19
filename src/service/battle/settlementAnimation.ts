@@ -1,5 +1,6 @@
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
-import type { BattleComboSummary, NumberDisplay, SkillChange, SkillEvent } from '../../types/battle';
+import type { BattleComboSummary, NumberDisplay, SkillChange, SkillEvent, SkillFeedback } from '../../types/battle';
+import type { GameState } from '../../store/gameStore.types';
 import type { DamagePop } from '../../types/game';
 import type { BattleStoreMethods } from './battleSettlement';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
@@ -35,75 +36,101 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   const schedule = scheduleSkills(summary.events);
   let displayedHp = get().playerHpDisplay ?? get().playerHp;
   const diceIndex = new Map(summary.items.map((item, index) => [item.diceId, index]));
-  const dice = Object.fromEntries(summary.items.map((item, index) => [index, still(ceilDamage(item.rolledBaseValue))]));
-  const bonuses: Record<string, NumberDisplay> = {};
-  const shields = Object.fromEntries(summary.items.map((item) => [item.diceId, still(0)]));
-  const food = Object.fromEntries(summary.items.map((item) => [item.diceId, still(initialFood[item.diceId] ?? 0)]));
-  const identities = Object.fromEntries(summary.items.map((item) => [item.diceId, { creature: item.rolledCreature, tags: [...CREATURE_CONFIG[item.rolledCreature].tags] }]));
+  let dice = Object.fromEntries(summary.items.map((item, index) => [index, still(ceilDamage(item.rolledBaseValue))]));
+  let bonuses: Record<string, NumberDisplay> = {};
+  let shields = Object.fromEntries(summary.items.map((item) => [item.diceId, still(0)]));
+  let food = Object.fromEntries(summary.items.map((item) => [item.diceId, still(initialFood[item.diceId] ?? 0)]));
+  let identities = Object.fromEntries(summary.items.map((item) => [item.diceId, { creature: item.rolledCreature, tags: [...CREATURE_CONFIG[item.rolledCreature].tags] }]));
   const active = new Map<string, NumberTween>();
-  const visible = new Set<string>();
-  const launched = new Set<string>();
-  const numbered = new Set<string>();
+  let visible: string[] = [];
+  let feedback: SkillFeedback[] = [];
   const nameLifetime = timing.nameDelayMs + timing.nameFadeInMs + timing.nameHoldMs + timing.nameFadeOutMs;
-  const duration = schedule.length ? Math.max(...schedule.map((entry) => entry.start)) + nameLifetime : 0;
+  const numberDelay = timing.nameDelayMs + timing.nameFadeInMs;
+  const duration = schedule.length ? Math.max(...schedule.map((entry) => entry.start))
+    + Math.max(nameLifetime, numberDelay + timing.numberDurationMs) : 0;
+  const timeline = schedule.flatMap(({ event, start }) => [
+    { event, time: start, numbers: false }, { event, time: start + numberDelay, numbers: true },
+  ]).sort((a, b) => a.time - b.time);
   const valueFor = (change: SkillChange) => {
     if (change.kind === 'attack') return dice[diceIndex.get(change.targetId)!];
-    if (change.kind === 'shield') return shields[change.targetId] ??= still(change.before);
-    if (change.kind === 'food') return food[change.targetId] ??= still(change.before);
-    return bonuses[change.targetId] ??= still(0);
+    if (change.kind === 'shield') return shields[change.targetId] ?? still(change.before);
+    if (change.kind === 'food') return food[change.targetId] ?? still(change.before);
+    return bonuses[change.targetId] ?? still(0);
   };
-  set({ diceSlotStates: dice, bonusSlotStates: {}, displayedShields: shields, displayedFood: food,
-    displayedIdentities: identities, playerShieldDisplay: initialShield, skillFeedback: [], visibleBonusIds: [] });
-  for (let elapsed = 0; elapsed <= duration + timing.frameMs; elapsed += timing.frameMs) {
-    if (get().combatPhase !== 'RESOLVING_CALCULATION' || get().comboSummary !== summary) return;
-    for (const { event, start } of schedule) {
-      if (elapsed >= start && !launched.has(event.id)) {
-        launched.add(event.id);
-        const feedback = { event, startedAt: performance.now() };
-        set({ skillFeedback: [...get().skillFeedback, feedback] });
-        soundService.playSkillPulse(event.participantDiceIds.length > 2 || event.bonusIds.length > 0);
-      }
-      if (elapsed >= start + timing.nameDelayMs + timing.nameFadeInMs && !numbered.has(event.id)) {
-        numbered.add(event.id);
-        if (event.healing) displayedHp = Math.min(get().maxHp, displayedHp + event.healing);
-        event.identities.forEach((item) => { identities[item.diceId] = { creature: item.creature, tags: item.tags }; });
-        event.bonusIds.forEach((id) => visible.add(id));
-        for (const change of event.changes) {
-          const display = valueFor(change);
-          active.set(`${change.kind}:${change.targetId}`, { change, from: display.displayValue, scale: display.scale, start: elapsed });
-        }
-      }
-    }
+  const writeValue = (change: SkillChange, value: NumberDisplay) => {
+    const previous = valueFor(change);
+    if (previous.displayValue === value.displayValue && previous.scale === value.scale
+      && previous.isSpinning === value.isSpinning && previous.isLocked === value.isLocked
+      && previous.isBuffed === value.isBuffed) return;
+    if (change.kind === 'attack') dice = { ...dice, [diceIndex.get(change.targetId)!]: value };
+    else if (change.kind === 'shield') shields = { ...shields, [change.targetId]: value };
+    else if (change.kind === 'food') food = { ...food, [change.targetId]: value };
+    else bonuses = { ...bonuses, [change.targetId]: value };
+  };
+  const advanceNumbers = (elapsed: number) => {
     let settled = false;
     for (const [key, tween] of active) {
       const { change } = tween;
       const progress = Math.min(1, (elapsed - tween.start) / timing.numberDurationMs);
       const eased = 1 - (1 - progress) ** 3;
-      const display = valueFor(change);
-      const attackValue = change.kind === 'attack' || change.kind === 'bonus';
-      const target = attackValue ? ceilDamage(change.after) : change.after;
-      const fromInteger = Math.floor(tween.from);
-      const targetInteger = Math.floor(target);
-      display.displayValue = progress === 1 ? target
-        : Math.round(fromInteger + (targetInteger - fromInteger) * eased);
+      const target = change.kind === 'attack' || change.kind === 'bonus' ? ceilDamage(change.after) : change.after;
       const peak = Math.abs(change.after - change.before) >= timing.heavyDamage ? timing.numberScaleLarge : timing.numberScaleSmall;
-      display.scale = progress < 0.3 ? tween.scale + (peak - tween.scale) * (progress / 0.3)
-        : peak + (1 - peak) * (1 - (1 - (progress - 0.3) / 0.7) ** 2);
-      display.isSpinning = progress < 1; display.isLocked = progress === 1;
-      display.isBuffed = change.after > change.before;
+      writeValue(change, {
+        displayValue: progress === 1 ? target : Math.round(Math.floor(tween.from) + (Math.floor(target) - Math.floor(tween.from)) * eased),
+        scale: progress < 0.3 ? tween.scale + (peak - tween.scale) * (progress / 0.3)
+          : peak + (1 - peak) * (1 - (1 - (progress - 0.3) / 0.7) ** 2),
+        isSpinning: progress < 1, isLocked: progress === 1, isBuffed: change.after > change.before,
+      });
       if (progress === 1) { active.delete(key); settled = true; }
     }
-    if (active.size && elapsed % (timing.frameMs * 4) === 0) soundService.playNumberRoll();
+    return settled;
+  };
+  set({ diceSlotStates: dice, bonusSlotStates: bonuses, displayedShields: shields, displayedFood: food,
+    displayedIdentities: identities, playerShieldDisplay: initialShield, skillFeedback: feedback, visibleBonusIds: visible });
+  const startedAt = performance.now();
+  let elapsed = 0, cursor = 0, lastRollSound = -timing.numberSoundIntervalMs;
+  while (true) {
+    if (get().combatPhase !== 'RESOLVING_CALCULATION' || get().comboSummary !== summary) return;
+    let settled = false;
+    while (cursor < timeline.length && timeline[cursor].time <= elapsed) {
+      const { event, time, numbers } = timeline[cursor++];
+      // Advance to each scheduled onset before replacing a tween, including across missed frames.
+      settled = advanceNumbers(time) || settled;
+      if (!numbers) {
+        feedback = [...feedback, { event, startedAt: startedAt + time }];
+        soundService.playSkillPulse(event.participantDiceIds.length > 2 || event.bonusIds.length > 0);
+        continue;
+      }
+      if (event.healing) displayedHp = Math.min(get().maxHp, displayedHp + event.healing);
+      for (const item of event.identities) {
+        identities = { ...identities, [item.diceId]: { creature: item.creature, tags: item.tags } };
+      }
+      const newIds = event.bonusIds.filter((id) => !visible.includes(id));
+      if (newIds.length) visible = [...visible, ...newIds];
+      for (const change of event.changes) {
+        const display = valueFor(change);
+        active.set(`${change.kind}:${change.targetId}`, { change, from: display.displayValue, scale: display.scale, start: time });
+      }
+    }
+    settled = advanceNumbers(elapsed) || settled;
+    if (active.size && elapsed - lastRollSound >= timing.numberSoundIntervalMs) {
+      soundService.playNumberRoll(); lastRollSound = elapsed;
+    }
     if (settled) soundService.playNumberSettle();
-    const copy = <T extends string | number>(values: Record<T, NumberDisplay>) =>
-      Object.fromEntries(Object.entries<NumberDisplay>(values).map(([key, value]) => [key, { ...value }])) as Record<T, NumberDisplay>;
+    if (feedback.some((item) => startedAt + elapsed - item.startedAt >= nameLifetime)) {
+      feedback = feedback.filter((item) => startedAt + elapsed - item.startedAt < nameLifetime);
+    }
     const shieldDisplays = Object.values(shields);
     const totalShield = combatNumber(initialShield + shieldDisplays.reduce((sum, value) => sum + value.displayValue, 0));
-    set({ diceSlotStates: copy(dice), bonusSlotStates: copy(bonuses), displayedShields: copy(shields), displayedFood: copy(food),
-      playerHpDisplay: displayedHp, displayedIdentities: { ...identities }, visibleBonusIds: [...visible],
+    const frame: Partial<GameState> = { diceSlotStates: dice, bonusSlotStates: bonuses,
+      displayedShields: shields, displayedFood: food, displayedIdentities: identities, visibleBonusIds: visible,
+      playerHpDisplay: displayedHp,
       playerShieldDisplay: shieldDisplays.some((display) => display.isSpinning) ? Math.floor(totalShield) : totalShield,
-      skillFeedback: get().skillFeedback.filter((feedback) => performance.now() - feedback.startedAt < nameLifetime) });
-    await waitForAnimation(timing.frameMs);
+      skillFeedback: feedback };
+    const current = get();
+    if (Object.keys(frame).some((key) => frame[key as keyof GameState] !== current[key as keyof GameState])) set(frame);
+    if (elapsed >= duration) break;
+    elapsed = await new Promise<number>((resolve) => requestAnimationFrame((now) => resolve(now - startedAt)));
   }
   if (get().combatPhase !== 'RESOLVING_CALCULATION' || get().comboSummary !== summary) return;
   set({ diceSlotStates: Object.fromEntries(summary.items.map((item, index) => [index, { ...still(ceilDamage(item.finalDamage)), isBuffed: item.finalDamage > item.rolledBaseValue }])),

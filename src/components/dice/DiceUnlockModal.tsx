@@ -1,9 +1,13 @@
+import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import { Dices } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 
 export const DiceUnlockModal: React.FC = () => {
-  const { unlockedDiceNotification, dismissDiceNotification } = useGameStore();
+  const { unlockedDiceNotification, dismissDiceNotification } = useGameStore(useShallow((state) => ({
+    unlockedDiceNotification: state.unlockedDiceNotification,
+    dismissDiceNotification: state.dismissDiceNotification,
+  })));
   if (!unlockedDiceNotification) return null;
 
   return (

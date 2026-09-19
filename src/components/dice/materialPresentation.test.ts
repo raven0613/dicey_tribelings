@@ -19,7 +19,7 @@ for (const material of Object.keys(MATERIAL_CONFIG) as FaceMaterial[]) test(`${m
   const dice = configuredDice('a', '測試', 'd6', 'amber', Array.from({ length: 6 }, () => ['food', 4]));
   dice.faces[0].material = material;
   const props = {
-    dice, faceIndex: 0, size: 100, rotation: 0, scale: 1, rolling: false, unrolled: false,
+    dice, faceIndex: 0, size: 100, rotation: 0, motionRef: { current: null }, rolling: false, unrolled: false,
     numberScale: 1, protectedDie: false, spinning: false, buffed: false, locked: false, canReroll: false,
     onReroll: () => { }, onInspect: () => { }
   };

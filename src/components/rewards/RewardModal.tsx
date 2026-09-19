@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import type { CreatureId } from '../../types/creatures';
 import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
 import { getEffectiveFace } from '../../service/dice/diceFaces';
@@ -11,7 +12,16 @@ import { RarityBadge } from '../dice/RarityBadge';
 
 export const RewardModal: React.FC<{ onOpenDiceBag: (creature?: CreatureId) => void; inspectingDice: boolean }> = ({ onOpenDiceBag, inspectingDice }) => {
   const { battleRewardOptions, battleRewardPickCount, battleRecovery, combatPhase, currentEnemy, currentNodeIndex,
-    selectBattleRewards, skipBattleReward } = useGameStore();
+    selectBattleRewards, skipBattleReward } = useGameStore(useShallow((state) => ({
+    battleRewardOptions: state.battleRewardOptions,
+    battleRewardPickCount: state.battleRewardPickCount,
+    battleRecovery: state.battleRecovery,
+    combatPhase: state.combatPhase,
+    currentEnemy: state.currentEnemy,
+    currentNodeIndex: state.currentNodeIndex,
+    selectBattleRewards: state.selectBattleRewards,
+    skipBattleReward: state.skipBattleReward,
+  })));
   const [selected, setSelected] = useState<string[]>([]);
   useEffect(() => setSelected([]), [currentNodeIndex, combatPhase]);
   useEffect(() => {

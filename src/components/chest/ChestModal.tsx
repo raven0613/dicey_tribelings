@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { ChestStory } from '../story/ChestStory';
 import { SkillText } from '../common/SkillText';
 import React, { useState } from 'react';
@@ -31,7 +32,16 @@ export const ChestModal: React.FC = () => {
     openChest,
     claimChestReward,
     skipChestReward,
-  } = useGameStore();
+  } = useGameStore(useShallow((state) => ({
+    mapNodes: state.mapNodes,
+    currentNodeIndex: state.currentNodeIndex,
+    chestRewardOptions: state.chestRewardOptions,
+    pendingEquipment: state.pendingEquipment,
+    equipments: state.equipments,
+    openChest: state.openChest,
+    claimChestReward: state.claimChestReward,
+    skipChestReward: state.skipChestReward,
+  })));
   const [equipmentTransfer, setEquipmentTransfer] = useState<EquipmentTransferState | null>(null);
   const currentNode = mapNodes[currentNodeIndex];
   if (!currentNode || currentNode.type !== 'chest' || currentNode.completed) return null;

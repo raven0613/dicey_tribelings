@@ -1,11 +1,9 @@
-import { SKILL_AUDIO as audio } from '../../configs/battleConfig';
+import { SKILL_AUDIO as audio, IMPACT_AUDIO } from '../../configs/battleConfig';
 
-/**
- * Procedural Web Audio API sound synthesizer for juicy indie game feedback.
- * No external asset loading required, zero latency, guaranteed to work offline.
- */
+/** Offline procedural audio with a shared context and reusable impact noise. */
 class SoundService {
   private ctx: AudioContext | null = null;
+  private impactNoise: AudioBuffer | null = null;
   public isMuted: boolean = false;
 
   private initCtx() {
@@ -13,11 +11,27 @@ class SoundService {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        this.impactNoise = this.ctx.createBuffer(1,
+          Math.ceil(this.ctx.sampleRate * IMPACT_AUDIO.noiseDurationSeconds), this.ctx.sampleRate);
+        const samples = this.impactNoise.getChannelData(0);
+        for (let index = 0; index < samples.length; index++) samples[index] = Math.random() * 2 - 1;
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }
+  }
+
+  public prepare() {
+    if (!this.isMuted) this.initCtx();
+  }
+
+  private releaseOnEnd(source: AudioScheduledSourceNode, ...nodes: AudioNode[]) {
+    source.onended = () => {
+      source.disconnect();
+      nodes.forEach((node) => node.disconnect());
+      source.onended = null;
+    };
   }
 
   public triggerHaptic(durationMs: number | number[] = 25) {
@@ -51,6 +65,7 @@ class SoundService {
         gain.gain.setValueAtTime(0.2, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
+        this.releaseOnEnd(osc, gain);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
@@ -76,6 +91,7 @@ class SoundService {
     gain.gain.setValueAtTime(0.3, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
+    this.releaseOnEnd(osc, gain);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
@@ -99,6 +115,7 @@ class SoundService {
     gain.gain.setValueAtTime(0.25, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
+    this.releaseOnEnd(osc, gain);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
@@ -126,6 +143,7 @@ class SoundService {
     gain.gain.setValueAtTime(0.2, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
 
+    this.releaseOnEnd(osc, filter, gain);
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.ctx.destination);
@@ -151,6 +169,7 @@ class SoundService {
     gain.gain.setValueAtTime(0.25, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
 
+    this.releaseOnEnd(osc, gain);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
@@ -174,27 +193,24 @@ class SoundService {
     bassGain.gain.setValueAtTime(isHeavy ? 0.6 : 0.4, now);
     bassGain.gain.exponentialRampToValueAtTime(0.001, now + (isHeavy ? 0.25 : 0.15));
 
+    this.releaseOnEnd(bassOsc, bassGain);
     bassOsc.connect(bassGain);
     bassGain.connect(this.ctx.destination);
     bassOsc.start(now);
     bassOsc.stop(now + (isHeavy ? 0.25 : 0.15));
 
     // Impact crack noise
-    const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.05, this.ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseBuffer.length; i++) {
-      output[i] = Math.random() * 2 - 1;
-    }
     const noise = this.ctx.createBufferSource();
-    noise.buffer = noiseBuffer;
+    noise.buffer = this.impactNoise;
     const noiseGain = this.ctx.createGain();
     noiseGain.gain.setValueAtTime(isHeavy ? 0.35 : 0.2, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + IMPACT_AUDIO.noiseDurationSeconds);
 
+    this.releaseOnEnd(noise, noiseGain);
     noise.connect(noiseGain);
     noiseGain.connect(this.ctx.destination);
     noise.start(now);
-    noise.stop(now + 0.05);
+    noise.stop(now + IMPACT_AUDIO.noiseDurationSeconds);
 
     this.triggerHaptic(isHeavy ? [40, 30, 40] : 35);
   }
@@ -211,6 +227,7 @@ class SoundService {
     osc.frequency.exponentialRampToValueAtTime(frequency * 1.15, now + duration);
     gain.gain.setValueAtTime(volume, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    this.releaseOnEnd(osc, gain);
     osc.connect(gain); gain.connect(this.ctx.destination);
     osc.start(now); osc.stop(now + duration);
   }
@@ -238,6 +255,7 @@ class SoundService {
     gain.gain.setValueAtTime(0.3, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
+    this.releaseOnEnd(osc, gain);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
@@ -260,6 +278,7 @@ class SoundService {
         osc.frequency.setValueAtTime(freq, now);
         gain.gain.setValueAtTime(0.22, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        this.releaseOnEnd(osc, gain);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
@@ -284,6 +303,7 @@ class SoundService {
         osc.frequency.setValueAtTime(freq, now);
         gain.gain.setValueAtTime(0.3, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        this.releaseOnEnd(osc, gain);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
@@ -309,6 +329,7 @@ class SoundService {
         osc.frequency.exponentialRampToValueAtTime(freq * 1.02, now + 0.15);
         gain.gain.setValueAtTime(0.28, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        this.releaseOnEnd(osc, gain);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);

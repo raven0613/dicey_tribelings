@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { REGION_CONFIG, REGION_IDS } from '../../configs/regions/regionConfig';
@@ -7,7 +8,15 @@ import { MapRouteNode } from './MapRouteNode';
 import { Coins, Volume2, VolumeX } from 'lucide-react';
 
 export const MapProgress: React.FC = () => {
-  const { mapNodes, currentNodeIndex, routeChoices, chooseRoute, toggleSound, soundMuted, gold } = useGameStore();
+  const { mapNodes, currentNodeIndex, routeChoices, chooseRoute, toggleSound, soundMuted, gold } = useGameStore(useShallow((state) => ({
+    mapNodes: state.mapNodes,
+    currentNodeIndex: state.currentNodeIndex,
+    routeChoices: state.routeChoices,
+    chooseRoute: state.chooseRoute,
+    toggleSound: state.toggleSound,
+    soundMuted: state.soundMuted,
+    gold: state.gold,
+  })));
   const region = mapNodes[currentNodeIndex].region;
   const nodes = mapNodes.filter((node) => node.region === region);
   const depths = [...new Set(nodes.map((node) => node.regionNode))].sort((a, b) => a - b);

@@ -2,7 +2,7 @@ import { Heart, Shield } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 
 export function PlayerImpact() {
-  const { enemyAttack } = useGameStore();
+  const enemyAttack = useGameStore((state) => state.enemyAttack);
   if (!enemyAttack || (enemyAttack.stage !== 'impact' && enemyAttack.stage !== 'recoil')) return null;
   return <div className="player-impact" aria-live="polite">
     <div className="player-impact-ring" />

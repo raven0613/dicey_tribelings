@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { RationsBadge } from './BattleStatusBadges';
 import { BATTLE_LIMIT } from '../../configs/battleConfig';
 import { FOOD_CAPACITY } from '../../configs/materials/materialConfig';
@@ -5,7 +6,17 @@ import { Heart, Shield } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 
 export function PlayerVitals() {
-  const { playerHp, playerHpDisplay, maxHp, playerShield, playerShieldDisplay, creatureBattleState, hoveredEquipmentId, equipments, combatPhase } = useGameStore();
+  const { playerHp, playerHpDisplay, maxHp, playerShield, playerShieldDisplay, creatureBattleState, hoveredEquipmentId, equipments, combatPhase } = useGameStore(useShallow((state) => ({
+    playerHp: state.playerHp,
+    playerHpDisplay: state.playerHpDisplay,
+    maxHp: state.maxHp,
+    playerShield: state.playerShield,
+    playerShieldDisplay: state.playerShieldDisplay,
+    creatureBattleState: state.creatureBattleState,
+    hoveredEquipmentId: state.hoveredEquipmentId,
+    equipments: state.equipments,
+    combatPhase: state.combatPhase,
+  })));
   const round = Math.max(1, creatureBattleState.round);
   const remaining = BATTLE_LIMIT.rounds - round + 1;
   const stored = Object.values(creatureBattleState.storedFood).reduce((sum, value) => sum + value, 0);

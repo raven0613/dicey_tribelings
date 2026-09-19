@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import type { TemporaryStickerPlacement } from '../../types/game';
@@ -10,7 +11,13 @@ import { DiceTabs } from '../dice/DiceTabs';
 import { ConsumableBar } from '../stickers/ConsumableBar';
 
 export const BattlePreparation: React.FC = () => {
-  const { dicePool, consumableStickers, confirmBattlePreparation, unlockedDiceNotification, stickerFlow } = useGameStore();
+  const { dicePool, consumableStickers, confirmBattlePreparation, unlockedDiceNotification, stickerFlow } = useGameStore(useShallow((state) => ({
+    dicePool: state.dicePool,
+    consumableStickers: state.consumableStickers,
+    confirmBattlePreparation: state.confirmBattlePreparation,
+    unlockedDiceNotification: state.unlockedDiceNotification,
+    stickerFlow: state.stickerFlow,
+  })));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [diceId, setDiceId] = useState(dicePool[0].id);
   const [placements, setPlacements] = useState<TemporaryStickerPlacement[]>([]);

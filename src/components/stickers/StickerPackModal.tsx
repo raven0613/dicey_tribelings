@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
 import { getEffectiveFace } from '../../service/dice/diceFaces';
 import { SkillText } from '../common/SkillText';
@@ -8,7 +9,10 @@ import { useGameStore } from '../../store/gameStore';
 import { CreatureBadge } from '../dice/CreatureBadge';
 
 export const StickerPackModal: React.FC = () => {
-  const { openedPackResult, beginOpenedPack } = useGameStore();
+  const { openedPackResult, beginOpenedPack } = useGameStore(useShallow((state) => ({
+    openedPackResult: state.openedPackResult,
+    beginOpenedPack: state.beginOpenedPack,
+  })));
   if (!openedPackResult) return null;
 
   return (

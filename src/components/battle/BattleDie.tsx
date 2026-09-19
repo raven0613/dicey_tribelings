@@ -16,7 +16,7 @@ interface BattleDieProps {
   faceIndex: number;
   size: number;
   rotation: number;
-  scale: number;
+  motionRef: React.RefObject<HTMLButtonElement | null>;
   rolling: boolean;
   unrolled: boolean;
   bulgeFilter?: string;
@@ -34,7 +34,7 @@ interface BattleDieProps {
   onInspect: (id: string | null) => void;
 }
 
-export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rotation, scale,
+export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rotation, motionRef,
   rolling, unrolled, bulgeFilter, value, numberScale, effectiveCreature, effectiveTags, reducedMotion,
   protectedDie, spinning, buffed, locked, canReroll, onReroll, onInspect }) => {
   const id = useId();
@@ -48,7 +48,7 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
   const material = unrolled ? undefined : face.material;
   const coating = material ? MATERIAL_CONFIG[material] : undefined;
 
-  return <button type="button" disabled={unrolled} data-material={material}
+  return <button ref={motionRef} type="button" disabled={unrolled} data-material={material}
     className={`battle-die ${unrolled ? 'is-unrolled' : ''} ${rolling ? 'is-rolling' : ''} ${buffed && locked ? 'is-buffed' : ''}`}
     onMouseEnter={unrolled ? undefined : () => onInspect(dice.id)} onMouseLeave={unrolled ? undefined : () => onInspect(null)}
     onFocus={unrolled ? undefined : () => onInspect(dice.id)} onBlur={unrolled ? undefined : () => onInspect(null)}
@@ -58,7 +58,7 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
     style={{ width: size, height: size }}>
     <span className="battle-die-shadow" />
     <svg viewBox={`0 0 ${appearance.viewBoxSize} ${appearance.viewBoxSize}`} aria-hidden="true" className="battle-die-art"
-      style={{ transform: `rotate(${rotation}deg) scale(${scale})` }}>
+      style={{ transform: `rotate(calc(${rotation}deg + var(--roll-rotation, 0deg))) scale(var(--roll-scale, 1))` }}>
       <defs>
         {material && <MaterialPaint material={material} id={`${id}-material`} />}
         <linearGradient id={`${id}-rim`} x1="0" y1="0" x2="0.75" y2="1">

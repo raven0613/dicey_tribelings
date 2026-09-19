@@ -4,6 +4,12 @@ import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import type { CreatureId } from '../../types/creatures';
 import { getCharacterEntrancePaths } from '../../service/dice/characterEntrancePath';
 
+const art = DICE_CHARACTER_PRESENTATION.gang;
+const canvasSize = DICE_FACE_PRESENTATION.viewBoxSize;
+const paths = getCharacterEntrancePaths(art.start, art.control, art.press);
+const travelMs = art.durationMs - art.pressHoldMs - art.reboundMs;
+const riseMs = travelMs * art.riseFraction;
+
 export function DiceCharacter({ creature, rolling = false, reducedMotion = false }: {
   creature: CreatureId; rolling?: boolean; reducedMotion?: boolean;
 }) {
@@ -12,11 +18,6 @@ export function DiceCharacter({ creature, rolling = false, reducedMotion = false
   const curvePathRef = useRef<SVGPathElement>(null);
   const completePathRef = useRef<SVGPathElement>(null);
   const wasRolling = useRef(rolling);
-  const art = DICE_CHARACTER_PRESENTATION.gang;
-  const canvasSize = DICE_FACE_PRESENTATION.viewBoxSize;
-  const paths = getCharacterEntrancePaths(art.start, art.control, art.press);
-  const travelMs = art.durationMs - art.pressHoldMs - art.reboundMs;
-  const riseMs = travelMs * art.riseFraction;
   useLayoutEffect(() => {
     const motion = motionRef.current;
     if (rolling && !wasRolling.current && motion) {

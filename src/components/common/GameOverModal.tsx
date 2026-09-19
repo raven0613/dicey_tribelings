@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { CHAPTER_END_NODE, ROUTE_CONFIG } from '../../configs/regions/mapConfig';
 import { BATTLE_LIMIT } from '../../configs/battleConfig';
 import React from 'react';
@@ -6,7 +7,17 @@ import { Skull, Trophy, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const GameOverModal: React.FC = () => {
-  const { combatPhase, restartGame, dicePool, equipments, currentNodeIndex, currentEnemy, mapNodes, creatureBattleState, playerHp } = useGameStore();
+  const { combatPhase, restartGame, dicePool, equipments, currentNodeIndex, currentEnemy, mapNodes, creatureBattleState, playerHp } = useGameStore(useShallow((state) => ({
+    combatPhase: state.combatPhase,
+    restartGame: state.restartGame,
+    dicePool: state.dicePool,
+    equipments: state.equipments,
+    currentNodeIndex: state.currentNodeIndex,
+    currentEnemy: state.currentEnemy,
+    mapNodes: state.mapNodes,
+    creatureBattleState: state.creatureBattleState,
+    playerHp: state.playerHp,
+  })));
 
   const timedOut = creatureBattleState.round >= BATTLE_LIMIT.rounds && playerHp > 0;
   const isDefeat = combatPhase === 'DEFEAT';

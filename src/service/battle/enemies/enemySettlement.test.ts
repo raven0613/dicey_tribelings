@@ -18,8 +18,23 @@ function summaryWithDamage(damage: number): BattleComboSummary {
     totalShield: 0, bonusControlGranted: 0, nextStoredFood: {} };
 }
 
+function mockAnimationFrames(context: TestContext) {
+  const original = globalThis.requestAnimationFrame;
+  const simulatedFrameMs = 1000 / 60;
+  let now = performance.now();
+  globalThis.requestAnimationFrame = (callback) => setTimeout(() => {
+    now += simulatedFrameMs;
+    callback(now);
+  }, 0) as unknown as number;
+  context.after(() => {
+    if (original) globalThis.requestAnimationFrame = original;
+    else Reflect.deleteProperty(globalThis, 'requestAnimationFrame');
+  });
+}
+
 async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSummary, playerHp = 60, initial: Partial<GameState> = {}) {
   context.mock.timers.enable({ apis: ['setTimeout'] });
+  mockAnimationFrames(context);
   let state: GameState = { ...useGameStore.getInitialState(), currentEnemy: enemy,
     comboSummary: summary, playerHp, playerShield: 0, combatPhase: 'CONTROL_PHASE', activeRerollingIndex: null, ...initial };
   let rolls = 0;
@@ -128,6 +143,7 @@ test('settlement attacks match preview after robbery and porter support with gan
 
 test('locking commits chef food once and rejects another settlement during the animation', async (context) => {
   context.mock.timers.enable({ apis: ['setTimeout'] });
+  mockAnimationFrames(context);
   const chef: Dice = { id: 'chef', name: '廚師骰', dieType: 'd6', colorTheme: 'emerald',
     faces: Array.from({ length: 6 }, (_, index) => ({ id: `chef-${index}`, creature: index === 0 ? 'chef' : 'food', baseValue: 4 })) };
   const enemy = createEnemy('r1_slinger');

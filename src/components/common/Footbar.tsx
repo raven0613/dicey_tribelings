@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { Coins, Dices, Play, RotateCcw, Shield, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { PlayerVitals } from '../battle/PlayerVitals';
@@ -16,7 +17,25 @@ interface FootbarProps {
 }
 
 export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, isCombat }: FootbarProps) {
-  const { gold, dicePool, setDiceAction, control, maxControl, diceAction, creatureBattleState, equipments, comboSummary, combatPhase, activeRerollingIndex, pendingPaidRerollDiceId, currentEnemy, hoveredEquipmentId, unlockedDiceNotification, confirmBattlePreparation, stickerFlow } = useGameStore();
+  const { gold, dicePool, setDiceAction, control, maxControl, diceAction, creatureBattleState, equipments, comboSummary, combatPhase, activeRerollingIndex, pendingPaidRerollDiceId, currentEnemy, hoveredEquipmentId, unlockedDiceNotification, confirmBattlePreparation, stickerFlow } = useGameStore(useShallow((state) => ({
+    gold: state.gold,
+    dicePool: state.dicePool,
+    setDiceAction: state.setDiceAction,
+    control: state.control,
+    maxControl: state.maxControl,
+    diceAction: state.diceAction,
+    creatureBattleState: state.creatureBattleState,
+    equipments: state.equipments,
+    comboSummary: state.comboSummary,
+    combatPhase: state.combatPhase,
+    activeRerollingIndex: state.activeRerollingIndex,
+    pendingPaidRerollDiceId: state.pendingPaidRerollDiceId,
+    currentEnemy: state.currentEnemy,
+    hoveredEquipmentId: state.hoveredEquipmentId,
+    unlockedDiceNotification: state.unlockedDiceNotification,
+    confirmBattlePreparation: state.confirmBattlePreparation,
+    stickerFlow: state.stickerFlow,
+  })));
 
   const selectingAction = diceAction !== 'reroll';
   const paidCost = getPaidRerollCost(creatureBattleState.paidRerolls, equipments);

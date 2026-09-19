@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useEffect, useRef, useState } from 'react';
 import { Coins } from 'lucide-react';
 import { PAID_REROLL_CONFIG } from '../../configs/controlConfig';
@@ -6,7 +7,13 @@ import { useGameStore } from '../../store/gameStore';
 
 /** 僅在有待確認目標時掛載；原生 dialog 管理焦點與背景操作。 */
 export function PaidRerollDialog() {
-  const { creatureBattleState, equipments, gold, confirmPaidReroll, cancelPaidReroll } = useGameStore();
+  const { creatureBattleState, equipments, gold, confirmPaidReroll, cancelPaidReroll } = useGameStore(useShallow((state) => ({
+    creatureBattleState: state.creatureBattleState,
+    equipments: state.equipments,
+    gold: state.gold,
+    confirmPaidReroll: state.confirmPaidReroll,
+    cancelPaidReroll: state.cancelPaidReroll,
+  })));
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
   const cost = getPaidRerollCost(creatureBattleState.paidRerolls, equipments);

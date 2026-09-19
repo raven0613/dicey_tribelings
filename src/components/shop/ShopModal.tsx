@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { SkillText } from '../common/SkillText';
 import { RarityBadge } from '../dice/RarityBadge';
 import React from 'react';
@@ -19,7 +20,19 @@ export const ShopModal: React.FC = () => {
     buyShopEquipment,
     buyHeal,
     advanceToNextNode,
-  } = useGameStore();
+  } = useGameStore(useShallow((state) => ({
+    mapNodes: state.mapNodes,
+    currentNodeIndex: state.currentNodeIndex,
+    gold: state.gold,
+    playerHp: state.playerHp,
+    maxHp: state.maxHp,
+    shopStickers: state.shopStickers,
+    shopEquipments: state.shopEquipments,
+    buyShopSticker: state.buyShopSticker,
+    buyShopEquipment: state.buyShopEquipment,
+    buyHeal: state.buyHeal,
+    advanceToNextNode: state.advanceToNextNode,
+  })));
   const currentNode = mapNodes[currentNodeIndex];
   if (!currentNode || currentNode.type !== 'shop' || currentNode.completed) return null;
 

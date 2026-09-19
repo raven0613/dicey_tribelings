@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import type { Equipment } from '../../types/game';
 import { getEquipmentIcon } from '../equipment/equipmentIcons';
 import { Crosshair, LockKeyhole } from 'lucide-react';
@@ -22,10 +23,17 @@ export function DieStatusBadge({ sealed, damage }: { sealed?: boolean; damage?: 
 }
 
 export function RationsBadge() {
-  const { comboSummary, creatureBattleState, combatPhase, equipments, setHoveredEquipment, displayedFood } = useGameStore();
+  const { comboSummary, creatureBattleState, combatPhase, equipments, setHoveredEquipment, virtualFood } = useGameStore(useShallow((state) => ({
+    comboSummary: state.comboSummary,
+    creatureBattleState: state.creatureBattleState,
+    combatPhase: state.combatPhase,
+    equipments: state.equipments,
+    setHoveredEquipment: state.setHoveredEquipment,
+    virtualFood: state.displayedFood['virtual-food']?.displayValue,
+  })));
   const equipment = equipments.find((item) => item.ruleId === 'RATIONS');
   const amount = combatPhase === 'CONTROL_PHASE' ? comboSummary?.virtualFood ?? 0
-    : combatPhase === 'RESOLVING_CALCULATION' ? displayedFood['virtual-food']?.displayValue ?? creatureBattleState.virtualFood : 0;
+    : combatPhase === 'RESOLVING_CALCULATION' ? virtualFood ?? creatureBattleState.virtualFood : 0;
   const allocations = comboSummary?.events.filter((event) => equipment && event.equipmentId === equipment.id)
     .flatMap((event) => event.changes.filter((change) => change.kind === 'food').map((change) => {
       const index = comboSummary.items.findIndex((item) => item.diceId === change.targetId);

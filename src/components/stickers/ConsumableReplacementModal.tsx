@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { SkillText } from '../common/SkillText';
 import React from 'react';
 import { PackagePlus } from 'lucide-react';
@@ -13,7 +14,15 @@ export const ConsumableReplacementModal: React.FC = () => {
     discardCurrentSticker,
     replaceShopSticker,
     cancelShopSticker,
-  } = useGameStore();
+  } = useGameStore(useShallow((state) => ({
+    stickerFlow: state.stickerFlow,
+    pendingShopSticker: state.pendingShopSticker,
+    consumableStickers: state.consumableStickers,
+    replaceCurrentConsumable: state.replaceCurrentConsumable,
+    discardCurrentSticker: state.discardCurrentSticker,
+    replaceShopSticker: state.replaceShopSticker,
+    cancelShopSticker: state.cancelShopSticker,
+  })));
   const flowSticker = stickerFlow?.items[stickerFlow.index];
   const isFlow = Boolean(flowSticker?.isDisposable);
   const sticker = isFlow ? flowSticker : pendingShopSticker?.sticker;

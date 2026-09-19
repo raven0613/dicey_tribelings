@@ -1,8 +1,9 @@
+import { useGameStore } from '../../store/gameStore';
 import { ceilDamage } from '../../service/battle/damageValue';
 import { SkillFeedback } from './SkillFeedback';
 import type { SkillFeedback as Feedback } from '../../types/battle';
 import { getAttackPose } from '../../service/battle/attackPresentation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BonusAttackDice, AttackStage } from '../../types/game';
 import { Sparkles } from 'lucide-react';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
@@ -22,12 +23,6 @@ interface BonusPhantomDiceProps {
   attackEmphasis: number;
   bulgeFilter?: string;
   reducedMotion: boolean;
-  slotState?: {
-    displayValue: number;
-    scale: number;
-    isSpinning: boolean;
-    isLocked: boolean;
-  };
   x: number;
   y: number;
   attackOffset: { x: number; y: number };
@@ -45,12 +40,12 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   attackEmphasis,
   bulgeFilter,
   reducedMotion,
-  slotState,
   x,
   y,
   attackOffset,
   onInspect,
 }) => {
+  const slotState = useGameStore((state) => state.bonusSlotStates[dice.id]);
   const [spawned, setSpawned] = useState(false);
   useEffect(() => { if (isAttacking) setSpawned(true); }, [isAttacking]);
   // Determine display number
@@ -58,7 +53,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   const isSpinning = slotState?.isSpinning ?? false;
 
   const color = dice.creature ? CREATURE_CONFIG[dice.creature].color : '#d8b4fe';
-  const projection = getPhantomProjection(size);
+  const projection = useMemo(() => getPhantomProjection(size), [size]);
   const tags = dice.creature ? CREATURE_CONFIG[dice.creature].tags : ['mystery'] as const;
   const renderFace = () => <svg className="phantom-face-art" viewBox="0 0 100 100" aria-hidden="true">
     {dice.creature && <DiceCharacter creature={dice.creature} reducedMotion={reducedMotion} />}

@@ -1,22 +1,32 @@
+import { useShallow } from 'zustand/react/shallow';
 import { ExposureBadge } from './BattleStatusBadges';
 import { getRoundFace } from '../../service/battle/creatures/imposterResolution';
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
-import { Enemy } from '../../types/game';
 import { Shield, Swords, Sparkles, Skull, Crown } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { describeEnemyIntent, previewEnemyRound } from '../../service/battle/enemies/enemyDescription';
 import { SkillText } from '../common/SkillText';
 import { useSkillTooltip } from '../common/useSkillTooltip';
 
-interface EnemyCardProps {
-  enemy: Enemy | null;
-  isHit?: boolean;
-}
-
-export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) => {
-  const { damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack, equipments, playerHp, maxHp, playerShield, creatureBattleState, dicePool, rolledIndices } = useGameStore();
+export const EnemyCard: React.FC = () => {
+  const { enemy, damagePops, attackingStage, combatPhase, comboSummary, activeRerollingIndex, enemyAttack, equipments, playerHp, maxHp, playerShield, creatureBattleState, dicePool, rolledIndices } = useGameStore(useShallow((state) => ({
+    enemy: state.currentEnemy,
+    damagePops: state.damagePops,
+    attackingStage: state.attackingStage,
+    combatPhase: state.combatPhase,
+    comboSummary: state.comboSummary,
+    activeRerollingIndex: state.activeRerollingIndex,
+    enemyAttack: state.enemyAttack,
+    equipments: state.equipments,
+    playerHp: state.playerHp,
+    maxHp: state.maxHp,
+    playerShield: state.playerShield,
+    creatureBattleState: state.creatureBattleState,
+    dicePool: state.dicePool,
+    rolledIndices: state.rolledIndices,
+  })));
   const enemyRef = useRef<HTMLDivElement>(null);
   const [attackDistance, setAttackDistance] = useState(0);
   const intentDescription = enemy ? describeEnemyIntent(enemy) : '';
@@ -35,7 +45,7 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({ enemy, isHit = false }) =>
     const index = dicePool.findIndex((die) => die.id === id);
     return index >= 0 ? CREATURE_CONFIG[getRoundFace(dicePool[index], rolledIndices[index], creatureBattleState).creature].name : '';
   };
-  const isImpacted = isHit || attackingStage === 'impact';
+  const isImpacted = attackingStage === 'impact';
   const hpPercent = Math.max(0, Math.min(100, (enemy.hp / enemy.maxHp) * 100));
   const currentIntent = enemy.intents[enemy.currentIntentIndex] || enemy.intents[0];
 
