@@ -1,0 +1,8 @@
+@use 'variables' as *;
+
+.dice-identity-header { display: flex; align-items: center; gap: 0.75rem; }
+.dice-identity-portrait { display: block; flex-shrink: 0; }
+.dice-identity-details { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; }
+.dice-identity-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0.375rem; }
+.dice-identity-tags { color: $slate-400; }
+.dice-identity-attack { display: flex; align-items: center; gap: 0.375rem; }

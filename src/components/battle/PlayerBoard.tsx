@@ -1,3 +1,4 @@
+import { useGameViewport } from '../layout/GameViewportContext';
 import type { CSSProperties, ReactNode } from 'react';
 import { BATTLE_PRESENTATION } from '../../configs/battleConfig';
 import { useGameStore } from '../../store/gameStore';
@@ -11,8 +12,9 @@ import { useDiceSize } from './useDiceSize';
 export function PlayerBoard({ children, isCombat }: { children: ReactNode; isCombat: boolean }) {
   const enemyAttack = useGameStore((state) => state.enemyAttack);
   const isHit = isCombat && (enemyAttack?.stage === 'impact' || enemyAttack?.stage === 'recoil');
+  const { minimumFontSize } = useGameViewport();
   const size = useDiceSize();
-  const trayHeight = getDiceTrayMetrics(size).height;
+  const trayHeight = getDiceTrayMetrics(size, minimumFontSize).height;
   const equipmentHeight = INITIAL_PLAYER_STATS.maxEquipmentSlots * board.equipmentSlotSize
     + (INITIAL_PLAYER_STATS.maxEquipmentSlots - 1) * board.equipmentSlotGap;
 

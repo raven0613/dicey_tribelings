@@ -1,6 +1,8 @@
 @use '../variables' as *;
 
 .sticker-applier-card {
+  .sticker-match-summary { font-size: max(0.875rem, var(--minimum-font-size)); color: $amber-300; }
+
   .sticker-overview {
     display: flex;
     align-items: center;
@@ -17,11 +19,11 @@
     gap: 0.5rem;
     flex: 0 0 auto;
 
-    .creature-badge { font-size: 1rem; }
+    .creature-badge { font-size: max(1rem, var(--minimum-font-size)); }
   }
 
-  .sticker-overview-value { font: 800 1.75rem monospace; color: $amber-300; }
-  .sticker-overview-info { min-width: 0; font-size: 0.875rem; line-height: 1.4; }
-  .sticker-overview-info > strong { color: $amber-300; font-size: 1rem; }
+  .sticker-overview-value { font: 800 1.75rem monospace; font-size: max(1.75rem, var(--minimum-font-size)); color: $amber-300; }
+  .sticker-overview-info { min-width: 0; font-size: max(0.875rem, var(--minimum-font-size)); line-height: 1.4; }
+  .sticker-overview-info > strong { color: $amber-300; font-size: max(1rem, var(--minimum-font-size)); }
   .sticker-overview-info p { color: $slate-200; overflow-wrap: anywhere; }
 }

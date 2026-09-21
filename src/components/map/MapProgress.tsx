@@ -41,11 +41,11 @@ export const MapProgress: React.FC = () => {
     </div>
 
     <div className='nav__info'>
-      <span className="nav__gold"><Coins size={18} />{gold} 金幣</span>
+      <span className="nav__gold"><Coins className="ui-icon" />{gold} 金幣</span>
 
       <button type="button" id="btn-toggle-sound" onClick={toggleSound}
         aria-label={soundMuted ? '開啟音效' : '靜音'} aria-pressed={soundMuted}>
-        {soundMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        {soundMuted ? <VolumeX className="ui-icon" /> : <Volume2 className="ui-icon" />}
       </button>
     </div>
   </nav>;

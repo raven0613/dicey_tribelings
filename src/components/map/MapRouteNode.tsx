@@ -23,7 +23,7 @@ export function MapRouteNode({ node, selectable, onChoose }: MapRouteNodeProps) 
   const { tooltip, tooltipProps } = useSkillTooltip(content);
   const className = ['region-map-node', node.current && 'current', node.completed && 'completed',
     node.skipped && 'skipped', selectable && 'selectable'].filter(Boolean).join(' ');
-  const title = <><Icon size={16} aria-hidden="true" /><span style={monster ? { color: MONSTER_RANK_COLORS[monster.rank] } : undefined}>{node.title}</span></>;
+  const title = <><Icon className="ui-icon" aria-hidden="true" /><span style={monster ? { color: MONSTER_RANK_COLORS[monster.rank] } : undefined}>{node.title}</span></>;
 
   return <>
     {selectable ? <button type="button" className={className} {...tooltipProps}

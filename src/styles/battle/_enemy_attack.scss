@@ -36,7 +36,7 @@
 .player-impact-values {
   position: absolute; top: 1rem; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
-  font-size: 1.5rem; font-weight: 900; white-space: nowrap;
+  font-size: max(1.5rem, var(--minimum-font-size)); font-weight: 900; white-space: nowrap;
   span { display: flex; align-items: center; gap: 0.375rem; padding: 0.2rem 0.625rem; border-radius: $radius-lg; background: $slate-950; }
   .shield-loss { color: $blue-300; }
   .health-loss { color: $rose-300; }

@@ -31,7 +31,7 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: .875rem;
+  font-size: max(.875rem, var(--minimum-font-size));
   font-weight: 700;
   white-space: nowrap;
   svg { flex-shrink: 0; }

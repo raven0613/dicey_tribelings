@@ -25,13 +25,13 @@ export function PlayerVitals() {
   const shield = playerShieldDisplay ?? playerShield;
   return <div className="player-vitals" aria-label="玩家生命與護盾">
     <span className={`battle-round ${remaining <= BATTLE_LIMIT.warningRemaining ? 'is-warning' : ''}`} role="status">回合 {round}／{BATTLE_LIMIT.rounds}{remaining <= BATTLE_LIMIT.warningRemaining && `・剩 ${remaining} 回合`}</span>
-    <Heart size={22} />
+    <Heart className="ui-icon" />
     <strong className="player-health-value">{hp} / {maxHp}</strong>
     <div className="player-health-track" role="progressbar" aria-label="生命"
       aria-valuemin={0} aria-valuemax={maxHp} aria-valuenow={hp}>
       <div style={{ width: `${hp / maxHp * 100}%` }} />
     </div>
-    <span className={`player-shield-value ${highlightShield ? 'is-highlighted' : ''}`}><Shield size={20} />護盾 <strong>{shield}</strong></span>
+    <span className={`player-shield-value ${highlightShield ? 'is-highlighted' : ''}`}><Shield className="ui-icon" />護盾 <strong>{shield}</strong></span>
     <RationsBadge />
     <span className="food-capacity">儲糧 {stored}／{FOOD_CAPACITY.crocodile}</span>
   </div>;

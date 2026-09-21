@@ -1,6 +1,6 @@
 @use 'variables' as *;
 
-.rarity-badge { font-size: 0.875rem; }
+.rarity-badge { font-size: max(0.875rem, var(--minimum-font-size)); }
 .rarity-common { color: $slate-200; }
 .rarity-rare { color: #b8b1ff; }
 .rarity-legendary { color: $amber-300; }

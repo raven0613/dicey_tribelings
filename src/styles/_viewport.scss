@@ -1,0 +1,14 @@
+.game-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.game-stage {
+  position: absolute; left: 0; top: 0; transform-origin: top left;
+  container: game-stage / size;
+  font-size: max(1rem, var(--minimum-font-size));
+}
+.game-overlay-root { display: contents; }
+
+svg.ui-icon {
+  width: var(--ui-icon-size);
+  height: var(--ui-icon-size);
+  flex-shrink: 0;
+  vertical-align: middle;
+}

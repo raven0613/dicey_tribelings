@@ -1,6 +1,6 @@
 import type { Dice } from '../types/game';
-import type { CreatureTag } from '../types/creatures';
-import { CREATURE_TAG_COLORS, CREATURE_TAG_COLORS_DICE } from './creatures/creatureConfig';
+import type { CreatureId, CreatureTag } from '../types/creatures';
+import { CREATURE_TAG_COLORS_DICE } from './creatures/creatureConfig';
 
 export const DICE_SHAPES: Record<Dice['dieType'], { outline: string; facets: string }> = {
   d4: { outline: 'M45 10 Q50 2 55 10 L94 80 Q99 90 87 90 H13 Q1 90 6 80 Z', facets: 'M50 13 L50 29 M12 83 L25 70 M88 83 L75 70' },
@@ -17,7 +17,7 @@ export const DICE_ROLL_PRESENTATION = {
 } as const;
 
 export const DICE_TRAY_PRESENTATION = {
-  size: 75, mobileSize: 58, mobileBreakpoint: 600, slotGap: 25, sidePadding: 20,
+  size: 87, mobileSize: 58, slotGap: 60, sidePadding: 20,
   topPadding: 28, bottomPadding: 8, phantomGap: 12,
 } as const;
 
@@ -26,7 +26,11 @@ export const DICE_RESULT_PRESENTATION = {
 } as const;
 
 export const PLAYER_BOARD_PRESENTATION = {
-  equipmentSlotSize: 48, equipmentSlotGap: 6, scrollbarSpace: 6,
+  equipmentSlotSize: 60, equipmentSlotGap: 6, scrollbarSpace: 6,
+} as const;
+
+export const DICE_IDENTITY_PRESENTATION = {
+  portraitSize: 87,
 } as const;
 
 // Coordinates below use the shared 100 × 100 SVG canvas, scaled to the current dice footprint.
@@ -48,10 +52,31 @@ export const DICE_NUMBER_PRESENTATION = {
   rainbowColors: ['#d93651', '#df7624', '#b79808', '#229e61', '#267ed0', '#8254ce'],
 } as const;
 
+// Layer order is back to front; every image retains its full transparent canvas.
+const characterLayers = (...names: string[]) => names.map((name) =>
+  new URL(`../assets/dice/face/${name}.png`, import.meta.url).href);
+
+export const DICE_CHARACTER_LAYERS: Partial<Record<CreatureId, readonly string[]>> = {
+  family: characterLayers('family_parent_1', 'family_parent_2', 'family_child'),
+  sisters: characterLayers('divas_red_face', 'divas_red_eyes', 'divas_red_hand',
+    'divas_blue_face', 'divas_blue_eyes', 'divas_blue_hand'),
+  twins: characterLayers('twins_face', 'twins_hand_left', 'twins_hand_right', 'twins_effect'),
+  gang: characterLayers('hood_face', 'hood_hand'),
+  boss: characterLayers('buster_face', 'buster_crown', 'buster_candy', 'buster_hand'),
+  loner: characterLayers('loner_face', 'loner_eye', 'loner_hat'),
+  chef: characterLayers('chef_face', 'chef_eyes', 'chef_hand'),
+  porter: characterLayers('porter_face', 'porter_box_s', 'porter_box_l', 'porter_hand'),
+  follower: characterLayers('sidekick_face', 'sidekick_eyes', 'sidekick_sword', 'sidekick_hand'),
+  thief: characterLayers('crook_face', 'crook_hand_left', 'crook_hand_right'),
+  coward: characterLayers('coward_face', 'coward_eyes', 'coward_hand_left', 'coward_hand_right', 'coward_sweat'),
+  guard: characterLayers('bodyguard_hair_1', 'bodyguard_face'),
+  warrior: characterLayers('hero_face', 'hero_eye', 'hero_sword'),
+  elder: characterLayers('elder_face', 'elder_pipe', 'elder_smoke'),
+};
+
 export const DICE_CHARACTER_PRESENTATION = {
   gang: {
-    face: new URL('../assets/dice/face/hood_face.png', import.meta.url).href,
-    hand: new URL('../assets/dice/face/hood_hand.png', import.meta.url).href,
+    movingLayer: 1,
     durationMs: 800, start: { x: -24, y: 27 }, control: { x: -4, y: -15 },
     press: { x: 4, y: 8 },
     pressHoldMs: 10, reboundMs: 450,
@@ -64,5 +89,5 @@ export const DICE_CHARACTER_PRESENTATION = {
 } as const;
 
 export const PHANTOM_DICE_PRESENTATION = {
-  side: 72, cornerRadius: 12, rotateX: 20, rotateY: -20, floatDistance: 4,
+  side: 72, borderWidth: 2, cornerRadius: 12, rotateX: 20, rotateY: -20, floatDistance: 4,
 } as const;

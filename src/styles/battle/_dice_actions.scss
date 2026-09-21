@@ -5,7 +5,7 @@
   flex-wrap: wrap;
   gap: 8px;
   color: #fef3c7;
-  font-size: 13px;
+  font-size: max(13px, var(--minimum-font-size));
 
   button {
     padding: 8px 12px;

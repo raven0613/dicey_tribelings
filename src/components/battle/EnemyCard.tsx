@@ -1,3 +1,4 @@
+import { getGameRect } from '../../service/layout/gameViewport';
 import { useShallow } from 'zustand/react/shallow';
 import { ExposureBadge } from './BattleStatusBadges';
 import { getRoundFace } from '../../service/battle/creatures/imposterResolution';
@@ -35,8 +36,8 @@ export const EnemyCard: React.FC = () => {
   const { tooltip, tooltipProps } = useSkillTooltip([intentDescription, intentPreview].filter(Boolean).join('・'));
   useLayoutEffect(() => {
     if (enemyAttack?.stage !== 'windup') return;
-    const origin = enemyRef.current!.getBoundingClientRect();
-    const target = document.getElementById('battle-player-target')!.getBoundingClientRect();
+    const origin = getGameRect(enemyRef.current!);
+    const target = getGameRect(document.getElementById('battle-player-target')!);
     setAttackDistance(Math.max(0, target.top - origin.bottom) + (enemyAttack.heavy ? 8 : 4));
   }, [enemyAttack?.stage]);
   if (!enemy) return null;
@@ -104,12 +105,12 @@ export const EnemyCard: React.FC = () => {
           <div className="enemy-title-group">
             {enemy.isBoss && (
               <span className="enemy-badge boss-badge">
-                <Crown style={{ width: '12px', height: '12px', color: '#fbbf24' }} /> BOSS
+                <Crown className="ui-icon" style={{ color: '#fbbf24' }} /> BOSS
               </span>
             )}
             {enemy.isElite && (
               <span className="enemy-badge elite-badge">
-                <Skull style={{ width: '12px', height: '12px', color: '#c084fc' }} /> 菁英
+                <Skull className="ui-icon" style={{ color: '#c084fc' }} /> 菁英
               </span>
             )}
             <h2 className="enemy-name">{enemy.name}</h2>
@@ -125,19 +126,19 @@ export const EnemyCard: React.FC = () => {
                 color: '#f87171',
               }}
             >
-              <Skull style={{ width: '14px', height: '14px' }} />
+              <Skull className="ui-icon" />
               <span>已擊敗</span>
             </div>
           ) : currentIntent ? (
             <div className={intentClass} {...tooltipProps} tabIndex={0}>
               {tooltip}
-              {currentIntent.type === 'attack' && <Swords style={{ width: '14px', height: '14px' }} />}
+              {currentIntent.type === 'attack' && <Swords className="ui-icon" />}
               {currentIntent.type === 'heavy_attack' && (
-                <Swords style={{ width: '14px', height: '14px', color: '#fb7185' }} />
+                <Swords className="ui-icon" style={{ color: '#fb7185' }} />
               )}
-              {currentIntent.type === 'defend' && <Shield style={{ width: '14px', height: '14px' }} />}
+              {currentIntent.type === 'defend' && <Shield className="ui-icon" />}
               {(currentIntent.type === 'charge' || currentIntent.type === 'rest') && (
-                <Sparkles style={{ width: '14px', height: '14px' }} />
+                <Sparkles className="ui-icon" />
               )}
               <span><SkillText text={`${intentDescription}${intentPreview ? `（${intentPreview}）` : ''}`} /></span>
             </div>
@@ -159,7 +160,7 @@ export const EnemyCard: React.FC = () => {
             <span className="avatar-emoji">{enemy.avatar}</span>
             {enemy.shield > 0 && (
               <div className="avatar-shield-badge">
-                <Shield style={{ width: '12px', height: '12px', marginRight: '2px', display: 'inline' }} />
+                <Shield className="ui-icon" style={{ marginRight: '2px', display: 'inline' }} />
                 {enemy.shield}
               </div>
             )}

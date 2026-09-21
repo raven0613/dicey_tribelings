@@ -11,7 +11,7 @@
 
   .slots-grid {
     display: grid;
-    grid-auto-rows: var(--equipment-slot-size);
+    grid-auto-rows: minmax(var(--equipment-slot-size), max-content);
     gap: var(--equipment-slot-gap);
 
     .slot-empty {
@@ -23,11 +23,11 @@
       align-items: center;
       justify-content: center;
       color: $slate-600;
-      font-size: 0.75rem;
+      font-size: max(0.75rem, var(--minimum-font-size));
       font-weight: 700;
 
       .empty-sub {
-        font-size: 0.75rem;
+        font-size: max(0.75rem, var(--minimum-font-size));
         opacity: 0.6;
       }
     }
@@ -38,12 +38,13 @@
 
     .slot-occupied {
       position: relative;
-      height: var(--equipment-slot-size);
+      min-height: var(--equipment-slot-size);
       background-color: rgba($slate-800, 0.9);
       border: 1px solid rgba($amber-500, 0.4);
       border-radius: $radius-lg;
       padding: 0.125rem;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       transition: all $transition-fast;
@@ -88,6 +89,9 @@
       }
 
       .slot-icon-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         padding: 0.2rem;
         border-radius: $radius-md;
         background-color: rgba($slate-900, 0.8);
@@ -95,12 +99,8 @@
         flex-shrink: 0;
       }
 
-      &.has-action { padding-bottom: 1.125rem; }
-
       .equipment-action {
-        position: absolute;
-        bottom: 0;
-        left: 0;
+        margin: 0;
         width: 100%;
         padding: 0.125rem;
         line-height: 1;
@@ -118,7 +118,7 @@
         border-radius: $radius-full;
         background-color: $amber-500;
         color: $slate-950;
-        font-size: 0.75rem;
+        font-size: max(0.75rem, var(--minimum-font-size));
         font-weight: 900;
         line-height: 1;
         box-shadow: 0 0 10px rgba($amber-300, 0.85);
@@ -182,7 +182,7 @@
   border-radius: $radius-full;
   background-color: rgba($slate-950, 0.92);
   color: $amber-300;
-  font-size: 11px;
+  font-size: max(11px, var(--minimum-font-size));
   font-weight: 800;
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba($slate-950, 0.6);
@@ -215,13 +215,13 @@
 
       .tooltip-name {
         font-weight: 900;
-        font-size: 0.875rem;
+        font-size: max(0.875rem, var(--minimum-font-size));
         color: $slate-100;
       }
     }
 
     .rarity-pill {
-      font-size: 10px;
+      font-size: max(10px, var(--minimum-font-size));
       font-weight: 900;
       padding: 0.125rem 0.5rem;
       border-radius: $radius-full;
@@ -251,7 +251,7 @@
   }
 
   .tooltip-desc {
-    font-size: 0.75rem;
+    font-size: max(0.75rem, var(--minimum-font-size));
     color: $slate-200;
     line-height: 1.5;
   }

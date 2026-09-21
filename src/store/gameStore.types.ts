@@ -127,7 +127,8 @@ export interface GameState {
   applyCurrentPermanentSticker: (diceId: string, faceIndex: number) => void;
   replaceCurrentConsumable: (instanceId: string) => void;
   discardCurrentSticker: () => void;
-  selectBattleRewards: (options: BattleRewardOption[]) => void;
+  applyBattleRewardSticker: (optionId: string, diceId: string, faceIndex: number) => void;
+  claimBattleRewardPack: (optionId: string) => void;
   skipBattleReward: () => void;
   openChest: () => void;
   claimChestReward: (option: ChestRewardOption) => void;

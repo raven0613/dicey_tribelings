@@ -4,8 +4,8 @@
 .replacement-card,
 .dice-unlock-card {
   width: 100%;
-  max-width: 48rem;
-  max-height: calc(100vh - 2rem);
+  max-width: 60rem;
+  max-height: calc(var(--game-height) - 2rem);
   overflow-y: auto;
   padding: 1.25rem;
   border: 2px solid rgba($amber-500, 0.7);
@@ -39,7 +39,7 @@
   margin-top: 1rem;
   padding: 0.75rem 1rem;
   border-radius: $radius-lg;
-  font-size: 0.8rem;
+  font-size: max(0.8rem, var(--minimum-font-size));
   font-weight: 900;
 }
 
@@ -49,7 +49,7 @@
   border-radius: $radius-lg;
   background: $slate-800;
   color: $slate-300;
-  font-size: 0.72rem;
+  font-size: max(0.72rem, var(--minimum-font-size));
 }
 
 .btn-primary-modal {
@@ -75,9 +75,10 @@
   border: 1px solid $slate-700;
   border-radius: $radius-xl;
   background: rgba($slate-800, 0.85);
+  min-height: 22rem;
 
-  h3 { margin: 0.5rem 0 0.25rem; font-size: 0.9rem; }
-  p { margin: 0; color: $slate-300; font-size: 0.75rem; line-height: 1.45; }
+  h3 { margin: 0.5rem 0 0.25rem; font-size: max(0.9rem, var(--minimum-font-size)); }
+  p { margin: 0; color: $slate-300; font-size: max(0.75rem, var(--minimum-font-size)); line-height: 1.45; }
 }
 
 .pack-sticker-value,
@@ -86,6 +87,7 @@
   margin-top: 0.75rem;
   color: $amber-300;
   font: 900 2rem monospace;
+  font-size: max(2rem, var(--minimum-font-size));
 }
 
 .incoming-item-card {
@@ -100,7 +102,7 @@
 
 .price-note {
   color: $amber-300;
-  font-size: 0.7rem;
+  font-size: max(0.7rem, var(--minimum-font-size));
   font-weight: 800;
 }
 
@@ -130,7 +132,7 @@
       background: rgba($amber-950, 0.55);
       box-shadow: 0 0 18px rgba($amber-400, 0.35);
     }
-    > span:first-child { color: $rose-300; font-size: 0.65rem; font-weight: 900; }
+    > span:first-child { color: $rose-300; font-size: max(0.65rem, var(--minimum-font-size)); font-weight: 900; }
     small { color: $slate-400; }
   }
 }

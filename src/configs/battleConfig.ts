@@ -1,7 +1,9 @@
 export const BATTLE_LIMIT = { rounds: 50, warningRemaining: 10 } as const;
 export const BATTLE_PRESENTATION = {
   pulseMs: 260, nameDelayMs: 20, nameFadeInMs: 80, nameHoldMs: 480, nameFadeOutMs: 160,
-  nameRisePx: 18, nameLanePx: 18, eventGapMs: 110, numberDurationMs: 240, numberSoundIntervalMs: 64,
+  nameRisePx: 18, nameEntryPx: 4, nameGapPx: 4, nameAnchorGapPx: 8,
+  nameVerticalMargin: 8,
+  eventGapMs: 110, numberDurationMs: 240, numberSoundIntervalMs: 64,
   numberScaleSmall: 1.05, numberScaleLarge: 1.1, beforeAttackMs: 80,
   heavyDamage: 20, heavyShake: 14, lightShake: 7,
   windupMs: 25, dashMs: 50, impactMs: 70, recoilMs: 35, betweenAttackMs: 15,

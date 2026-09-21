@@ -1,3 +1,5 @@
+import { useGameViewport } from '../layout/GameViewportContext';
+import { getGameRect } from '../../service/layout/gameViewport';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Equipment } from '../../types/game';
@@ -9,7 +11,7 @@ export interface TransferPoint {
 }
 
 export function getElementCenter(element: Element): TransferPoint {
-  const rect = element.getBoundingClientRect();
+  const rect = getGameRect(element);
   return {
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2,
@@ -35,6 +37,7 @@ export const EquipmentTransferAnimation: React.FC<EquipmentTransferAnimationProp
   target,
   onArrive,
 }) => {
+  const { overlay } = useGameViewport();
   const [isMoving, setIsMoving] = useState(false);
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export const EquipmentTransferAnimation: React.FC<EquipmentTransferAnimationProp
     return () => cancelAnimationFrame(frameId);
   }, [start.x, start.y, target.x, target.y]);
 
-  if (typeof document === 'undefined') return null;
+  if (!overlay) return null;
 
   const Icon = getEquipmentIcon(equipment.iconName);
   const position = isMoving ? target : start;
@@ -66,6 +69,6 @@ export const EquipmentTransferAnimation: React.FC<EquipmentTransferAnimationProp
       </div>
       <span className="equipment-transfer-name">{equipment.name}</span>
     </div>,
-    document.body
+    overlay
   );
 };

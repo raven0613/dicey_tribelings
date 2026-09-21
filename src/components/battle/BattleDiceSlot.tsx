@@ -12,6 +12,9 @@ import { SkillFeedback } from './SkillFeedback';
 import { RerollPulse } from './useRerollFeedback';
 import { DiceResultPanel } from './DiceResultPanel';
 import { useDiceRoll } from './useDiceRoll';
+import { DiceHoverInfo } from './DiceHoverInfo';
+import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
+import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
 
 interface BattleDiceSlotProps {
   die: Dice;
@@ -29,11 +32,13 @@ interface BattleDiceSlotProps {
   rerollFeedback: { id: number; diceIds: string[] } | null;
   onRollFinish: (index: number, reroll: boolean) => void;
   setHoveredId: (id: string | null) => void;
+  inspectionTarget: HTMLDivElement | null;
+  description: string;
 }
 
 export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, position, size, spacing,
   attackTarget, identity, available, selectingAction, reducedMotion, bulgeFilter, trayRef,
-  rerollFeedback, onRollFinish, setHoveredId }: BattleDiceSlotProps) {
+  rerollFeedback, onRollFinish, setHoveredId, inspectionTarget, description }: BattleDiceSlotProps) {
   const { rolledIndices, combatPhase, comboSummary, creatureBattleState, currentEnemy,
     activeRerollingIndex, attackingDieIndex, attackingStage, attackEmphasis, skillFeedback,
     equipments, rerollAnimationId, useControlReroll, slotState, shield, food } = useGameStore(useShallow((state) => ({
@@ -66,12 +71,15 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
   ].filter(Boolean) : [];
   const dieSize = size;
   const pumpVal = slotState?.displayValue;
-  const creature = identity.creature;
   const rationsStored = comboSummary?.events.filter((event) => rationsEquipment && event.equipmentId === rationsEquipment.id)
     .flatMap((event) => event.changes).filter((change) => change.kind === 'food' && change.targetId === die.id)
     .reduce((sum, change) => sum + change.after - change.before, 0) ?? 0;
 
   const isRerolling = roll.rolling;
+  const face = getEffectiveFace(die.faces[roll.faceIndex]);
+  const shownCreature = isRerolling ? face.creature : identity.creature;
+  const shownTags = isRerolling ? getFaceTags(face) : identity.tags;
+  const shownValue = ceilDamage(isRerolling ? face.baseValue : pumpVal ?? face.baseValue);
   const isAttacking = combatPhase === 'RESOLVING_ATTACK' && attackingDieIndex === idx;
 
   const offsetX = attackTarget.x - position.x;
@@ -82,6 +90,11 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
 
   return (
     <DiceAttackPortal active={isAttacking} trayRef={trayRef}>
+      {inspectionTarget && !unrolled && <DiceHoverInfo target={inspectionTarget} info={{
+        creature: shownCreature, tags: shownTags, title: CREATURE_CONFIG[shownCreature].name,
+        attack: shownValue, material: face.material,
+        description: isRerolling ? `${CREATURE_CONFIG[shownCreature].ability}：${CREATURE_CONFIG[shownCreature].description}` : description,
+      }} />}
       <div
         data-attack-die={idx}
         className={`die-anchor ${resolving && pumpVal === 0 ? 'is-depleted' : ''} ${selectingAction ? available ? 'is-action-target' : 'is-not-action-target' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
@@ -116,9 +129,9 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
         <BattleDie dice={die} size={dieSize} rotation={rotation} motionRef={roll.ref}
           unrolled={unrolled} bulgeFilter={isAttacking && attackEmphasis > 0 && !reducedMotion ? bulgeFilter : undefined}
           faceIndex={roll.faceIndex} rolling={isRerolling}
-          value={pumpVal} spinning={slotState?.isSpinning ?? false} locked={slotState?.isLocked ?? false} buffed={slotState?.isBuffed ?? false}
-          numberScale={slotState?.scale ?? 1} effectiveCreature={isRerolling ? undefined : creature}
-          effectiveTags={isRerolling ? undefined : identity.tags} reducedMotion={reducedMotion}
+          value={shownValue} spinning={slotState?.isSpinning ?? false} locked={slotState?.isLocked ?? false} buffed={slotState?.isBuffed ?? false}
+          numberScale={slotState?.scale ?? 1} effectiveCreature={shownCreature}
+          effectiveTags={shownTags} reducedMotion={reducedMotion}
           protectedDie={creatureBattleState.lockedDice.includes(die.id)}
           canReroll={combatPhase === 'CONTROL_PHASE' && available && activeRerollingIndex === null}
           onReroll={() => useControlReroll(idx)} onInspect={setHoveredId} />

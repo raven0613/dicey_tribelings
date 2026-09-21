@@ -1,3 +1,5 @@
+import { useGameViewport } from '../layout/GameViewportContext';
+import { getGameRect } from '../../service/layout/gameViewport';
 import { useShallow } from 'zustand/react/shallow';
 import { BattleDiceSlot } from './BattleDiceSlot';
 import { getPaidRerollCost } from '../../service/battle/rerollCost';
@@ -5,8 +7,6 @@ import { useRerollFeedback } from './useRerollFeedback';
 import { getActionTargets, getEquipmentAction } from '../../service/battle/rollService';
 import { EQUIPMENT_ACTIONS } from '../../configs/equipment/equipmentActionConfig';
 import { DiceHoverOverlay } from './DiceHoverOverlay';
-import { DiceHoverInfo, type DiceInspection } from './DiceHoverInfo';
-import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
 import { describeBattleSkills } from '../../service/battle/battleSkillDescription';
 import React, { useCallback, useMemo, useId, useLayoutEffect, useRef, useState } from 'react';
@@ -82,14 +82,16 @@ export const DiceBoard: React.FC = () => {
   const bulgeId = `dice-bulge-${useId()}`;
   const attackPose = getAttackPose(attackingStage, attackEmphasis, { x: 0, y: 0 }, reducedMotion);
 
+  const { minimumFontSize, scale } = useGameViewport();
   const diceSize = useDiceSize();
   const trayRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [traySize, setTraySize] = useState({ width: 640, height: 280 });
   const [attackTarget, setAttackTarget] = useState({ x: 0, y: 0 });
-  const trayLayout = useMemo(() => getDiceTrayLayout(traySize.width, dicePool, diceSize), [traySize.width, dicePool, diceSize]);
+  const trayLayout = useMemo(() => getDiceTrayLayout(traySize.width, dicePool, diceSize, minimumFontSize), [traySize.width, dicePool, diceSize, minimumFontSize]);
   const bonusPositions = useMemo(() => placeBonusDice(comboSummary?.bonusDice ?? [], trayLayout.bonusPositions), [comboSummary, trayLayout]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [inspectionTarget, setInspectionTarget] = useState<HTMLDivElement | null>(null);
   const [viewportLeft, setViewportLeft] = useState(0);
   const canShowRelations = combatPhase === 'CONTROL_PHASE' && activeRerollingIndex === null;
   const identities = useMemo(() => dicePool.map((die, index) => {
@@ -115,18 +117,7 @@ export const DiceBoard: React.FC = () => {
   }
   const hoveredIndex = dicePool.findIndex((die) => die.id === hoveredId);
   const hoveredBonus = shownBonusDice.find((die) => die.id === hoveredId);
-  let inspection: DiceInspection | null = null;
-  if (!unrolled && hoveredIndex >= 0) {
-    const identity = identities[hoveredIndex], creature = CREATURE_CONFIG[identity.creature];
-    inspection = {
-      ...identity, title: creature.name,
-      description: battleDescriptions[hoveredIndex].description,
-      material: dicePool[hoveredIndex].faces[rolledIndices[hoveredIndex] ?? 0].material
-    };
-  } else if (!unrolled && hoveredBonus) inspection = {
-    creature: hoveredBonus.creature,
-    title: `${hoveredBonus.sourceName}・${hoveredBonus.label}`, description: hoveredBonus.description
-  };
+  const inspecting = !unrolled && (hoveredIndex >= 0 || !!hoveredBonus);
 
   useLayoutEffect(() => {
     const tray: HTMLDivElement = viewportRef.current!;
@@ -142,8 +133,8 @@ export const DiceBoard: React.FC = () => {
   useLayoutEffect(() => {
     if (combatPhase !== 'RESOLVING_ATTACK') return;
     const measure = () => {
-      const enemy = document.getElementById('battle-enemy-target')!.getBoundingClientRect();
-      const tray = trayRef.current!.getBoundingClientRect();
+      const enemy = getGameRect(document.getElementById('battle-enemy-target')!);
+      const tray = getGameRect(trayRef.current!);
       setAttackTarget({ x: enemy.left + enemy.width / 2 - tray.left, y: enemy.top + enemy.height / 2 - tray.top });
     };
     measure();
@@ -153,7 +144,7 @@ export const DiceBoard: React.FC = () => {
       window.removeEventListener('scroll', measure, true);
       window.removeEventListener('resize', measure);
     };
-  }, [combatPhase, attackingDieIndex, attackingBonusIndex, traySize.width, traySize.height]);
+  }, [combatPhase, attackingDieIndex, attackingBonusIndex, traySize.width, traySize.height, scale]);
 
   const completedRolls = useRef(new Set<number>());
   useLayoutEffect(() => { completedRolls.current.clear(); }, [combatPhase]);
@@ -178,7 +169,7 @@ export const DiceBoard: React.FC = () => {
 
       {/* 暫時隱藏，勿刪 */}
       {/* <div className="board-header">
-        <Sparkles size={14} />
+        <Sparkles className="ui-icon" />
         <span>
           {combatPhase === 'PREPARATION' && '初始骰池已就位，按下擲骰開始'}
           {combatPhase === 'ROLLING' && '擲骰中…'}
@@ -203,6 +194,8 @@ export const DiceBoard: React.FC = () => {
               size={trayLayout.size} spacing={trayLayout.spacing} attackTarget={attackTarget}
               identity={identities[idx]} available={actionTargets.includes(idx)} selectingAction={selectingAction}
               reducedMotion={reducedMotion} bulgeFilter={`url(#${bulgeId})`} trayRef={trayRef}
+              inspectionTarget={inspecting && hoveredIndex === idx ? inspectionTarget : null}
+              description={battleDescriptions[idx].description}
               rerollFeedback={rerollFeedback} onRollFinish={finishDieRoll} setHoveredId={setHoveredId} />;
           })}
 
@@ -231,6 +224,7 @@ export const DiceBoard: React.FC = () => {
                   y={position.y}
                   attackOffset={{ x: attackTarget.x - position.x, y: attackTarget.y - position.y }}
                   onInspect={setHoveredId}
+                  inspectionTarget={inspecting && hoveredBonus?.id === bDie.id ? inspectionTarget : null}
                 />
               </DiceAttackPortal>
             );
@@ -243,11 +237,13 @@ export const DiceBoard: React.FC = () => {
       <div className="board-info">
         <div className="info-left">
           <span>
-            <Dices size={20} />
+            <Dices className="ui-icon" />
             <strong className="highlight">{dicePool.length}</strong>
           </span>
         </div>
-        <DiceHoverInfo info={inspection} />
+        <div className="board-right" id="dice-hover-information" aria-live="polite" ref={setInspectionTarget}>
+          {!inspecting && <span className="hover-info-placeholder">移到骰子上，查看能力與連動關係</span>}
+        </div>
       </div>
     </div>
   );

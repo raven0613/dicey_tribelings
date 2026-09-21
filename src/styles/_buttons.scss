@@ -13,7 +13,7 @@
   border-radius: $radius-lg;
   background: linear-gradient(120deg, $amber-300, $amber-500);
   color: $slate-950;
-  font-size: 0.875rem;
+  font-size: max(0.875rem, var(--minimum-font-size));
   font-weight: 900;
   box-shadow: 0 0 16px rgba($amber-400, 0.25);
   cursor: pointer;

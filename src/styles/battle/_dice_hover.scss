@@ -34,7 +34,7 @@
 .hover-loss {
   position: absolute; right: -5px; top: -24px;
   padding: 2px 5px; border-radius: 5px; background: $slate-950;
-  font-size: 0.875rem; font-weight: 900; opacity: 0; transform: translateY(5px);
+  font-size: max(0.875rem, var(--minimum-font-size)); font-weight: 900; opacity: 0; transform: translateY(5px);
   transition: opacity var(--hover-fade) var(--hover-ease), transform var(--hover-fade) var(--hover-ease);
   &.is-active { opacity: 1; transform: translateY(0); }
 }
@@ -44,15 +44,16 @@
   > span {
     display: block; padding: 4px 8px; border-radius: 6px;
     background: $slate-950; border: 1px solid var(--hover-gold); color: $amber-200;
-    font-size: 0.875rem; font-weight: 800; opacity: 0; transform: translateY(var(--hover-rise));
+    font-size: max(0.875rem, var(--minimum-font-size)); font-weight: 800; opacity: 0; transform: translateY(var(--hover-rise));
     transition: opacity var(--hover-fade) var(--hover-ease), transform var(--hover-fade) var(--hover-ease);
   }
   &.is-active > span { opacity: 1; transform: translateY(0); }
 }
 .hover-ability-line { display: block; }
-.hover-info-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0.375rem; }
+.hover-info-description { border-top: 1px solid $slate-700; margin-top: 0.75rem; padding-top: 0.75rem; }
+.hover-info-description p { margin: 0; }
+.hover-info-description p + p { margin-top: 0.375rem; }
 .board-right p { white-space: pre-line; }
-.hover-info-tags { color: $slate-400; }
 .hover-info-placeholder { color: $slate-400; }
 @keyframes hoverFlow { to { stroke-dashoffset: -16; } }
 @media (prefers-reduced-motion: reduce) {

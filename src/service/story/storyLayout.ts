@@ -4,7 +4,7 @@ export interface StorySize { width: number; height: number }
 export interface StoryPoint { x: number; y: number }
 export interface StoryBounds extends StoryPoint, StorySize {}
 
-export function getStoryPosition(viewport: StoryBounds, size: StorySize, random: StoryPoint, anchor?: DOMRect, preferred?: StoryPoint): StoryPoint {
+export function getStoryPosition(viewport: StoryBounds, size: StorySize, random: StoryPoint, anchor?: { left: number; top: number }, preferred?: StoryPoint): StoryPoint {
   const left = viewport.x + config.viewportMargin;
   const top = viewport.y + config.toolbarSpace;
   const availableX = Math.max(0, viewport.width - size.width - config.viewportMargin * 2);

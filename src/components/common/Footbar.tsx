@@ -57,7 +57,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, 
       <div className="controls-left">
         <div className="control-meter-group" data-story-anchor="control">
           <div className="meter-icon-box">
-            <RotateCcw style={{ width: '20px', height: '20px' }} />
+            <RotateCcw className="ui-icon" />
           </div>
           <div className="meter-details">
             <div className="meter-label">戰術 Control</div>
@@ -79,14 +79,14 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, 
           {selectingAction ? <span>{action ? `${action.label}・${action.cost} ${action.currency}` : '選擇老師目標'} <button type="button" onClick={() => setDiceAction('reroll')}>取消</button></span> : control > 0 ? (
             <span>點擊骰子重骰</span>
           ) : (
-            <span className="paid-reroll-price">重骰：{paidCost}<Coins size={14} aria-label="金幣" />{gold < paidCost && '（金幣不足）'}</span>
+            <span className="paid-reroll-price">重骰：{paidCost}<Coins className="ui-icon" aria-label="金幣" />{gold < paidCost && '（金幣不足）'}</span>
           )}
         </div>
 
         <PlayerVitals />
         <div className="footbar-tools">
           <button type="button" id="btn-dice-bag" onClick={onOpenDiceBag}>
-            <Dices size={20} /><span>{dicePool.length}</span>
+            <Dices className="ui-icon" /><span>{dicePool.length}</span>
           </button>
         </div>
       </div>
@@ -98,7 +98,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, 
             className="btn-resolve" disabled={!!unlockedDiceNotification || !!stickerFlow}
             onClick={isConfiguring ? undefined : () => confirmBattlePreparation([])}
           >
-            <Play size={20} />
+            <Play className="ui-icon" />
             擲骰
           </button>
           :
@@ -108,14 +108,14 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, 
 
               <div className="forecast-dmg">
                 <span className="dmg-number">
-                  <Swords style={{ width: '22px', height: '22px', marginRight: '2px' }} />
+                  <Swords className="ui-icon" style={{ marginRight: '2px' }} />
                   {totalForecastDamage}
                 </span>
                 {isControlPhase && !!currentEnemy?.exposure && <ExposureBadge multiplier={currentEnemy.exposure} before={beforeExposure} after={totalForecastDamage} />}
               </div>
 
               <div className={`forecast-shield ${highlightShield ? 'is-highlighted' : ''}`} style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>
-                <Shield style={{ width: '18px', height: '18px', marginRight: '2px' }} />
+                <Shield className="ui-icon" style={{ marginRight: '2px' }} />
                 {totalForecastShield}
               </div>
             </div>
@@ -127,7 +127,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, 
               disabled={!canResolve}
               className="btn-resolve"
             >
-              <Swords style={{ width: '16px', height: '16px' }} />
+              <Swords className="ui-icon" />
               <span>{resolveLabel}</span>
             </button>
           </div>}

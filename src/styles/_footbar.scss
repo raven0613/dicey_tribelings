@@ -41,7 +41,7 @@
           flex-direction: column;
   
           .meter-label {
-            font-size: 0.75rem;
+            font-size: max(0.75rem, var(--minimum-font-size));
             color: $slate-400;
             font-weight: 700;
           }
@@ -74,7 +74,7 @@
             }
   
             .dots-text {
-              font-size: 0.75rem;
+              font-size: max(0.75rem, var(--minimum-font-size));
               font-family: monospace;
               font-weight: 700;
               color: $slate-300;
@@ -89,13 +89,13 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        font-size: 0.75rem;
+        font-size: max(0.75rem, var(--minimum-font-size));
         color: $slate-400;
         display: none;
         border-left: 1px solid rgba($slate-700, 0.6);
         padding-left: 1rem;
   
-        @media (min-width: 1024px) {
+        @container game-stage (min-width: 1024px) {
           display: block;
         }
   
@@ -128,14 +128,14 @@
         display: flex;
         align-items: center;
         gap: 0.25rem;
-        font-size: 1.75rem;
+        font-size: max(1.75rem, var(--minimum-font-size));
         font-weight: 700;
         color: $slate-300;
 
         .dmg-number {
           color: $rose-400;
           font-family: monospace;
-          font-size: 1.75rem;
+          font-size: max(1.75rem, var(--minimum-font-size));
           font-weight: 900;
           letter-spacing: -0.025em;
           display: flex;
@@ -144,7 +144,7 @@
       }
 
       .forecast-shield {
-        font-size: 1.2rem;
+        font-size: max(1.2rem, var(--minimum-font-size));
         font-weight: 700;
         color: #93c5fd;
         display: flex;
@@ -159,13 +159,13 @@
     display: flex; align-items: center; justify-content: center; gap: 0.375rem;
     min-height: 48px; min-width: 48px; padding: 0.5rem;
     background: $slate-800; border: 1px solid $slate-600; border-radius: $radius-lg;
-    color: $slate-100; font-size: 0.875rem; font-weight: 700; cursor: pointer;
+    color: $slate-100; font-size: max(0.875rem, var(--minimum-font-size)); font-weight: 700; cursor: pointer;
     &:hover { border-color: $amber-300; }
     &:focus-visible { outline: 3px solid $amber-300; outline-offset: 2px; }
   }
 }
 
-@media (max-width: 800px) {
+@container game-stage (max-width: 800px) {
   .footbar-content {
     gap: 0.375rem;
     .controls-left { flex-basis: 100%; gap: 0.375rem; }
@@ -175,14 +175,14 @@
   }
 }
 
-@media (max-width: 600px), (max-height: 640px) and (min-width: 700px) {
+@container game-stage (max-width: 600px) or ((max-height: 640px) and (min-width: 700px)) {
   .footbar-content {
     .controls-left .tactics-tip,
     .controls-left .meter-icon-box,
     .controls-left .meter-dots .dot { display: none; }
     .controls-right .forecast-group { margin-right: 0; }
     .player-vitals { gap: 0.375rem; padding-inline: 0.375rem; }
-    .player-health-value { font-size: 1rem; }
-    .player-shield-value strong { font-size: 1rem; }
+    .player-health-value { font-size: max(1rem, var(--minimum-font-size)); }
+    .player-shield-value strong { font-size: max(1rem, var(--minimum-font-size)); }
   }
 }

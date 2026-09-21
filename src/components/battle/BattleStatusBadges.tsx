@@ -9,7 +9,7 @@ import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 export function ExposureBadge({ multiplier, before, after }: { multiplier: number; before?: number; after?: number }) {
   const { tooltip, tooltipProps } = useSkillTooltip(`暴露弱點：受到傷害 ×${multiplier}。${before !== undefined ? `本輪傷害 ${before} → ${after}，已計入逐段修正。` : ''}`);
   return <span className="battle-status-badge exposure-badge" tabIndex={0} {...tooltipProps}>
-    <Crosshair size={15} />弱點 ×{multiplier}{tooltip}
+    <Crosshair className="ui-icon" />弱點 ×{multiplier}{tooltip}
   </span>;
 }
 
@@ -18,7 +18,7 @@ export function DieStatusBadge({ sealed, damage }: { sealed?: boolean; damage?: 
     : `重骰此骰可解除鉤索，否則受到 ${damage} 拉扯傷害。`);
   return <span className="battle-status-badge die-status-badge" tabIndex={0} {...tooltipProps}
     aria-label={sealed ? '重骰封鎖' : '鉤索'}>
-    {sealed ? <LockKeyhole size={18} /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="16" cy="4" r="2" /><path d="M16 6v10a6 6 0 0 1-12 0v-5l4 4" /></svg>}{tooltip}
+    {sealed ? <LockKeyhole className="ui-icon" /> : <svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="16" cy="4" r="2" /><path d="M16 6v10a6 6 0 0 1-12 0v-5l4 4" /></svg>}{tooltip}
   </span>;
 }
 
@@ -47,7 +47,7 @@ export function RationsBadge() {
     onMouseLeave={() => { tooltipProps.onMouseLeave(); setHoveredEquipment(null); }}
     onFocus={(event) => { tooltipProps.onFocus(event); setHoveredEquipment(equipment.id); }}
     onBlur={() => { tooltipProps.onBlur(); setHoveredEquipment(null); }} aria-label={`${equipment.name} ${amount}`}>
-    <Icon size={18} />{amount}{tooltip}
+    <Icon className="ui-icon" />{amount}{tooltip}
   </span>;
 }
 
@@ -55,6 +55,6 @@ export function RationsAllocation({ equipment, amount }: { equipment: Equipment;
   const { tooltip, tooltipProps } = useSkillTooltip(`${equipment.name}：本骰儲糧 +${amount}`);
   const Icon = getEquipmentIcon(equipment.iconName);
   return <span className="rations-allocation" tabIndex={0} {...tooltipProps}>
-    <Icon size={13} /> + {amount}{tooltip}
+    <Icon className="ui-icon" /> + {amount}{tooltip}
   </span>;
 }

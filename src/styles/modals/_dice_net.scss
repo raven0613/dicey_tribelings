@@ -7,7 +7,7 @@
   flex: 1 1 0;
   min-height: 0;
   min-width: 0;
-  font-size: var(--net-font-size);
+  font-size: max(var(--net-font-size), var(--minimum-font-size));
   line-height: 1.35;
 
   .dice-net-status {
@@ -20,7 +20,7 @@
     border-radius: $radius-md;
     background: rgba($slate-900, 0.75);
     color: $slate-200;
-    font-size: 0.75rem;
+    font-size: max(0.75rem, var(--minimum-font-size));
     pointer-events: none;
   }
 
@@ -104,6 +104,12 @@
   .dice-net-copy {
     display: flex;
     flex-direction: column;
+    gap: var(--net-description-gap);
+  }
+
+  .dice-net-description {
+    display: flex;
+    flex-direction: column;
     gap: 0.2em;
   }
 
@@ -117,29 +123,8 @@
   .is-current .dice-net-relation { color: $amber-300; }
   .is-neighbor .dice-net-relation { color: #a5f3fc; }
 
-  .dice-net-creature {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.3em;
-  }
-
-  .dice-net-identity {
-    display: flex;
-    align-items: center;
-    gap: 0.25em;
-    min-width: 0;
-    color: var(--face-color);
-    font-size: 1.15em;
-    font-weight: 800;
-
-    > span { font-size: 1.3em; }
-  }
-
-  .dice-net-attack { flex-shrink: 0; font-family: monospace; font-size: 1.35em; line-height: 1.2; color: #fff; }
   .dice-net-ability { color: $slate-100; }
   .dice-net-ability strong { color: var(--face-color); }
-  .dice-net-tags { color: $slate-300; }
   .dice-net-sticker { color: $rose-300; }
 
   .material-info { display: block; }
@@ -154,6 +139,7 @@
 }
 
 .dice-net-face.is-match { background-color: #66551f; }
-.dice-net-face.is-muted { opacity: .45; }
 .dice-tab-btn.is-match { box-shadow: inset 0 0 0 1px #fbbf24; }
 .dice-tab-btn.is-muted { opacity: .5; }
+
+.dice-net-match { min-height: 1.35em; color: #fbbf24; font-weight: 700; }

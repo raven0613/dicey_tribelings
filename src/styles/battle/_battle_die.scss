@@ -32,5 +32,5 @@
   }
 }
 
-.battle-die-creature { font-size: 42px; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; }
+.battle-die-creature { font-size: max(42px, var(--minimum-font-size)); font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; }
 .dice-face-number { pointer-events: none; }

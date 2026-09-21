@@ -8,15 +8,15 @@
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 1rem; padding: 2rem 1rem; text-align: center;
   background: radial-gradient(ellipse at 50% 35%, #33443c, $slate-950 75%);
-  h1 { font-size: clamp(1.8rem, 6vw, 3.5rem); color: #ffedb4; }
+  h1 { font-size: max(clamp(1.8rem, calc(var(--game-width) * 0.06), 3.5rem), var(--minimum-font-size)); color: #ffedb4; }
   > p { color: $slate-300; }
   .main-menu-eyebrow { color: $amber-300; font-weight: 800; letter-spacing: 0.3em; }
 }
-.main-menu-art { font-size: clamp(3rem, 10vw, 6rem); }
+.main-menu-art { font-size: max(clamp(3rem, calc(var(--game-width) * 0.1), 6rem), var(--minimum-font-size)); }
 .main-menu-actions {
   display: grid; gap: 0.75rem; width: min(100%, 18rem); margin-top: 1rem;
   button { padding: 0.9rem 1.5rem; border: 2px solid $slate-500; border-radius: 0.9rem;
-    color: $slate-100; font-size: 1.1rem; font-weight: 800; background: $slate-900; }
+    color: $slate-100; font-size: max(1.1rem, var(--minimum-font-size)); font-weight: 800; background: $slate-900; }
   .menu-start { color: $slate-950; background: $amber-300; border-color: $amber-200; }
   button:hover { filter: brightness(1.15); }
   button:focus-visible { outline: 3px solid white; outline-offset: 4px; }
@@ -35,12 +35,12 @@
 .story-toolbar {
   position: absolute; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px;
   display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
-  color: white; font-size: 0.9rem; z-index: 3;
+  color: white; font-size: max(0.9rem, var(--minimum-font-size)); z-index: 3;
   button { flex-shrink: 0; min-height: 44px; padding: 0.5rem 1rem;
     color: white; background: #0f172acc; border: 1px solid #ffffff70; border-radius: 100px; }
 }
 .story-group {
-  position: absolute; width: min(34rem, calc(100vw - 32px)); display: flex; flex-direction: column;
+  position: absolute; width: min(34rem, calc(var(--game-width) - 32px)); display: flex; flex-direction: column;
   padding: 2px; z-index: 1;
   &.has-echo { padding-bottom: 2px; }
 }
@@ -57,18 +57,18 @@
 .story-bubble-content { position: relative; z-index: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .story-bubble header {
   display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.5rem;
-  font-size: 0.85rem; font-weight: 900;
+  font-size: max(0.85rem, var(--minimum-font-size)); font-weight: 900;
 }
 .story-avatar {
-  font-size: 2rem; line-height: 1; display: inline-flex;
+  font-size: max(2rem, var(--minimum-font-size)); line-height: 1; display: inline-flex;
   img { width: 2.5rem; height: 2.5rem; object-fit: contain; }
 }
-.story-text { position: relative; font-weight: 750; font-size: clamp(1rem, 2.5vw, 1.35rem);
+.story-text { position: relative; font-weight: 750; font-size: max(clamp(1rem, calc(var(--game-width) * 0.025), 1.35rem), var(--minimum-font-size));
   line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
 .story-text-measure { visibility: hidden; }
 .story-text-visible { position: absolute; inset: 0; }
-.story-illustration { font-size: clamp(2.5rem, 8vw, 4rem); text-align: center; padding: 0.5rem;
-  img { max-width: 100%; max-height: 30dvh; object-fit: contain; }
+.story-illustration { font-size: max(clamp(2.5rem, calc(var(--game-width) * 0.08), 4rem), var(--minimum-font-size)); text-align: center; padding: 0.5rem;
+  img { max-width: 100%; max-height: calc(var(--game-height) * 0.3); object-fit: contain; }
 }
 .story-advance {
   position: absolute; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
@@ -84,15 +84,15 @@
   width: min(100%, 36rem); flex-shrink: 0; pointer-events: none; align-self: center;
   .story-group { position: relative; width: 100%; max-width: 100%; overflow: visible; }
   .story-bubble { padding: 20px 26px; }
-  .story-bubble header { margin-bottom: 0.2rem; font-size: 0.75rem; }
-  .story-avatar { font-size: 1.25rem; }
-  .story-text { font-size: 1rem; }
+  .story-bubble header { margin-bottom: 0.2rem; font-size: max(0.75rem, var(--minimum-font-size)); }
+  .story-avatar { font-size: max(1.25rem, var(--minimum-font-size)); }
+  .story-text { font-size: max(1rem, var(--minimum-font-size)); }
 }
-@media (max-height: 500px) {
+@container game-stage (max-height: 500px) {
   .main-menu { justify-content: flex-start; }
-  .main-menu-art { font-size: 2rem; }
+  .main-menu-art { font-size: max(2rem, var(--minimum-font-size)); }
   .story-bubble { padding: 20px 24px; }
-  .story-avatar { font-size: 1.5rem; }
+  .story-avatar { font-size: max(1.5rem, var(--minimum-font-size)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .story-control-arrow, .story-bubble { animation: none; }

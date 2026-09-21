@@ -1,3 +1,4 @@
+import { REWARD_CONFIG } from '../configs/rewardConfig';
 import { getPaidRerollCost } from '../service/battle/rerollCost';
 import { EQUIPMENT_BALANCE } from '../configs/equipment/equipmentConfig';
 import { INITIAL_MAP_NODES, CHAPTER_END_NODE } from '../configs/regions/mapConfig';
@@ -106,21 +107,50 @@ test('pack flow automatically stores consumables and pauses only for overflow', 
   assert.equal(useGameStore.getState().stickerFlow, null);
 });
 
-test('two reward choices apply in order before advancing a regional boss', () => {
+test('reward stickers commit one at a time and advance after the final choice', () => {
   useGameStore.getState().restartGame();
   useGameStore.getState().startNode(6);
   const options = generateBattleRewardOptions(1, 'boss', () => 0.5);
-  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: 2 });
-  useGameStore.getState().selectBattleRewards(options.slice(0, 1));
-  assert.equal(useGameStore.getState().stickerFlow, null);
-  useGameStore.getState().selectBattleRewards(options.slice(0, 2));
-  const die = useGameStore.getState().dicePool[0];
-  useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
-  assert.equal(useGameStore.getState().currentNodeIndex, 6);
-  useGameStore.getState().applyCurrentPermanentSticker(die.id, 1);
-  assert.equal(useGameStore.getState().currentNodeIndex, 7);
-  assert.equal(useGameStore.getState().currentEnemy?.region, 2);
-  assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
+  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: REWARD_CONFIG.advancedPickCount });
+  const before = useGameStore.getState();
+  const die = before.dicePool[0];
+  const first = options[0], alternative = options[2];
+  assert.equal(first.kind, 'sticker');
+  assert.equal(alternative.kind, 'sticker');
+  if (first.kind !== 'sticker' || alternative.kind !== 'sticker') throw new Error('Expected permanent sticker rewards');
+
+  before.applyBattleRewardSticker(first.id, die.id, die.faces.length);
+  before.applyBattleRewardSticker('missing-reward', die.id, 0);
+  assert.equal(useGameStore.getState().dicePool, before.dicePool);
+  assert.equal(useGameStore.getState().battleRewardOptions, options);
+  assert.equal(useGameStore.getState().battleRewardPickCount, REWARD_CONFIG.advancedPickCount);
+
+  before.applyBattleRewardSticker(first.id, die.id, 0);
+  const afterFirst = useGameStore.getState();
+  assert.equal(afterFirst.currentNodeIndex, before.currentNodeIndex);
+  assert.equal(afterFirst.combatPhase, 'VICTORY');
+  assert.equal(afterFirst.stickerFlow, null);
+  assert.equal(afterFirst.battleRewardPickCount, REWARD_CONFIG.advancedPickCount - 1);
+  assert.deepEqual(afterFirst.battleRewardOptions, options.slice(1));
+  assert.equal(afterFirst.dicePool[0].faces[0].creature, first.sticker.creature);
+  assert.equal(afterFirst.dicePool[0].faces[0].baseValue, first.sticker.baseValue);
+  assert.equal(afterFirst.dicePool[0].faces[0].material, first.sticker.material);
+  assert.deepEqual(afterFirst.dicePool[0].faces.slice(1), die.faces.slice(1));
+
+  afterFirst.applyBattleRewardSticker(first.id, die.id, 1);
+  assert.equal(useGameStore.getState().dicePool, afterFirst.dicePool);
+  assert.equal(useGameStore.getState().battleRewardPickCount, afterFirst.battleRewardPickCount);
+
+  // A different remaining reward can be chosen after the first placement.
+  afterFirst.applyBattleRewardSticker(alternative.id, die.id, 1);
+  const afterLast = useGameStore.getState();
+  assert.equal(afterLast.dicePool[0].faces[0].creature, first.sticker.creature);
+  assert.equal(afterLast.dicePool[0].faces[1].creature, alternative.sticker.creature);
+  assert.equal(afterLast.battleRewardPickCount, 0);
+  assert.deepEqual(afterLast.battleRewardOptions, []);
+  assert.equal(afterLast.currentNodeIndex, 7);
+  assert.equal(afterLast.currentEnemy?.region, 2);
+  assert.equal(afterLast.combatPhase, 'PREPARATION');
 });
 
 for (const route of ['safe', 'challenge'] as const) test(`${route} route grants all shared milestones once`, () => {

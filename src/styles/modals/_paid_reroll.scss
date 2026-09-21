@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   margin: auto;
-  width: min(360px, calc(100vw - 32px));
+  width: min(360px, calc(var(--game-width) - 32px));
   padding: 24px;
   border: 1px solid $slate-600;
   border-radius: 14px;
@@ -12,10 +12,10 @@
   color: $slate-100;
   box-shadow: 0 16px 48px #0008;
   &::backdrop { background: #020617bb; }
-  h2 { margin: 0 0 12px; font-size: 1.125rem; font-weight: 800; }
-  p { margin: 0 0 18px; font-size: 0.95rem; }
+  h2 { margin: 0 0 12px; font-size: max(1.125rem, var(--minimum-font-size)); font-weight: 800; }
+  p { margin: 0 0 18px; font-size: max(0.95rem, var(--minimum-font-size)); }
   strong { color: $amber-300; }
-  label { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; cursor: pointer; }
+  label { display: flex; align-items: center; gap: 8px; font-size: max(0.875rem, var(--minimum-font-size)); cursor: pointer; }
   input { accent-color: $amber-300; }
 }
 .paid-reroll-actions {

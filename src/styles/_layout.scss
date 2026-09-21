@@ -3,8 +3,6 @@
 .app-wrapper {
   width: 100%;
   height: 100%;
-  max-height: 100vh;
-  max-height: 100dvh;
   background-color: $slate-950;
   color: $slate-100;
   display: flex;
@@ -19,7 +17,6 @@
   flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 1920px;
   margin: 0 auto;
   padding: 0 0.75rem;
   display: flex;
@@ -39,7 +36,7 @@
   > * { min-width: 0; min-height: 0; }
 }
 
-.region-progress { 
+.region-progress {
   flex-shrink: 0;
   min-width: 0;
   width: 100%;
@@ -60,32 +57,32 @@
       border: 1px solid $slate-600;
       border-radius: $radius-md;
       color: $slate-100;
-      font-size: 0.875rem;
+      font-size: max(0.875rem, var(--minimum-font-size));
       font-weight: 700;
       cursor: pointer;
-  
+
       &:hover {
         border-color: $amber-300;
       }
-  
+
       &:focus-visible {
         outline: 3px solid $amber-300;
         outline-offset: 2px;
       }
     }
 }
-.region-route { 
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 0.5rem 1rem; 
-  color: $slate-400; 
-  font-size: 0.875rem; 
-  margin-bottom: 0.5rem; 
+.region-route {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  color: $slate-400;
+  font-size: max(0.875rem, var(--minimum-font-size));
+  margin-bottom: 0.5rem;
 }
-.region-route [aria-current='step'] { 
-  color: $amber-300; 
+.region-route [aria-current='step'] {
+  color: $amber-300;
   font-weight: 800;
-  text-underline-offset: 0.3rem; 
+  text-underline-offset: 0.3rem;
 }
 .nav__info {
   display: flex;
@@ -98,12 +95,12 @@
       align-items: center;
       gap: 0.375rem;
       color: $amber-300;
-      font-size: 0.875rem;
+      font-size: max(0.875rem, var(--minimum-font-size));
       white-space: nowrap;
     }
 }
 
-@media (max-width: 600px) {
+@container game-stage (max-width: 600px) {
   .app-main { padding: 0.25rem 0.375rem; }
   .region-progress { flex-wrap: wrap; gap: 0.25rem; padding: 0.25rem 0.5rem; }
   .region-route { margin: 0; }

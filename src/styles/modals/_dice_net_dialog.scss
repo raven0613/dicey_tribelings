@@ -5,7 +5,7 @@
 
 .dice-net-dialog {
   width: 100%;
-  height: calc(100dvh - 1rem);
+  height: calc(var(--game-height) - 1rem);
   padding: 0.625rem;
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
 
     .modal-header-left { min-width: 0; gap: 0.5rem; }
     .modal-title-box { min-width: 0; }
-    .modal-subtitle { font-size: 0.875rem; }
+    .modal-subtitle { font-size: max(0.875rem, var(--minimum-font-size)); }
     button { flex-shrink: 0; min-height: 2.75rem; min-width: 2.75rem; }
   }
 
@@ -54,12 +54,12 @@
     border-radius: $radius-md;
     background: $slate-800;
     color: $slate-200;
-    font-size: 1rem;
+    font-size: max(1rem, var(--minimum-font-size));
     white-space: nowrap;
 
     &:hover { border-color: $amber-300; }
     &[aria-pressed='true'] { background: $amber-300; color: $slate-950; border-color: $amber-300; font-weight: 800; }
-    .dice-tab-type { font-size: 0.875rem; }
+    .dice-tab-type { font-size: max(0.875rem, var(--minimum-font-size)); }
   }
 
   .dice-net-body {
@@ -78,7 +78,7 @@
     flex-wrap: wrap;
     gap: 0.25rem;
     color: $slate-300;
-    font-size: 0.875rem;
+    font-size: max(0.875rem, var(--minimum-font-size));
 
     .strong-val { color: $slate-100; }
     .theme-val { color: $amber-300; }

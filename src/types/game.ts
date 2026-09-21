@@ -90,7 +90,7 @@ export interface StickerPack {
 }
 
 export type BattleRewardOption =
-  | { id: string; kind: 'sticker'; sticker: StickerItem }
+  | { id: string; kind: 'sticker'; sticker: PermanentSticker }
   | { id: string; kind: 'stickerPack'; pack: StickerPack };
 
 export type ChestRewardOption =

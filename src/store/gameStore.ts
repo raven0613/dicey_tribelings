@@ -268,16 +268,27 @@ export const useGameStore = create<GameState>((set, get) => {
 
     discardCurrentSticker: () => moveStickerFlowForward(),
 
-    selectBattleRewards: (options) => {
-      const available = get().battleRewardOptions;
-      if (!options.length || options.length !== get().battleRewardPickCount
-        || new Set(options.map((item) => item.id)).size !== options.length
-        || options.some((item) => !available.some((candidate) => candidate.id === item.id))) return;
-      const selected = options.map((item) => available.find((candidate) => candidate.id === item.id)!);
+    applyBattleRewardSticker: (optionId, diceId, faceIndex) => {
+      const state = get();
+      const option = state.battleRewardOptions.find((item) => item.id === optionId);
+      if (state.combatPhase !== 'VICTORY' || state.battleRewardPickCount <= 0 || option?.kind !== 'sticker'
+        || !state.dicePool.find((die) => die.id === diceId)?.faces[faceIndex]) return;
+      const remaining = state.battleRewardPickCount - 1;
+      set({
+        dicePool: applyPermanentSticker(state.dicePool, diceId, faceIndex, option.sticker),
+        battleRewardOptions: remaining > 0 ? state.battleRewardOptions.filter((item) => item.id !== optionId) : [],
+        battleRewardPickCount: remaining,
+      });
+      soundService.playStickerApply();
+      if (remaining === 0) get().advanceToNextNode();
+    },
+
+    claimBattleRewardPack: (optionId) => {
+      const state = get();
+      const option = state.battleRewardOptions.find((item) => item.id === optionId);
+      if (state.combatPhase !== 'VICTORY' || state.battleRewardPickCount !== 1 || option?.kind !== 'stickerPack') return;
       set({ battleRewardOptions: [], battleRewardPickCount: 0 });
-      const pack = selected.find((item) => item.kind === 'stickerPack');
-      if (pack?.kind === 'stickerPack') get().openPackAction(pack.pack.id, 'advance');
-      else startStickerFlow(selected.flatMap((item) => item.kind === 'sticker' ? [item.sticker] : []), 'advance');
+      get().openPackAction(option.pack.id, 'advance');
     },
 
     skipBattleReward: () => {

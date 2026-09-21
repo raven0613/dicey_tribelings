@@ -1,7 +1,3 @@
-import { useShallow } from 'zustand/react/shallow';
-import type { CreatureId } from '../../types/creatures';
-import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
-import { getEffectiveFace } from '../../service/dice/diceFaces';
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { DiceNet } from './DiceNet';
@@ -10,21 +6,12 @@ import { Dices, X } from 'lucide-react';
 
 interface DiceInspectModalProps {
   isOpen: boolean;
-  creature?: CreatureId;
   onClose: () => void;
 }
 
-export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onClose, creature }) => {
-  const { dicePool, creatureBattleState } = useGameStore(useShallow((state) => ({
-    dicePool: state.dicePool,
-    creatureBattleState: state.creatureBattleState,
-  })));
+export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onClose }) => {
+  const dicePool = useGameStore((state) => state.dicePool);
   const [selectedDiceId, setSelectedDiceId] = useState<string>(dicePool[0]?.id || '');
-  const matchCounts = creature ? Object.fromEntries(dicePool.map((die) => [die.id,
-  die.faces.filter((face) => getEffectiveFace(face).creature === creature).length])) : undefined;
-  useEffect(() => {
-    if (isOpen && creature) setSelectedDiceId(dicePool.find((die) => die.faces.some((face) => getEffectiveFace(face).creature === creature))?.id ?? dicePool[0]?.id ?? '');
-  }, [isOpen, creature, dicePool]);
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!isOpen) return;
@@ -44,11 +31,11 @@ export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onCl
         <div className="modal-header">
           <div className="modal-header-left">
             <div className="modal-icon-badge">
-              <Dices size={20} />
+              <Dices className="ui-icon" />
             </div>
             <div className="modal-title-box">
               <div className="modal-title" id="dice-inspect-title">骰池庫藏 • 骰面展開圖</div>
-              <div className="modal-subtitle">{creature ? `${CREATURE_CONFIG[creature].name}：共 ${Object.values(matchCounts!).reduce((sum, count) => sum + count, 0)} 面・${Object.values(matchCounts!).filter(Boolean).length} 顆骰子` : `目前持有 ${dicePool.length} 顆骰子，查看骰面與構築關係`}</div>
+              <div className="modal-subtitle">目前持有 {dicePool.length} 顆骰子，查看骰面與構築關係</div>
             </div>
           </div>
           <button
@@ -58,15 +45,15 @@ export const DiceInspectModal: React.FC<DiceInspectModalProps> = ({ isOpen, onCl
             className="modal-close-btn"
             aria-label="關閉骰面檢視"
           >
-            <X size={18} />
+            <X className="ui-icon" />
           </button>
         </div>
 
-        <DiceTabs matchCounts={matchCounts} dicePool={dicePool} selectedDiceId={currentDie?.id} onSelect={setSelectedDiceId} />
+        <DiceTabs dicePool={dicePool} selectedDiceId={currentDie?.id} onSelect={setSelectedDiceId} />
 
         {currentDie && (
           <div className="dice-net-body">
-            <DiceNet key={currentDie.id} dice={currentDie} highlightCreature={creature} />
+            <DiceNet key={currentDie.id} dice={currentDie} />
           </div>
         )}
       </div>

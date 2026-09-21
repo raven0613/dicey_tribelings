@@ -1,15 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useGameViewport } from '../layout/GameViewportContext';
 import { DICE_TRAY_PRESENTATION } from '../../configs/dicePresentationConfig';
 
 export function useDiceSize() {
-  const query = `(max-width: ${DICE_TRAY_PRESENTATION.mobileBreakpoint}px)`;
-  const [mobile, setMobile] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const update = () => setMobile(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, [query]);
+  const { mobile } = useGameViewport();
   return mobile ? DICE_TRAY_PRESENTATION.mobileSize : DICE_TRAY_PRESENTATION.size;
 }

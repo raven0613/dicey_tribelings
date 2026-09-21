@@ -20,7 +20,7 @@ export const StickerPackModal: React.FC = () => {
       <div className="pack-result-card">
         <div className="modal-header">
           <div className="modal-header-left">
-            <div className="modal-icon-badge"><Gift size={20} /></div>
+            <div className="modal-icon-badge"><Gift className="ui-icon" /></div>
             <div className="modal-title-box">
               <div className="modal-title">{openedPackResult.packName}</div>
               <div className="modal-subtitle">已揭曉全部內容，接著逐張決定用途。</div>
@@ -33,7 +33,7 @@ export const StickerPackModal: React.FC = () => {
               style={materialStyle(sticker.isDisposable === false ? sticker.material : undefined)}>
               <div className="card-tag-row">
                 <span className={`type-badge ${sticker.isDisposable ? 'disposable' : 'permanent'}`}>
-                  {sticker.isDisposable ? '戰術消耗品' : '永久改造'}
+                  {sticker.isDisposable ? '臨時改造' : '永久改造'}
                 </span>
                 <RarityBadge rarity={sticker.rarity} />
               </div>
@@ -46,7 +46,7 @@ export const StickerPackModal: React.FC = () => {
           ))}
         </div>
         <button type="button" className="btn-primary-modal" onClick={beginOpenedPack}>
-          <Sparkles size={16} />逐張處理
+          <Sparkles className="ui-icon" />逐張處理
         </button>
       </div>
     </div>

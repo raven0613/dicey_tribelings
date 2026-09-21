@@ -1,3 +1,5 @@
+import { useGameViewport } from '../layout/GameViewportContext';
+import { getGameRect } from '../../service/layout/gameViewport';
 import { useShallow } from 'zustand/react/shallow';
 import { getActionTargets, getEquipmentAction } from '../../service/battle/rollService';
 import { SkillText } from '../common/SkillText';
@@ -17,6 +19,7 @@ const RARITY_LABELS: Record<EquipmentRarity, string> = {
 };
 
 export const EquipmentBar: React.FC = () => {
+  const { overlay, width, height } = useGameViewport();
   const actionState = useGameStore(useShallow((state) => ({
     equipments: state.equipments,
     comboSummary: state.comboSummary,
@@ -49,7 +52,7 @@ export const EquipmentBar: React.FC = () => {
 
   const [hoveredEquip, setHoveredEquip] = useState<{
     equip: Equipment;
-    rect: DOMRect;
+    rect: ReturnType<typeof getGameRect>;
   } | null>(null);
 
   useEffect(() => {
@@ -92,7 +95,6 @@ export const EquipmentBar: React.FC = () => {
                 id={`equipment-slot-${idx}`}
                 className="slot-empty"
               >
-                <span>槽位 {idx + 1}</span>
                 <span className="empty-sub">空</span>
               </div>
             );
@@ -112,26 +114,26 @@ export const EquipmentBar: React.FC = () => {
               key={equip.id}
               id={`equipment-slot-${idx}`}
               onMouseEnter={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
+                const rect = getGameRect(e.currentTarget);
                 setHoveredEquip({ equip, rect });
               }}
               onMouseLeave={() => setHoveredEquip(null)}
               onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
+                const rect = getGameRect(e.currentTarget);
                 setHoveredEquip((prev) => (prev?.equip.id === equip.id ? null : { equip, rect }));
               }}
               aria-label={equip.name}
               tabIndex={0}
-              onFocus={(e) => setHoveredEquip({ equip, rect: e.currentTarget.getBoundingClientRect() })}
+              onFocus={(e) => setHoveredEquip({ equip, rect: getGameRect(e.currentTarget) })}
               onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHoveredEquip(null); }}
-              className={`slot-occupied ${action ? 'has-action' : ''} ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
+              className={`slot-occupied ${isSelected ? 'selected' : ''} ${isTriggered ? 'pattern-triggered' : ''} ${isJustReceived ? 'slot-just-received' : ''}`}
             >
               <SkillFeedback diceId={equip.id} feedback={skillFeedback} />
               {/* Type color accent */}
               <div className={`accent-stripe ${equip.type}`} />
 
               <div className="slot-icon-box">
-                <IconComponent style={{ width: '16px', height: '16px' }} />
+                <IconComponent className="ui-icon" />
               </div>
 
               {action && <button type="button" className="equipment-action"
@@ -143,7 +145,7 @@ export const EquipmentBar: React.FC = () => {
               </button>}
               {isTriggered && !action && (
                 <span className="equipment-trigger-badge">
-                  <Zap size={9} />
+                  <Zap className="ui-icon" />
                   發動
                 </span>
               )}
@@ -154,14 +156,14 @@ export const EquipmentBar: React.FC = () => {
 
       {/* Slot details use the available space above or below the anchor. */}
       {hoveredEquip &&
-        typeof document !== 'undefined' &&
+        overlay &&
         (() => {
           const { equip, rect } = hoveredEquip;
-          const tooltipWidth = Math.min(288, window.innerWidth - 24);
-          const above = rect.top >= window.innerHeight - rect.bottom;
+          const tooltipWidth = Math.min(288, width - 24);
+          const above = rect.top >= height - rect.bottom;
           const centerX = rect.left + rect.width / 2;
-          const left = Math.max(12, Math.min(window.innerWidth - tooltipWidth - 12, centerX - tooltipWidth / 2));
-          const maxHeight = (above ? rect.top : window.innerHeight - rect.bottom) - 22;
+          const left = Math.max(12, Math.min(width - tooltipWidth - 12, centerX - tooltipWidth / 2));
+          const maxHeight = (above ? rect.top : height - rect.bottom) - 22;
           const action = getEquipmentAction(equip.ruleId);
 
           const rarityLabel = RARITY_LABELS[equip.rarity];
@@ -176,7 +178,7 @@ export const EquipmentBar: React.FC = () => {
                 pointerEvents: 'none',
                 transition: 'all 0.15s ease',
                 left: `${left}px`,
-                ...(above ? { bottom: window.innerHeight - rect.top + 10 } : { top: rect.bottom + 10 }),
+                ...(above ? { bottom: height - rect.top + 10 } : { top: rect.bottom + 10 }),
                 width: `${tooltipWidth}px`,
                 maxHeight: `${maxHeight}px`,
                 overflowY: 'auto',
@@ -187,7 +189,7 @@ export const EquipmentBar: React.FC = () => {
                 <div className="tooltip-header">
                   <div className="title-row">
                     <div style={{ padding: '4px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' }}>
-                      <IconComponent style={{ width: '16px', height: '16px' }} />
+                      <IconComponent className="ui-icon" />
                     </div>
                     <span className="tooltip-name">{equip.name}</span>
                   </div>
@@ -197,7 +199,7 @@ export const EquipmentBar: React.FC = () => {
                 </div>
 
                 {/* Subtitle / Type */}
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#a5b4fc', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ fontSize: 'max(11px, var(--minimum-font-size))', fontWeight: 700, color: '#a5b4fc', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '9999px', backgroundColor: '#818cf8', display: 'inline-block' }} />
                   <span>
                     類型：
@@ -220,7 +222,7 @@ export const EquipmentBar: React.FC = () => {
 
               </div>
             </div>,
-            document.body
+            overlay
           );
         })()}
     </div>

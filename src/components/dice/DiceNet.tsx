@@ -1,8 +1,9 @@
+import { useGameViewport } from '../layout/GameViewportContext';
 import type { CreatureId } from '../../types/creatures';
 import { getEffectiveFace } from '../../service/dice/diceFaces';
 import React, { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
 import type { Dice, StickerItem } from '../../types/game';
-import { getDiceNet, type DiceNetOrientation } from '../../service/dice/diceNet';
+import { getDiceNet } from '../../service/dice/diceNet';
 import { DICE_NET_PRESENTATION as presentation } from '../../configs/diceNetPresentationConfig';
 import { getDiceGeometry } from '../../service/dice/diceGeometry';
 import { DiceNetFace } from './DiceNetFace';
@@ -15,7 +16,8 @@ interface DiceNetProps {
 }
 
 export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, highlightCreature }) => {
-  const [orientation, setOrientation] = useState<DiceNetOrientation>('horizontal');
+  const { mobile, minimumFontSize } = useGameViewport();
+  const orientation = mobile ? 'vertical' : 'horizontal';
   const net = getDiceNet(dice.dieType, orientation);
   const geometry = getDiceGeometry(dice.dieType);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -25,14 +27,6 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
   const [{ scale, contentScale }, setLayout] = useState({ scale: presentation.contentWidth / 2, contentScale: 1 });
   const activeFace = hoveredFace ?? focusedFace;
   const neighbors = activeFace === null ? [] : geometry[activeFace].neighbors;
-
-  useLayoutEffect(() => {
-    const mobile = window.matchMedia(`(max-width: ${presentation.mobileBreakpoint}px)`);
-    const updateOrientation = () => setOrientation(mobile.matches ? 'vertical' : 'horizontal');
-    updateOrientation();
-    mobile.addEventListener('change', updateOrientation);
-    return () => mobile.removeEventListener('change', updateOrientation);
-  }, []);
 
   useLayoutEffect(() => {
     const viewport: HTMLDivElement = viewportRef.current!;
@@ -47,7 +41,9 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
       const padding = presentation.canvasPadding * 2;
       const availableScale = Math.min((viewport.clientWidth - padding) / net.width,
         (viewport.clientHeight - padding) / net.height);
-      const scale = Math.max(readableScale * presentation.minimumFontSize / presentation.fontSize, availableScale);
+      const fontSize = Math.max(presentation.fontSize, minimumFontSize);
+      const minimumContentScale = Math.max(presentation.minimumFontSize, minimumFontSize) / fontSize;
+      const scale = Math.max(readableScale * minimumContentScale, availableScale);
       setLayout({ scale, contentScale: Math.min(1, scale / readableScale) });
     };
     measure();
@@ -55,7 +51,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
     observer.observe(viewport);
     contents.forEach((content) => observer.observe(content));
     return () => observer.disconnect();
-  }, [net, sticker]);
+  }, [net, sticker, minimumFontSize]);
 
   const width = net.width * scale;
   const height = net.height * scale;
@@ -63,6 +59,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
   return <section className="dice-net" aria-label={`${dice.name}展開圖`} style={{
     '--net-padding': `${presentation.canvasPadding}px`,
     '--net-content-width': `${presentation.contentWidth}px`,
+    '--net-description-gap': `${presentation.descriptionGap}px`,
     '--net-font-size': `${presentation.fontSize}px`,
     '--net-content-scale': contentScale,
   } as CSSProperties}>

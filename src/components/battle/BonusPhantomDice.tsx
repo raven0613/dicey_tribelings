@@ -9,8 +9,9 @@ import { Sparkles } from 'lucide-react';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { DiceCharacter } from '../dice/DiceCharacter';
 import { DiceFaceNumber } from '../dice/DiceFaceNumber';
-import { PHANTOM_DICE_PRESENTATION as config } from '../../configs/dicePresentationConfig';
+import { PHANTOM_DICE_PRESENTATION as config, DICE_FACE_PRESENTATION as faceConfig } from '../../configs/dicePresentationConfig';
 import { getPhantomProjection } from '../../service/dice/phantomProjection';
+import { DiceHoverInfo } from './DiceHoverInfo';
 
 interface BonusPhantomDiceProps {
   size: number;
@@ -27,6 +28,7 @@ interface BonusPhantomDiceProps {
   y: number;
   attackOffset: { x: number; y: number };
   onInspect: (id: string | null) => void;
+  inspectionTarget: HTMLDivElement | null;
 }
 
 export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
@@ -44,6 +46,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   y,
   attackOffset,
   onInspect,
+  inspectionTarget,
 }) => {
   const slotState = useGameStore((state) => state.bonusSlotStates[dice.id]);
   const [spawned, setSpawned] = useState(false);
@@ -55,14 +58,21 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   const color = dice.creature ? CREATURE_CONFIG[dice.creature].color : '#d8b4fe';
   const projection = useMemo(() => getPhantomProjection(size), [size]);
   const tags = dice.creature ? CREATURE_CONFIG[dice.creature].tags : ['mystery'] as const;
+  // A lower bound for text scale after the front face is projected onto the screen.
+  const numberUnitScale = (config.side - config.borderWidth * 2) / faceConfig.viewBoxSize * Math.min(projection.scaleX, projection.scaleY)
+    * Math.cos(config.rotateX * Math.PI / 180) * Math.cos(config.rotateY * Math.PI / 180);
   const renderFace = () => <svg className="phantom-face-art" viewBox="0 0 100 100" aria-hidden="true">
     {dice.creature && <DiceCharacter creature={dice.creature} reducedMotion={reducedMotion} />}
-    <DiceFaceNumber value={displayNum} tags={tags} scale={slotState?.scale ?? 1} spinning={isSpinning} />
+    <DiceFaceNumber unitScale={numberUnitScale} value={displayNum} tags={tags} scale={slotState?.scale ?? 1} spinning={isSpinning} />
   </svg>;
 
   const pose = getAttackPose(isAttacking ? attackingStage : 'idle', attackEmphasis, attackOffset, reducedMotion);
 
-  return (
+  return (<>
+    {inspectionTarget && <DiceHoverInfo target={inspectionTarget} info={{
+      creature: dice.creature, tags, title: dice.label, attack: displayNum,
+      source: `${dice.sourceName}・${dice.label}`, description: dice.description,
+    }} />}
     <div
       data-attack-bonus={attackIndex}
       tabIndex={0} aria-label={`${sourceLabel}・${dice.label}`} aria-describedby="dice-hover-information"
@@ -74,6 +84,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
       style={{
         '--creature-color': color,
         '--phantom-side': `${config.side}px`,
+        '--phantom-border-width': `${config.borderWidth}px`,
         '--phantom-depth': `${config.side / 2}px`,
         '--phantom-radius': `${config.cornerRadius}px`,
         '--phantom-rotate-x': `${config.rotateX}deg`,
@@ -149,6 +160,6 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div></>
   );
 };

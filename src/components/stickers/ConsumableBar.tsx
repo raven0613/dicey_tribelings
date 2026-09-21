@@ -9,7 +9,7 @@ export const ConsumableBar: React.FC<{ selectedId: string | null; onSelect: (id:
   const consumables = useGameStore((state) => state.consumableStickers);
   return <section className="consumable-bar">
     <div className="bar-header">
-      <span className="bar-title"><PackageOpen size={18} />配置臨時貼紙 ({consumables.length}/{INVENTORY_CONFIG.consumableCapacity})</span>
+      <span className="bar-title"><PackageOpen className="ui-icon" />配置臨時貼紙 ({consumables.length}/{INVENTORY_CONFIG.consumableCapacity})</span>
       <span className="bar-tip">選貼紙，再點目標骰面；基礎攻擊力沿用原面</span>
     </div>
     <div className="consumable-slots">

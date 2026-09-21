@@ -39,7 +39,7 @@
   }
 
   .game-over-title {
-    font-size: 1.5rem;
+    font-size: max(1.5rem, var(--minimum-font-size));
     font-weight: 900;
     letter-spacing: -0.025em;
 
@@ -52,7 +52,7 @@
   }
 
   .game-over-desc {
-    font-size: 0.75rem;
+    font-size: max(0.75rem, var(--minimum-font-size));
     color: $slate-400;
     margin-top: 0.25rem;
     line-height: 1.5;
@@ -67,7 +67,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    font-size: 0.75rem;
+    font-size: max(0.75rem, var(--minimum-font-size));
 
     .stat-row {
       display: flex;
@@ -97,7 +97,7 @@
     color: $slate-950;
     font-weight: 900;
     border-radius: $radius-xl;
-    font-size: 0.875rem;
+    font-size: max(0.875rem, var(--minimum-font-size));
     box-shadow: $shadow-xl;
     display: flex;
     align-items: center;

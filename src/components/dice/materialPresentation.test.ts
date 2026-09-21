@@ -10,6 +10,8 @@ import { MaterialBadge } from './MaterialBadge';
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
 import type { FaceMaterial } from '../../types/materials';
 import { configuredDice } from '../../service/dice/diceFactory';
+import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
+import { ceilDamage } from '../../service/battle/damageValue';
 import { getDiceTrayLayout, placeBonusDice } from '../../service/dice/diceTrayLayout';
 import { calculateRollResolution } from '../../service/battle/battleEngine';
 import { createCreatureBattleState } from '../../service/battle/creatures/creatureState';
@@ -18,8 +20,10 @@ import { resolveRerollChain } from '../../service/battle/creatures/rerollResolut
 for (const material of Object.keys(MATERIAL_CONFIG) as FaceMaterial[]) test(`${material} has visible name, unique surface and accessible battle identity`, () => {
   const dice = configuredDice('a', '測試', 'd6', 'amber', Array.from({ length: 6 }, () => ['food', 4]));
   dice.faces[0].material = material;
+  const face = getEffectiveFace(dice.faces[0]);
   const props = {
     dice, faceIndex: 0, size: 100, rotation: 0, motionRef: { current: null }, rolling: false, unrolled: false,
+    value: ceilDamage(face.baseValue), effectiveCreature: face.creature, effectiveTags: getFaceTags(face),
     numberScale: 1, protectedDie: false, spinning: false, buffed: false, locked: false, canReroll: false,
     onReroll: () => { }, onInspect: () => { }
   };
@@ -40,10 +44,10 @@ for (const material of Object.keys(MATERIAL_CONFIG) as FaceMaterial[]) test(`${m
     const summary = calculateRollResolution(pool, [0, 0, 0], [], state);
     for (const preview of [summary, null]) {
       const { description, abilities } = describeBattleSkills({ die: dice, faceIndex: 0, creature: 'food', summary: preview, state });
-      const expected = MATERIAL_CONFIG[material].description + (material === 'echo' ? used ? '已發動' : '尚未發動' : '');
+      const expected = `${MATERIAL_CONFIG[material].name}：${MATERIAL_CONFIG[material].description}`
+        + (material === 'echo' ? used ? '已發動' : '尚未發動' : '');
       assert.equal(description.split('\n').filter((line) => line === expected).length, 1);
       assert.equal(description.split(MATERIAL_CONFIG[material].description).length - 1, 1);
-      assert.ok(!description.split('\n').some((line) => line.startsWith(`${MATERIAL_CONFIG[material].name}：`)));
       if (preview && ['resonance', 'shock', 'ripple'].includes(material)) assert.ok(abilities.includes(MATERIAL_CONFIG[material].name));
       if (material === 'echo') {
         const status = used ? '已發動' : '尚未發動';

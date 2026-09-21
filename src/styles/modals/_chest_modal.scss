@@ -58,13 +58,13 @@
 
   .chest-info {
     .chest-title {
-      font-size: 1.25rem;
+      font-size: max(1.25rem, var(--minimum-font-size));
       font-weight: 900;
       color: $amber-300;
       letter-spacing: -0.025em;
     }
     .chest-desc {
-      font-size: 0.8125rem;
+      font-size: max(0.8125rem, var(--minimum-font-size));
       color: $slate-300;
       margin-top: 0.2rem;
       max-width: 32rem;
@@ -86,7 +86,7 @@
       align-items: center;
       gap: 0.375rem;
       font-weight: 700;
-      font-size: 0.8125rem;
+      font-size: max(0.8125rem, var(--minimum-font-size));
 
       &.gold {
         color: $amber-300;
@@ -109,7 +109,7 @@
     color: $slate-950;
     font-weight: 900;
     border-radius: $radius-xl;
-    font-size: 1rem;
+    font-size: max(1rem, var(--minimum-font-size));
     box-shadow: 0 10px 25px -5px rgba($amber-500, 0.3);
     display: flex;
     align-items: center;
@@ -142,7 +142,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.625rem;
 
-    @media (max-width: 768px) {
+    @container game-stage (max-width: 768px) {
       grid-template-columns: 1fr;
     }
   }
@@ -229,7 +229,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 10px;
+      font-size: max(10px, var(--minimum-font-size));
       font-weight: 800;
 
       .rarity-tag {
@@ -260,7 +260,7 @@
 
       .type-tag {
         color: $slate-400;
-        font-size: 11px;
+        font-size: max(11px, var(--minimum-font-size));
       }
     }
 
@@ -279,14 +279,14 @@
     }
 
     .card-name {
-      font-size: 0.9375rem;
+      font-size: max(0.9375rem, var(--minimum-font-size));
       font-weight: 800;
       color: $slate-100;
       letter-spacing: -0.015em;
     }
 
     .card-description {
-      font-size: 0.75rem;
+      font-size: max(0.75rem, var(--minimum-font-size));
       color: $slate-300;
       line-height: 1.35;
       min-height: 2.25rem;
@@ -301,7 +301,7 @@
       background-color: rgba($slate-700, 0.7);
       color: $slate-200;
       font-weight: 800;
-      font-size: 0.75rem;
+      font-size: max(0.75rem, var(--minimum-font-size));
       border-radius: $radius-lg;
       display: flex;
       align-items: center;
@@ -318,7 +318,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
-    font-size: 0.8125rem;
+    font-size: max(0.8125rem, var(--minimum-font-size));
     font-weight: 700;
     color: $amber-300;
   }

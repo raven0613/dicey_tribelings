@@ -2,6 +2,6 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: max(0.75rem, var(--minimum-font-size));
   font-weight: 800;
 }

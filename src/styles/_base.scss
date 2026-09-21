@@ -48,6 +48,12 @@ html, body {
   }
 }
 
+small, sub, sup { font-size: max(0.833333em, var(--minimum-font-size)); }
+
+button, input, select, textarea {
+  font-size: max(1rem, var(--minimum-font-size));
+}
+
 button {
   font-family: inherit;
   cursor: pointer;

@@ -81,7 +81,7 @@ export const GameOverModal: React.FC = () => {
           onClick={restartGame}
           className="btn-restart"
         >
-          <RotateCcw size={16} />
+          <RotateCcw className="ui-icon" />
           <span>重新開始冒險 (New Run)</span>
         </button>
       </div>

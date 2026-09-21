@@ -8,7 +8,7 @@ export function rollMaterialTier(random: () => number): MaterialTier {
     : roll < MATERIAL_CHANCES.ordinary + MATERIAL_CHANCES.special ? 'special' : 'ultra';
 }
 
-export function assignRewardMaterial(stickers: StickerItem[], tier: MaterialTier, random: () => number): StickerItem[] {
+export function assignRewardMaterial<T extends StickerItem>(stickers: T[], tier: MaterialTier, random: () => number): T[] {
   if (tier === 'ordinary') return stickers;
   const candidates = stickers.flatMap((item, index) => item.isDisposable ? [] : [index]);
   if (!candidates.length) return stickers;

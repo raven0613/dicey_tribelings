@@ -112,7 +112,7 @@ export const ChestModal: React.FC = () => {
         <div className="card-name">{equipment.name}</div>
         <div className="card-description"><SkillText text={equipment.description} /></div>
         <span className="btn-select-relic">
-          {isSelected ? <><Check size={14} />移動中</> : '選擇此裝備'}
+          {isSelected ? <><Check className="ui-icon" />移動中</> : '選擇此裝備'}
         </span>
       </button>
     );
@@ -135,23 +135,23 @@ export const ChestModal: React.FC = () => {
         {!isOpened ? (
           <>
             <div className="chest-rewards-preview">
-              <div className="reward-item equip"><Sparkles size={18} color="#818cf8" /><span>裝備或貼紙包（三選一）</span></div>
+              <div className="reward-item equip"><Sparkles className="ui-icon" color="#818cf8" /><span>裝備或貼紙包（三選一）</span></div>
             </div>
             <button type="button" onClick={openChest} className="btn-open-chest">
-              <Gift size={18} /><span>開啟寶箱</span><ArrowRight size={18} />
+              <Gift className="ui-icon" /><span>開啟寶箱</span><ArrowRight className="ui-icon" />
             </button>
           </>
         ) : (
           <div className="chest-pick-section">
             <div className="chest-relics-grid">{chestRewardOptions.map(renderOption)}</div>
-            <div className="chest-tip-footer"><Sparkles size={14} color="#fbbf24" /><span>裝備槽已滿時，可在下一步選擇舊裝備替換。</span></div>
+            <div className="chest-tip-footer"><Sparkles className="ui-icon" color="#fbbf24" /><span>裝備槽已滿時，可在下一步選擇舊裝備替換。</span></div>
             <button
               type="button"
               className="btn-secondary-modal"
               disabled={equipmentTransfer !== null}
               onClick={skipChestReward}
             >
-              跳過獎勵，繼續前進<ArrowRight size={16} />
+              跳過獎勵，繼續前進<ArrowRight className="ui-icon" />
             </button>
           </div>
         )}

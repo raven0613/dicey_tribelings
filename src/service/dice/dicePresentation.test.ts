@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DICE_TRAY_PRESENTATION as layout, DICE_NUMBER_PRESENTATION as number,
   PHANTOM_DICE_PRESENTATION as phantom } from '../../configs/dicePresentationConfig';
+import { VIEWPORT_PRESENTATION } from '../../configs/viewportConfig';
 import { ALL_FACE_TAGS } from '../../configs/materials/materialConfig';
 import { configuredDice } from './diceFactory';
 import { getDiceTrayLayout } from './diceTrayLayout';
@@ -12,11 +13,12 @@ test('tray rows keep fixed height and positions while narrow viewports extend ho
   const dice = Array.from({ length: 7 }, (_, i) => configuredDice(`${i}`, '測試', 'd6', 'amber',
     Array.from({ length: 6 }, () => ['gang', 4])));
   dice[0].faces[0].material = 'echo';
+  for (const minimumFontSize of [VIEWPORT_PRESENTATION.minimumFontSize, VIEWPORT_PRESENTATION.minimumFontSize * 1.5])
   for (const size of [layout.size, layout.mobileSize]) for (const width of [320, 768, 1440]) {
-    const tray = getDiceTrayLayout(width, dice, size);
+    const tray = getDiceTrayLayout(width, dice, size, minimumFontSize);
     assert.equal(tray.size, size);
     assert.ok(tray.width >= width);
-    const reference = getDiceTrayLayout(width / 2, dice.slice(0, 1), size);
+    const reference = getDiceTrayLayout(width / 2, dice.slice(0, 1), size, minimumFontSize);
     assert.equal(tray.height, reference.height);
     assert.deepEqual(tray.positions.map((position) => position.y), dice.map(() => reference.positions[0].y));
     assert.equal(new Set(Object.values(tray.bonusPositions).flat().map((position) => position.y)).size, 1);

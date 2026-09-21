@@ -31,7 +31,7 @@ export function PaidRerollDialog() {
     <div className="paid-reroll-actions">
       <button type="button" className="btn-secondary-modal" onClick={cancelPaidReroll}>{text.cancel}</button>
       <button type="button" className="btn-primary-modal" disabled={gold < cost} onClick={() => confirmPaidReroll(dontShowAgain)}>
-        {cost}<Coins size={17} aria-hidden="true" />{text.confirm}
+        {cost}<Coins className="ui-icon" aria-hidden="true" />{text.confirm}
       </button>
     </div>
   </dialog>;

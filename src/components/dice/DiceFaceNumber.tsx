@@ -1,3 +1,4 @@
+import { useGameViewport } from '../layout/GameViewportContext';
 import { useId } from 'react';
 import { DICE_NUMBER_PRESENTATION as config } from '../../configs/dicePresentationConfig';
 import { getNumberPaint } from '../../service/dice/diceNumberPaint';
@@ -7,13 +8,16 @@ interface DiceFaceNumberProps {
   value: number | '?';
   tags: readonly CreatureTag[];
   scale?: number;
+  unitScale: number;
   spinning?: boolean;
 }
 
-export function DiceFaceNumber({ value, tags, scale = 1, spinning = false }: DiceFaceNumberProps) {
+export function DiceFaceNumber({ value, tags, unitScale, scale = 1, spinning = false }: DiceFaceNumberProps) {
+  const { minimumFontSize } = useGameViewport();
   const id = `die-number-${useId()}`;
   const paint = getNumberPaint(tags);
-  const fontSize = Math.min(config.fontSize, config.maxWidth / (String(value).length * 0.65));
+  const fontSize = Math.max(minimumFontSize / unitScale,
+    Math.min(config.fontSize, config.maxWidth / (String(value).length * 0.65)));
   const width = Math.min(config.maxWidth, String(value).length * fontSize * 0.65);
   const x = value === '?' ? 50 : config.x;
   const y = value === '?' ? 62 : config.y;

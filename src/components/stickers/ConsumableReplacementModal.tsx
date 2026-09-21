@@ -36,7 +36,7 @@ export const ConsumableReplacementModal: React.FC = () => {
       <div className="replacement-card">
         <div className="modal-header">
           <div className="modal-header-left">
-            <div className="modal-icon-badge"><PackagePlus size={20} /></div>
+            <div className="modal-icon-badge"><PackagePlus className="ui-icon" /></div>
             <div className="modal-title-box">
               <div className="modal-title">取得戰術貼紙</div>
               <div className="modal-subtitle">

@@ -23,7 +23,7 @@
   box-shadow: $shadow-2xl;
   color: $slate-100;
   position: relative;
-  max-height: 90vh;
+  max-height: calc(var(--game-height) * 0.9);
   overflow-y: auto;
 }
 
@@ -50,12 +50,12 @@
 
     .modal-title-box {
       .modal-title {
-        font-size: 1.125rem;
+        font-size: max(1.125rem, var(--minimum-font-size));
         font-weight: 900;
         color: $amber-300;
       }
       .modal-subtitle {
-        font-size: 0.75rem;
+        font-size: max(0.75rem, var(--minimum-font-size));
         color: $slate-400;
       }
     }

@@ -5,7 +5,7 @@
 .preparation-summary { background: $slate-950; padding: 0.5rem; }
 .preparation-summary, .preparation-editor-header {
   display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
-  color: $slate-200; font-size: 1rem;
+  color: $slate-200; font-size: max(1rem, var(--minimum-font-size));
 }
 .preparation-editor {
   display: flex; flex-direction: column; flex: 1 0 12rem;
@@ -17,7 +17,7 @@
 .preparation-assignments button, .preparation-editor-header button {
   display: flex; align-items: center; gap: 0.5rem; min-height: 48px;
   border: 1px solid $slate-600; border-radius: $radius-lg; padding: 0.5rem 0.75rem;
-  background: $slate-800; color: $slate-100; font-size: 0.875rem;
+  background: $slate-800; color: $slate-100; font-size: max(0.875rem, var(--minimum-font-size));
   &:hover { border-color: $amber-300; }
 }
 .battle-preparation button:focus-visible, .reward-card button:focus-visible, .consumable-slot:focus-visible {

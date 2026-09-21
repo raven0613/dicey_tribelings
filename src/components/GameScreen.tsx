@@ -1,7 +1,6 @@
 import { BattleScreenShake } from './battle/BattleScreenShake';
 import { useShallow } from 'zustand/react/shallow';
 import { PaidRerollDialog } from './battle/PaidRerollDialog';
-import type { CreatureId } from '../types/creatures';
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useStoryStore } from '../store/storyStore';
@@ -40,7 +39,6 @@ export function GameScreen() {
     executeBattleSettlement: state.executeBattleSettlement,
   })));
 
-  const [inspectCreature, setInspectCreature] = useState<CreatureId | undefined>();
   const [isDiceBagOpen, setIsDiceBagOpen] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const currentNode = mapNodes[currentNodeIndex];
@@ -72,7 +70,7 @@ export function GameScreen() {
           </PlayerBoard>
         </div>
       </main>
-      <Footbar isCombat={isCombat} isConfiguring={isConfiguring} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => { setInspectCreature(undefined); setIsDiceBagOpen(true); }} />
+      <Footbar isCombat={isCombat} isConfiguring={isConfiguring} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => setIsDiceBagOpen(true)} />
 
       {/* Modals & Overlays */}
       <StickerApplierModal />
@@ -80,8 +78,8 @@ export function GameScreen() {
       <ConsumableReplacementModal />
       <EquipmentReplacementModal />
       <DiceUnlockModal />
-      <RewardModal onOpenDiceBag={(creature) => { setInspectCreature(creature); setIsDiceBagOpen(true); }} inspectingDice={isDiceBagOpen} />
-      <DiceInspectModal creature={inspectCreature} isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
+      <RewardModal onOpenDiceBag={() => setIsDiceBagOpen(true)} inspectingDice={isDiceBagOpen} />
+      <DiceInspectModal isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
       <GameOverModal />
       {pendingPaidRerollDiceId && <PaidRerollDialog />}
     </BattleScreenShake>

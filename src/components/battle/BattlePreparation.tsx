@@ -44,7 +44,7 @@ export const BattlePreparation: React.FC = () => {
         aria-label={`撤回${placement.consumable.name}`}>
         <CreatureBadge creature={placement.consumable.creature} />
         <span>{dicePool.find((item) => item.id === placement.diceId)!.name}・第 {placement.faceIndex + 1} 面</span>
-        <X size={18} /><span>撤回</span>
+        <X className="ui-icon" /><span>撤回</span>
       </button>)}
     </div>}
     <div className="preparation-editor">

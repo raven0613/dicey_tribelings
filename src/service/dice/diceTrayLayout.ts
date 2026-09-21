@@ -1,13 +1,20 @@
+import { VIEWPORT_PRESENTATION } from '../../configs/viewportConfig';
 import type { BonusAttackDice, Dice } from '../../types/game';
 import { getAdjacentFaces, getEffectiveFace } from './diceFaces';
 import { DICE_TRAY_PRESENTATION as layout, DICE_RESULT_PRESENTATION as result } from '../../configs/dicePresentationConfig';
 
-export function getDiceTrayMetrics(size: number) {
+export function getDiceResultMetrics(minimumFontSize: number = VIEWPORT_PRESENTATION.minimumFontSize) {
+  const fontSize = Math.max(result.fontSize, minimumFontSize);
+  const lineHeight = result.lineHeight * fontSize / result.fontSize;
+  return { fontSize, lineHeight, height: result.paddingY * 2 + result.rows * lineHeight };
+}
+
+export function getDiceTrayMetrics(size: number, minimumFontSize?: number) {
   const scale = size / layout.size;
   const topPadding = layout.topPadding * scale;
   const pitch = size + layout.phantomGap * scale;
   const normalY = topPadding + pitch + size / 2;
-  const resultHeight = result.gap + result.paddingY * 2 + result.rows * result.lineHeight;
+  const resultHeight = result.gap + getDiceResultMetrics(minimumFontSize).height;
   return {
     topPadding, pitch, normalY,
     spacing: size + layout.slotGap * scale,
@@ -17,7 +24,7 @@ export function getDiceTrayMetrics(size: number) {
 }
 
 /** Reserve by build, so rolling and revealing bonuses never move the normal row. */
-export function getDiceTrayLayout(width: number, dice: Dice[], size: number = layout.size) {
+export function getDiceTrayLayout(width: number, dice: Dice[], size: number = layout.size, minimumFontSize?: number) {
   const sources = dice.map((die) => {
     const faces = die.faces.map(getEffectiveFace);
     const gangCapacity = Math.max(0, ...faces.map((face, index) => (face.creature === 'gang' || face.creature === 'imposter')
@@ -29,7 +36,7 @@ export function getDiceTrayLayout(width: number, dice: Dice[], size: number = la
       + Number(faces.some((face) => face.material === 'shock')) };
   });
   const slotCount = sources.reduce((total, source) => total + source.capacity, 0);
-  const { topPadding, pitch, normalY, spacing, sidePadding, height } = getDiceTrayMetrics(size);
+  const { topPadding, pitch, normalY, spacing, sidePadding, height } = getDiceTrayMetrics(size, minimumFontSize);
   const contentWidth = Math.max(width, sidePadding * 2 + Math.max(
     Math.max(0, dice.length - 1) * spacing + size, Math.max(0, slotCount - 1) * pitch + size));
   const positions = dice.map((_, index) => ({

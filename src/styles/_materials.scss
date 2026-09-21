@@ -2,10 +2,10 @@
 .material-badge {
   display: inline-flex; align-items: center; gap: .35rem; width: fit-content;
   padding: .2rem .5rem; border: 1px solid var(--material-color); border-radius: .45rem;
-  background: #0f172a; color: var(--material-color); font-weight: 800; font-size: .8rem;
-  > span { font-size: 1.15em; } small { font-size: .65rem; }
+  background: #0f172a; color: var(--material-color); font-weight: 800; font-size: max(.8rem, var(--minimum-font-size));
+  > span { font-size: max(1.15em, var(--minimum-font-size)); } small { font-size: max(.65rem, var(--minimum-font-size)); }
 }
-.material-description { color: #cbd5e1; font-size: .8rem; line-height: 1.45; }
+.material-description { color: #cbd5e1; font-size: max(.8rem, var(--minimum-font-size)); line-height: 1.45; }
 [data-material] {
   --material-pattern: linear-gradient(135deg, transparent 40%, #ffffff15 41%, transparent 65%);
   background-image: var(--material-pattern); box-shadow: inset 0 0 0 2px var(--material-color);
@@ -22,9 +22,9 @@
 [data-material="echo"] { --material-pattern: radial-gradient(circle at 40% 50%, transparent 30%, #2dd4bf35 31% 33%, transparent 34%), radial-gradient(circle at 60% 50%, transparent 30%, #2dd4bf35 31% 33%, transparent 34%); }
 .dice-net .dice-net-face[data-material] { background-image: var(--material-pattern); }
 .battle-die[data-material] { background: none; box-shadow: none; }
-.battle-round { color: #cbd5e1; font-size: .8rem; font-weight: 800; white-space: nowrap; }
+.battle-round { color: #cbd5e1; font-size: max(.8rem, var(--minimum-font-size)); font-weight: 800; white-space: nowrap; }
 .battle-round.is-warning { padding: .3rem .55rem; color: #fecaca; background: #7f1d1d; border: 1px solid #fb7185; border-radius: .4rem; }
-.food-capacity { color: #cbd5e1; font-size: .8rem; }
+.food-capacity { color: #cbd5e1; font-size: max(.8rem, var(--minimum-font-size)); }
 
 .reward-card .reward-options-grid .reward-option-card[data-material],
 .pack-sticker-card[data-material], .sticker-overview[data-material] {

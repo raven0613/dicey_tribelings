@@ -56,7 +56,7 @@ export const EquipmentReplacementModal: React.FC = () => {
       <div className="replacement-card">
         <div className="modal-header">
           <div className="modal-header-left">
-            <div className="modal-icon-badge"><RefreshCcw size={20} /></div>
+            <div className="modal-icon-badge"><RefreshCcw className="ui-icon" /></div>
             <div className="modal-title-box">
               <div className="modal-title">裝備槽已滿</div>
               <div className="modal-subtitle">

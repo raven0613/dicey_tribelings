@@ -40,20 +40,20 @@ export const ShopModal: React.FC = () => {
     <div className="shop-card">
       <div className="shop-header">
         <div className="shop-header-left">
-          <div className="shop-avatar"><Store size={24} /></div>
+          <div className="shop-avatar"><Store className="ui-icon" /></div>
           <div className="shop-title-box">
             <div className="shop-title">{currentNode.title}</div>
             <div className="shop-subtitle">購買戰術貼紙、裝備與補給。新骰子由關卡進度解鎖。</div>
           </div>
         </div>
         <div className="shop-header-right">
-          <div className="gold-badge"><Coins size={16} color="#fbbf24" /><span>{gold} 金幣</span></div>
-          <button type="button" onClick={advanceToNextNode} className="btn-leave-shop">離開商店<ArrowRight size={14} /></button>
+          <div className="gold-badge"><Coins className="ui-icon" color="#fbbf24" /><span>{gold} 金幣</span></div>
+          <button type="button" onClick={advanceToNextNode} className="btn-leave-shop">離開商店<ArrowRight className="ui-icon" /></button>
         </div>
       </div>
 
       <section>
-        <div className="section-title"><Sparkles size={14} color="#fbbf24" /><span>本場組合貼紙（空格直接收納）</span></div>
+        <div className="section-title"><Sparkles className="ui-icon" color="#fbbf24" /><span>本場組合貼紙（空格直接收納）</span></div>
         <div className="stickers-shop-grid">
           {shopStickers.map((sticker) => {
             const cost = sticker.cost ?? SHOP_CONFIG.disposableCost;
@@ -66,7 +66,7 @@ export const ShopModal: React.FC = () => {
                   <p className="card-desc"><SkillText text={sticker.description} /></p>
                 </div>
                 <button type="button" onClick={() => buyShopSticker(sticker.id)} disabled={gold < cost} className={`btn-buy-sticker ${gold >= cost ? 'can-buy' : 'cannot-buy'}`}>
-                  <Coins size={14} />{cost} 金幣
+                  <Coins className="ui-icon" />{cost} 金幣
                 </button>
               </article>
             );
@@ -76,23 +76,23 @@ export const ShopModal: React.FC = () => {
 
       <div className="shop-bottom-grid">
         <section className="shop-column">
-          <div className="section-title"><Sparkles size={14} color="#818cf8" /><span>裝備（{SHOP_CONFIG.equipmentCost} 金幣）</span></div>
+          <div className="section-title"><Sparkles className="ui-icon" color="#818cf8" /><span>裝備（{SHOP_CONFIG.equipmentCost} 金幣）</span></div>
           {shopEquipments.map((equipment) => (
             <article key={equipment.id} className="shop-item-card">
               <div><div className="item-name">{equipment.name}</div><p className="item-desc"><SkillText text={equipment.description} /></p></div>
               <button type="button" onClick={() => buyShopEquipment(equipment.id)} disabled={gold < SHOP_CONFIG.equipmentCost} className={`btn-buy-action equip-buy ${gold < SHOP_CONFIG.equipmentCost ? 'disabled' : ''}`}>
-                <Coins size={14} />購買（{SHOP_CONFIG.equipmentCost} 金幣）
+                <Coins className="ui-icon" />購買（{SHOP_CONFIG.equipmentCost} 金幣）
               </button>
             </article>
           ))}
         </section>
 
         <section className="shop-column">
-          <div className="section-title"><Heart size={14} color="#fb7185" /><span>旅店休養</span></div>
+          <div className="section-title"><Heart className="ui-icon" color="#fb7185" /><span>旅店休養</span></div>
           <article className="shop-item-card heal-station">
             <div><div className="item-name">恢復生命值（+{SHOP_CONFIG.healAmount} HP）</div><p className="item-sub">目前 HP：{playerHp}/{maxHp}</p></div>
             <button type="button" onClick={buyHeal} disabled={gold < SHOP_CONFIG.healCost || playerHp >= maxHp} className={`btn-buy-action heal-buy ${gold < SHOP_CONFIG.healCost || playerHp >= maxHp ? 'disabled' : ''}`}>
-              <Coins size={14} />治療（{SHOP_CONFIG.healCost} 金幣）
+              <Coins className="ui-icon" />治療（{SHOP_CONFIG.healCost} 金幣）
             </button>
           </article>
         </section>

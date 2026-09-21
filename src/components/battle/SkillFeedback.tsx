@@ -1,6 +1,8 @@
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
 import { SkillText } from '../common/SkillText';
-import React from 'react';
+import { useMemo, useRef, type CSSProperties } from 'react';
+import { SkillNameLayer } from './SkillNameLayer';
+import { useSkillNameLayout } from './useSkillNameLayout';
 import type { SkillChange, SkillFeedback as Feedback } from '../../types/battle';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { CREATURE_CONFIG, CREATURE_TAG_NAMES } from '../../configs/creatures/creatureConfig';
@@ -16,10 +18,9 @@ function changeText(change: SkillChange): string {
 }
 
 export function SkillFeedback({ diceId, feedback }: { diceId: string; feedback: Feedback[] }) {
-  const related = feedback.filter(({ event }) => event.participantDiceIds.includes(diceId)
-    || event.equipmentId === diceId || event.changes.some((change) => change.targetId === diceId));
-  return <div className="skill-feedback" aria-hidden="true">
-    {related.map(({ event }) => {
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const entries = useMemo(() => feedback.filter(({ event }) => event.participantDiceIds.includes(diceId)
+    || event.equipmentId === diceId || event.changes.some((change) => change.targetId === diceId)).map(({ event }) => {
       const source = event.sourceDiceId === diceId || event.equipmentId === diceId;
       const ownChanges = event.changes.filter((change) => change.targetId === diceId
         || (source && (change.targetId === 'virtual-food' || change.targetId === 'player')));
@@ -34,15 +35,20 @@ export function SkillFeedback({ diceId, feedback }: { diceId: string; feedback: 
         ...(event.healing ? { '--pulse-color': MATERIAL_CONFIG.vial.color, '--pulse-core': MATERIAL_CONFIG.vial.surface } : {}),
         '--pulse-ms': `${timing.pulseMs}ms`, '--name-delay': `${timing.nameDelayMs}ms`,
         '--name-ms': `${timing.nameFadeInMs + timing.nameHoldMs + timing.nameFadeOutMs}ms`,
-        '--name-rise': `${timing.nameRisePx}px`, '--name-lane': `${Number(event.id.split('-')[1]) % 3 * timing.nameLanePx}px`,
-      } as React.CSSProperties;
-      return <React.Fragment key={event.id}>
-        <span style={style} className={`skill-pulse ${source ? 'is-source' : 'is-participant'}`} />
-        {(source || ownChanges.length > 0 || labels.length > 0) && <span style={style} className={`skill-name ${event.healing ? 'is-healing' : ''}`}>
-          <span className="skill-ability">{event.healing ? `${MATERIAL_CONFIG.vial.symbol} +${event.healing}` : <SkillText text={event.ability} />}</span>
-          {labels.length > 0 && <span className="skill-change">{labels.join('・')}</span>}
-        </span>}
-      </React.Fragment>;
-    })}
+        '--name-rise': `${timing.nameRisePx}px`, '--name-entry': `${timing.nameEntryPx}px`,
+      } as CSSProperties;
+      return { id: event.id, source, style, healing: !!event.healing,
+        showName: source || ownChanges.length > 0 || labels.length > 0,
+        ability: event.healing ? `${MATERIAL_CONFIG.vial.symbol} +${event.healing}` : <SkillText text={event.ability} />,
+        changes: labels.join('・'),
+      };
+  }), [diceId, feedback]);
+  const names = useMemo(() => entries.filter((entry) => entry.showName), [entries]);
+  const nameLayerRef = useSkillNameLayout(anchorRef, names);
+
+  return <div ref={anchorRef} className="skill-feedback" aria-hidden="true">
+    {entries.map(({ id, style, source }) => <span key={id} style={style}
+      className={`skill-pulse ${source ? 'is-source' : 'is-participant'}`} />)}
+    <SkillNameLayer rootRef={nameLayerRef} names={names} />
   </div>;
 }
