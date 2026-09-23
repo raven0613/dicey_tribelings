@@ -46,6 +46,8 @@ function createConsumableInstance(sticker: DisposableSticker): ConsumableSticker
 
 function getInitialValues() {
   return {
+    runId: null as string | null,
+    combatImpact: null,
     playerHp: INITIAL_PLAYER_STATS.hp,
     maxHp: INITIAL_PLAYER_STATS.maxHp,
     gold: INITIAL_PLAYER_STATS.gold,
@@ -164,7 +166,7 @@ export const useGameStore = create<GameState>((set, get) => {
       if (!targetNode) return;
 
       const common = {
-        enemyAttack: null, hoveredEquipmentId: null, pendingPaidRerollDiceId: null,
+        enemyAttack: null, combatImpact: null, hoveredEquipmentId: null, pendingPaidRerollDiceId: null,
         currentNodeIndex: nodeIndex, routeChoices: [],
         battleRewardOptions: [],
         battleRewardPickCount: 0, battleRecovery: 0,
@@ -452,7 +454,7 @@ export const useGameStore = create<GameState>((set, get) => {
     restartGame: () => {
       useStoryStore.getState().beginRun();
       consumableSequence = 0;
-      set(getInitialValues());
+      set({ ...getInitialValues(), runId: crypto.randomUUID() });
       get().startNode(0);
     },
 

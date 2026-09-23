@@ -1,4 +1,4 @@
-import type { EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
+import type { CombatImpact, EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
 import type { WaitForAttackMotion } from '../service/battle/battleSettlement';
@@ -50,6 +50,8 @@ export interface EquipmentSlotFeedback {
 }
 
 export interface GameState {
+  runId: string | null;
+  combatImpact: CombatImpact | null;
   playerHp: number;
   maxHp: number;
   gold: number;

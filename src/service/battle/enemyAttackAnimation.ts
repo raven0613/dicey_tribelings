@@ -3,9 +3,10 @@ import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { combatNumber } from './creatures/creatureState';
 import { soundService } from '../audio/soundService';
 import { waitForAnimation } from './settlementAnimation';
+import type { EnemyDamageSource } from '../../types/battle';
 
 /** 命中節拍同時提交受傷與視覺回饋，返回完成後交還回合流程。 */
-export async function animateEnemyAttack({ get, set }: BattleStoreMethods, result: { hp: number; shield: number },
+export async function animateEnemyAttack({ get, set }: BattleStoreMethods, result: { hp: number; shield: number; source?: EnemyDamageSource },
   heavy: boolean, isCurrent: () => boolean): Promise<void> {
   const feedback = { heavy, healthDamage: 0, shieldDamage: 0 };
   set({ enemyAttack: { ...feedback, stage: 'windup' } });
@@ -19,7 +20,7 @@ export async function animateEnemyAttack({ get, set }: BattleStoreMethods, resul
   const playerHp = result.hp;
   const impact = { heavy, shieldDamage, healthDamage: combatNumber(state.playerHp - playerHp) };
   soundService.playEnemyHit(heavy);
-  set({ playerHp, playerShield: result.shield, playerShieldDisplay: null,
+  set({ playerHp, playerShield: result.shield, playerShieldDisplay: null, combatImpact: { kind: 'enemy', source: result.source },
     enemyAttack: { ...impact, stage: 'impact' } });
   await waitForAnimation(timing.enemyImpactMs);
   if (!isCurrent()) return;

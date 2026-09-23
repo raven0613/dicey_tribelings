@@ -1,5 +1,5 @@
 import type { Enemy } from '../../../types/enemy';
-import type { BattleComboSummary } from '../../../types/battle';
+import type { BattleComboSummary, EnemyDamageSource } from '../../../types/battle';
 import type { CreatureBattleState } from '../../../types/creatures';
 import type { Equipment } from '../../../types/game';
 import { buildAttackPlan, buildRawAttackPlan, resolveAttack } from '../attackPlan';
@@ -9,6 +9,7 @@ import { finishEnemyRound } from './enemyMechanics';
 
 type Attack = ReturnType<typeof buildAttackPlan>[number];
 export interface EnemyRoundEvent {
+  source?: EnemyDamageSource;
   kind: 'player' | 'enemy' | 'reflection';
   damage: number;
   heavy?: boolean;
@@ -24,13 +25,13 @@ export function resolveEnemyRound(source: Enemy, summary: BattleComboSummary, eq
   let enemy = structuredClone(source), hp = player.hp, shield = player.shield;
   const events: EnemyRoundEvent[] = [];
   let hpHits = 0;
-  const receive = (damage: number, heavy = false, grows = false) => {
+  const receive = (damage: number, heavy = false, grows = false, source: EnemyDamageSource = 'intent') => {
     const absorbed = Math.min(shield, damage);
     shield = combatNumber(shield - absorbed);
     const loss = Math.min(hp, damage - absorbed);
     hp = combatNumber(hp - loss);
     if (loss > 0 && grows) hpHits++;
-    events.push({ kind: 'enemy', damage, heavy, enemy, hp, shield });
+    events.push({ kind: 'enemy', source, damage, heavy, enemy, hp, shield });
     if (loss > 0 && summary.reflection > 0 && enemy.hp > 0) {
       const reflected = applyEnemyDamage(enemy, summary.reflection);
       enemy = { ...reflected.enemy, roundDamage: (enemy.roundDamage ?? 0) + reflected.damageTaken,
@@ -44,14 +45,14 @@ export function resolveEnemyRound(source: Enemy, summary: BattleComboSummary, eq
     const attack = resolveAttack(raw, enemy, equipment);
     enemy = attack.enemy;
     events.push({ kind: 'player', damage: attack.value, attack, enemy, hp, shield });
-    if (enemy.hp > 0 && attack.retaliation > 0) receive(attack.retaliation);
+    if (enemy.hp > 0 && attack.retaliation > 0) receive(attack.retaliation, false, false, 'retaliation');
   }
   const actionEnemy = enemy;
   const intent = enemy.intents[enemy.currentIntentIndex];
   const tags = new Set(summary.items.flatMap((item) => item.tags.filter((tag) => tag !== 'food'))).size;
   const resolution = resolveEnemyIntent(enemy, enemy.roundDamage, shield, tags);
   if (enemy.hp > 0 && hp > 0) {
-    if (source.grapple && !round.rerolledDice?.includes(source.grapple.diceId)) receive(source.grapple.damage);
+    if (source.grapple && !round.rerolledDice?.includes(source.grapple.diceId)) receive(source.grapple.damage, false, false, 'grapple');
     let firstBlocked = false;
     for (let hit = 0; hit < resolution.hits && enemy.hp > 0 && hp > 0; hit++) {
       const powered = { ...enemy, strength: (enemy.strength ?? 0) + hpHits * (enemy.traits?.onHpHit ?? 0) };

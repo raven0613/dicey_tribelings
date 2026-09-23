@@ -60,7 +60,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
       const attack = event.attack;
       const completed = await animateAttack(methods, attack.index, attack.bonus,
         { value: event.damage, creature: attack.creature, label: attack.label || undefined },
-        () => { if (isCurrent()) set({ currentEnemy: event.enemy }); }, isCurrent, emphases[position++]);
+        () => { if (isCurrent()) set({ currentEnemy: event.enemy, combatImpact: { kind: 'player' } }); }, isCurrent, emphases[position++]);
       if (!completed) return;
     } else if (event.kind === 'enemy') {
       set({ combatPhase: 'ENEMY_TURN' });
@@ -68,7 +68,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
       if (!isCurrent()) return;
       await animateEnemyAttack(methods, event, Boolean(event.heavy), isCurrent);
     } else {
-      set({ currentEnemy: event.enemy });
+      set({ currentEnemy: event.enemy, combatImpact: { kind: 'reflection' } });
       methods.addDamagePop({ value: event.damage, label: '鏡面反射' });
     }
     if (!isCurrent()) return;

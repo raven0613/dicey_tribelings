@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useStoryStore } from '../../store/storyStore';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
+import { TelemetryAccess } from '../telemetry/TelemetryAccess';
 
 export function MainMenu() {
   const start = useGameStore((state) => state.restartGame);
@@ -11,7 +12,7 @@ export function MainMenu() {
   const preview = useStoryStore((state) => state.previewEnding);
   useEffect(() => { void prepareDicePresentationAssets(); }, []);
   const [resetMessage, setResetMessage] = useState('');
-  return <main className="main-menu">
+  return <><main className="main-menu">
     <div className="main-menu-art" aria-hidden="true">{CREATURE_CONFIG.family.emoji}　{CREATURE_CONFIG.princess.emoji}</div>
     <p className="main-menu-eyebrow">DICEY TRIBELINGS</p>
     <h1>骰骰土人</h1>
@@ -21,5 +22,5 @@ export function MainMenu() {
         onContextMenu={(event) => { event.preventDefault(); preview(); }}>重置紀錄</button>
     </div>
     <p className="main-menu-status" role="status">{resetMessage}</p>
-  </main>;
+  </main><TelemetryAccess /></>;
 }

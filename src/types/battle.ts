@@ -2,6 +2,12 @@ import type { FaceMaterial } from './materials';
 import type { AttackStage, BonusAttackDice } from './game';
 import type { CreatureId, CreatureTag } from './creatures';
 
+export type EnemyDamageSource = 'intent' | 'retaliation' | 'grapple';
+export interface CombatImpact {
+  kind: 'player' | 'enemy' | 'reflection';
+  source?: EnemyDamageSource;
+}
+
 export interface EnemyAttackFeedback {
   stage: Exclude<AttackStage, 'idle'>;
   heavy: boolean;
