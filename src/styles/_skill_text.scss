@@ -11,3 +11,9 @@
 .skill-keyword { font-weight: 800; }
 .skill-tooltip-trigger { display: inline; }
 .skill-tooltip-trigger:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+
+.battle-skill-lines { display: flex; flex-direction: column; gap: 0.35em; }
+.battle-skill-line { display: flex; align-items: baseline; gap: 0.3em; }
+.skill-stage-copy { min-width: 0; }
+.battle-skill-line.is-unmet { opacity: 0.6; }
+.skill-stage-check { color: #8cdeaa; flex: 0 0 1em; }

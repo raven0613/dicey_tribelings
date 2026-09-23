@@ -12,10 +12,8 @@ import type { FaceMaterial } from '../../types/materials';
 import { configuredDice } from '../../service/dice/diceFactory';
 import { getEffectiveFace, getFaceTags } from '../../service/dice/diceFaces';
 import { ceilDamage } from '../../service/battle/damageValue';
-import { getDiceTrayLayout, placeBonusDice } from '../../service/dice/diceTrayLayout';
 import { calculateRollResolution } from '../../service/battle/battleEngine';
 import { createCreatureBattleState } from '../../service/battle/creatures/creatureState';
-import { resolveRerollChain } from '../../service/battle/creatures/rerollResolution';
 
 for (const material of Object.keys(MATERIAL_CONFIG) as FaceMaterial[]) test(`${material} has visible name, unique surface and accessible battle identity`, () => {
   const dice = configuredDice('a', '測試', 'd6', 'amber', Array.from({ length: 6 }, () => ['food', 4]));
@@ -58,19 +56,6 @@ for (const material of Object.keys(MATERIAL_CONFIG) as FaceMaterial[]) test(`${m
     }
   }
 
-});
-
-test('layout reserves all retained priest faces and current echoed gang bonuses', () => {
-  const dice = configuredDice('a', '測試', 'd6', 'amber', [
-    ['priest', 4], ['priest', 4], ['gang', 4], ['gang', 4], ['gang', 4], ['gang', 4],
-  ]);
-  dice.faces[0].material = 'echo'; dice.faces[2].material = 'echo';
-  const first = resolveRerollChain([dice], [0], createCreatureBattleState(), 0, [], () => 0)[0];
-  const second = resolveRerollChain([dice], [1], first.state, 0, [], () => 0.3)[0];
-  const summary = calculateRollResolution([dice], second.rolledIndices, [], second.state);
-  const positions = placeBonusDice(summary.bonusDice, getDiceTrayLayout(640, [dice]).bonusPositions);
-  assert.equal(positions.length, summary.bonusDice.length);
-  assert.ok(positions.every((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)));
 });
 
 test('net preview preserves temporary materials and shows incoming permanent coating', async () => {

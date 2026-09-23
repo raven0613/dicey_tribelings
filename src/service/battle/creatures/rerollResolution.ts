@@ -44,13 +44,7 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
     if (action.forced && next.lockedDice.includes(die.id)) continue;
     if (next.sealedDice?.includes(die.id)) continue;
     const previous = getRoundFace(die, rolled[action.index], next);
-    dice.forEach((source, index) => {
-      const face = getRoundFace(source, rolled[index], next);
-      if (face.creature === 'priest') {
-        next.priestAttacks[face.id] = { diceId: source.id,
-          damage: combatNumber((next.priestAttacks[face.id]?.damage ?? 0) + b.priest.damagePerReroll) };
-      }
-    });
+    if (next.altars[die.id] !== undefined) next.altars[die.id]++;
     if (previous.creature === 'coward' && next.cowardShields[die.id] === undefined)
       next.cowardShields[die.id] = previous.baseValue * (previous.baseValue > 0 && useEcho(previous) ? 2 : 1);
     if (previous.creature === 'prankster' && !next.prankstersUsed.includes(die.id)) {
@@ -74,8 +68,8 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
     delete next.teacherBonuses[die.id];
     next = lockImposterTargets(dice, rolled, next);
     const face = getRoundFace(die, rolled[action.index], next);
-    if (action.teacher && face.baseValue > previous.baseValue) next.teacherBonuses[die.id] = b.teacher.bonus;
     next.rerollCount++;
+    if (action.teacher && face.baseValue > previous.baseValue) next.teacherBonuses[die.id] = b.teacher.bonus * next.rerollCount;
     next.rerolledDice = [...new Set([...(next.rerolledDice ?? []), die.id])];
     next = refreshAuthorityTargets(dice, rolled, equipment, next);
     steps.push({ dieIndex: action.index, rolledIndices: [...rolled], state: structuredClone(next) });

@@ -18,6 +18,7 @@ export function resolveIdentities(c: ResolutionContext) {
     farmer.creature = 'food'; farmer.tags = getFaceTags(farmer);
     c.identify(e, farmer);
   }
+  const originalNobles = items.filter((item) => item.tags.includes('noble')).length;
   for (const [index, authority] of items.entries()) {
     if (authority.creature !== 'authority') continue;
     const candidates = c.neighbors(index).filter((item) => item.tags.includes('common'));
@@ -25,11 +26,12 @@ export function resolveIdentities(c: ResolutionContext) {
     const target = candidates.find((item) => item.diceId === saved?.diceId
       && (state.faceVersions[item.diceId] ?? 0) === saved.version)
       ?? choose(candidates, state.seed, authority.diceId);
-    authority.skillInputs = { count: candidates.length };
+    authority.skillInputs = { count: originalNobles, secondaryCount: candidates.length };
     if (!target) continue;
     const e = c.event(2, authority, undefined, [target], 'adjacent');
     target.tags = target.material === 'iridescent' ? getFaceTags(target) : [...new Set(target.tags.map((tag) => tag === 'common' ? 'noble' : tag))];
     c.identify(e, target);
+    if (originalNobles >= b.authority.threshold) c.attack(e, target, target.finalDamage + target.baseValue * b.authority.bonus);
   }
   const crown = c.equipment.find((item) => item.ruleId === 'CROWN');
   if (crown) {
@@ -40,11 +42,25 @@ export function resolveIdentities(c: ResolutionContext) {
       c.identify(e, target);
     }
   }
+  for (const knight of items.filter((item) => item.creature === 'knight')) {
+    const targets = items.filter((item) => item.diceId !== knight.diceId && item.tags.includes('common'));
+    const count = targets.length;
+    knight.skillInputs = { count };
+    const e = c.event(3, knight, undefined, targets);
+    const amount = count * (count >= b.knight.nobleAt ? b.knight.highBonus : b.knight.bonus);
+    c.attack(e, knight, knight.finalDamage + amount);
+    if (count >= b.knight.burstAt) c.tailMultipliers.set(knight.diceId, b.knight.multiplier);
+    if (count >= b.knight.nobleAt && !knight.tags.includes('noble')) {
+      knight.tags.push('noble'); c.identify(e, knight);
+    }
+  }
   for (const [index, item] of items.entries()) {
     if (item.creature === 'twins') {
       const value = Math.max(...c.faces[index].filter((face) => face.creature === 'twins').map((face) => face.baseValue));
       const e = c.event(3, item);
       item.skillInputs = { count: c.faceCount(index, 'twins'), before: item.baseValue, after: value };
+      const count = item.skillInputs.count!;
+      c.repeatFactors.set(item.diceId, count >= b.twins.doubleAt ? [1, 1] : count >= b.twins.fullAt ? [1] : count >= b.twins.halfAt ? [b.twins.half] : []);
       const before = item.baseValue;
       c.attack(e, item, item.finalDamage + value - before);
     }
@@ -60,15 +76,28 @@ export function resolveIdentities(c: ResolutionContext) {
 }
 
 export function resolveFoodBoost(c: ResolutionContext) {
+  for (const [index, fruit] of c.items.entries()) if (fruit.creature === 'fruit') {
+    const otherFood = c.items.filter((item) => item.diceId !== fruit.diceId && item.tags.includes('food')).length + Number(c.virtualFood > 0);
+    fruit.skillInputs = { count: otherFood };
+    const targets = c.neighbors(index);
+    const e = c.event(4, fruit, undefined, targets, 'adjacent');
+    const amount = otherFood > 0 ? b.fruit.highBonus : b.fruit.bonus;
+    for (const target of targets) {
+      c.attack(e, target, target.finalDamage + amount);
+      if (target.tags.includes('food')) c.foodValues[target.diceId] = combatNumber(c.foodValues[target.diceId] + amount * c.echoMultiplier(e));
+    }
+  }
   const farmers = c.items.filter((item) => item.creature === 'farmer');
   const foods = c.items.filter((item) => item.tags.includes('food'));
+  const count = foods.length + Number(c.virtualFood > 0);
+  const amount = b.farmer.foodBonus * (count >= b.farmer.threshold ? count : 1);
   for (const farmer of farmers) {
     farmer.skillInputs = { count: foods.length + Number(c.virtualFood > 0), virtualFood: !foods.length };
     if (!foods.length) {
       if (c.virtualFood > 0) {
         const before = c.virtualFood;
         const e = c.event(4, farmer);
-        c.virtualFood = combatNumber(before + b.farmer.foodBonus * c.echoMultiplier(e));
+        c.virtualFood = combatNumber(before + amount * c.echoMultiplier(e));
         e.changes.push({ kind: 'food', targetId: 'virtual-food', before, after: c.virtualFood });
       }
       continue;
@@ -77,7 +106,7 @@ export function resolveFoodBoost(c: ResolutionContext) {
     const distance = (food: typeof farmer) => Math.abs(c.items.indexOf(food) - index);
     const food = foods.reduce((nearest, candidate) => distance(candidate) < distance(nearest) ? candidate : nearest);
     const e = c.event(4, farmer, undefined, [food]);
-    c.foodValues[food.diceId] = combatNumber(c.foodValues[food.diceId] + b.farmer.foodBonus * c.echoMultiplier(e));
-    c.attack(e, food, food.finalDamage + b.farmer.foodBonus);
+    c.foodValues[food.diceId] = combatNumber(c.foodValues[food.diceId] + amount * c.echoMultiplier(e));
+    c.attack(e, food, food.finalDamage + amount);
   }
 }

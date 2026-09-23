@@ -132,7 +132,7 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         control = state.control; gold = state.gold + summary.goldGranted;
         rerolls += state.creatureBattleState.rerollCount;
         shield += summary.totalShield;
-        round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood, echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces };
+        round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood, altars: summary.nextAltars, echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces };
         hp = Math.min(INITIAL_PLAYER_STATS.maxHp, hp + summary.healing);
         pool = commitMaterialRound(pool, state.rolledIndices);
         const resolution = resolveEnemyRound(enemy, summary, gear, { hp, shield }, state.creatureBattleState);

@@ -1,3 +1,4 @@
+import { canReorderDice, reorderDice } from '../service/dice/diceOrder';
 import { completeRouteNode, selectRouteNode } from '../service/regions/routeService';
 import { useStoryStore } from './storyStore';
 import { syncStoryProgress } from '../service/story/syncStoryProgress';
@@ -128,6 +129,12 @@ export const useGameStore = create<GameState>((set, get) => {
 
   return {
     ...getInitialValues(),
+    moveDice: (diceId, targetIndex) => {
+      const state = get();
+      if (!canReorderDice(state.combatPhase, state.currentEnemy !== null)) return;
+      const dicePool = reorderDice(state.dicePool, diceId, targetIndex);
+      if (dicePool !== state.dicePool) set({ dicePool, comboSummary: null, rolledIndices: [], diceSlotStates: {} });
+    },
 
     toggleSound: () => {
       const soundMuted = !get().soundMuted;

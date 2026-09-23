@@ -21,7 +21,7 @@ export const ALL_EQUIPMENT_CATALOG: Equipment[] = [
   equipment('eq_shield_wrap', '鱷皮護盾套', 'SHIELD_RETENTION', 'global', 'rare', 'Shield', `下回合保留 ${b.shieldRetention * 100}% 剩餘護盾。`),
   equipment('eq_barricade', '巨骨護身壁', 'BARRICADE', 'global', 'rare', 'Shield', `每回合獲得 ${b.barricadeShield} 額外護盾。`),
   equipment('eq_resonator', '戰鼓共鳴箱', 'RESONATOR', 'global', 'rare', 'Zap', `所有追加攻擊骰的傷害 +${b.bonusDamage}。`),
-  equipment('eq_rations', '備用乾糧袋', 'RATIONS', 'global', 'rare', 'Backpack', '勝利時帶走實體食物值。下場首回合視為一份食物，平均分給含廚師面的骰子儲糧。'),
+  equipment('eq_rations', '備用乾糧袋', 'RATIONS', 'global', 'rare', 'Backpack', '勝利時帶走實體食物值。下場首回合視為一份食物，平均分給含廚師面的骰子存糧。'),
   equipment('eq_crown', '王子的備用皇冠', 'CROWN', 'global', 'legendary', 'Sparkles', '每回合將基礎攻擊力最高的普通土人，其普通標籤暫時替換為貴族。'),
   equipment('eq_piggy', '王子的存錢筒', 'PIGGY', 'control', 'common', 'Layers', `開戰時金幣超過 ${b.goldThresholds.join(" 與 ")}，各增加 1 點起始 Control。`),
   equipment('eq_counterweight', '黃金秤錘', 'COUNTERWEIGHT', 'control', 'rare', 'RotateCcw', `付費重骰享 ${b.paidRerollMultiplier * 10} 折。`),

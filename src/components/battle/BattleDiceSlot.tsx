@@ -34,21 +34,22 @@ interface BattleDiceSlotProps {
   setHoveredId: (id: string | null) => void;
   inspectionTarget: HTMLDivElement | null;
   description: string;
+  lines?: import('../../service/battle/battleSkillDescription').BattleSkillLine[];
 }
 
 export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, position, size, spacing,
   attackTarget, identity, available, selectingAction, reducedMotion, bulgeFilter, trayRef,
-  rerollFeedback, onRollFinish, setHoveredId, inspectionTarget, description }: BattleDiceSlotProps) {
+  rerollFeedback, onRollFinish, setHoveredId, inspectionTarget, description, lines }: BattleDiceSlotProps) {
   const { rolledIndices, combatPhase, comboSummary, creatureBattleState, currentEnemy,
     activeRerollingIndex, attackingDieIndex, attackingStage, attackEmphasis, skillFeedback,
     equipments, rerollAnimationId, useControlReroll, slotState, shield, food } = useGameStore(useShallow((state) => ({
-    rolledIndices: state.rolledIndices, combatPhase: state.combatPhase, comboSummary: state.comboSummary,
-    creatureBattleState: state.creatureBattleState, currentEnemy: state.currentEnemy,
-    activeRerollingIndex: state.activeRerollingIndex, attackingDieIndex: state.attackingDieIndex,
-    attackingStage: state.attackingStage, attackEmphasis: state.attackEmphasis, skillFeedback: state.skillFeedback,
-    equipments: state.equipments, rerollAnimationId: state.rerollAnimationId, useControlReroll: state.useControlReroll,
-    slotState: state.diceSlotStates[idx], shield: state.displayedShields[die.id], food: state.displayedFood[die.id],
-  })));
+      rolledIndices: state.rolledIndices, combatPhase: state.combatPhase, comboSummary: state.comboSummary,
+      creatureBattleState: state.creatureBattleState, currentEnemy: state.currentEnemy,
+      activeRerollingIndex: state.activeRerollingIndex, attackingDieIndex: state.attackingDieIndex,
+      attackingStage: state.attackingStage, attackEmphasis: state.attackEmphasis, skillFeedback: state.skillFeedback,
+      equipments: state.equipments, rerollAnimationId: state.rerollAnimationId, useControlReroll: state.useControlReroll,
+      slotState: state.diceSlotStates[idx], shield: state.displayedShields[die.id], food: state.displayedFood[die.id],
+    })));
   const unrolled = combatPhase === 'PREPARATION';
   const rationsEquipment = equipments.find((item) => item.ruleId === 'RATIONS');
   const reroll = activeRerollingIndex === idx;
@@ -59,15 +60,18 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
   const calcItem = comboSummary?.items[idx];
 
   const storedFood = creatureBattleState.storedFood[die.id] ?? 0;
+  const altar = creatureBattleState.altars[die.id];
   const nextFood = calcItem ? comboSummary.nextStoredFood[die.id] ?? 0 : storedFood;
   const resolving = combatPhase === 'RESOLVING_CALCULATION' || combatPhase === 'RESOLVING_ATTACK';
   const resultLabels = calcItem && combatPhase === 'CONTROL_PHASE' ? [
     `攻擊 ${ceilDamage(calcItem.finalDamage)}`,
+    altar !== undefined ? `祭壇 ${altar} 次` : '',
     calcItem.shieldGranted > 0 ? `護盾 ${calcItem.shieldGranted}` : '',
-    storedFood > 0 || nextFood > 0 ? `儲糧 ${storedFood}→${nextFood}` : '',
+    storedFood > 0 || nextFood > 0 ? `存糧 ${storedFood}→${nextFood}` : '',
   ].filter(Boolean) : resolving ? [
+    combatPhase === 'RESOLVING_ATTACK' && altar !== undefined ? `祭壇 ${altar} 次` : '',
     (shield?.displayValue ?? 0) > 0 ? `護盾 ${shield.displayValue}` : '',
-    (food?.displayValue ?? 0) > 0 ? `儲糧 ${food.displayValue}` : '',
+    (food?.displayValue ?? 0) > 0 ? `存糧 ${food.displayValue}` : '',
   ].filter(Boolean) : [];
   const dieSize = size;
   const pumpVal = slotState?.displayValue;
@@ -93,6 +97,7 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
       {inspectionTarget && !unrolled && <DiceHoverInfo target={inspectionTarget} info={{
         creature: shownCreature, tags: shownTags, title: CREATURE_CONFIG[shownCreature].name,
         attack: shownValue, material: face.material,
+        lines: isRerolling ? undefined : lines,
         description: isRerolling ? `${CREATURE_CONFIG[shownCreature].ability}：${CREATURE_CONFIG[shownCreature].description}` : description,
       }} />}
       <div

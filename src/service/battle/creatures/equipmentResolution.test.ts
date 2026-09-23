@@ -24,7 +24,7 @@ test('virtual rations count as one food and distribute one total across chef dic
   assert.equal(result.nextStoredFood.a, 0);
   assert.equal(result.bonusDice[0].bonusDamage, Math.ceil(state.virtualFood / 2));
   assert.equal(result.nextStoredFood.b, Math.floor(state.virtualFood / 2) + pool[1].faces[0].baseValue + b.farmer.foodBonus);
-  assert.equal(result.items[3].finalDamage, 12);
+  assert.equal(result.items[3].finalDamage, combatNumber(pool[3].faces[0].baseValue * (1 + 2 * b.glutton.perFood[1])));
   assert.equal(result.items.length, 4);
   assert.equal(result.leftoverFood, pool[1].faces[0].baseValue + b.farmer.foodBonus);
 });
@@ -34,7 +34,7 @@ test('extra barricade shield feeds each bulwark; resonator and reserve affect th
   const result = calculateRollResolution(pool, [0, 0], equipment('BARRICADE', 'RESONATOR', 'RESERVE'),
     createCreatureBattleState(), { control: 2, maxControl: 3, gold: 0 });
   assert.equal(result.totalShield, eq.barricadeShield);
-  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [eq.barricadeShield + eq.bonusDamage, eq.barricadeShield + eq.bonusDamage]);
+  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [combatNumber(eq.barricadeShield * b.bulwark.lowMultiplier + eq.bonusDamage), combatNumber(eq.barricadeShield * b.bulwark.lowMultiplier + eq.bonusDamage)]);
   assert.deepEqual(result.items.map((item) => item.finalDamage), [4 + 2 * eq.reserveDamage, 4]);
 });
 
@@ -55,7 +55,7 @@ test('crown changes common identity before theft and princess snapshots, abacus 
   assert.deepEqual(result.items[1].tags, ['noble']);
   assert.equal(result.items[1].finalDamage > 0, true);
   assert.equal(result.repeatAttacks[0].diceId, 'b');
-  assert.equal(result.bonusControlGranted, 0); // 偽裝後的角色標籤取代神秘，場上只有普通與貴族。
+  assert.equal(result.bonusControlGranted, eq.abacusControl); // 無多數的偽裝者保留神秘，與普通、貴族合計三種標籤。
 });
 
 test('slot match grants one base contribution and retains other support bonuses', () => {
@@ -92,14 +92,17 @@ test('normal, bonus and repeated attacks round up individually after fractional 
   const pool = [die('a', 'gang', 3), die('b', 'royalGuard', 1), die('c', 'princess', 0)];
   const gear = equipment('FRUGAL');
   const summary = calculateRollResolution(pool, [0, 0, 0], gear);
-  assert.equal(summary.items[0].finalDamage, 3.3);
-  assert.equal(summary.items[1].finalDamage, 12.1);
-  assert.deepEqual(summary.bonusDice.map((bonus) => bonus.bonusDamage), Array(4).fill(combatNumber(b.gang.damagePerNeighbor * eq.frugalMultiplier)));
-  assert.equal(summary.repeatAttacks[0].damage, 12.1);
-  const plan = buildAttackPlan(summary, 0, gear);
-  const bonusDamage = Math.ceil(combatNumber(b.gang.damagePerNeighbor * eq.frugalMultiplier));
-  assert.deepEqual(plan.map((hit) => hit.value), [4, 13, ...Array(4).fill(bonusDamage), 13]);
-  assert.equal(summary.totalDamage, 30 + 4 * bonusDamage);
+  const guard = combatNumber((pool[1].faces[0].baseValue + (pool[1].faces.length - 1) * b.royalGuard.highBonus) * eq.frugalMultiplier);
+  const gang = combatNumber(pool[0].faces[0].baseValue * eq.frugalMultiplier);
+  const copies = 4 * b.gang.copies;
+  const bonus = combatNumber(b.gang.highDamage * eq.frugalMultiplier);
+  assert.equal(summary.items[0].finalDamage, gang);
+  assert.equal(summary.items[1].finalDamage, guard);
+  assert.deepEqual(summary.bonusDice.map((bonus) => bonus.bonusDamage), Array(copies).fill(bonus));
+  assert.equal(summary.repeatAttacks[0].damage, guard);
+  const expected = [Math.ceil(gang), Math.ceil(guard), ...Array(copies).fill(Math.ceil(bonus)), Math.ceil(guard)];
+  assert.deepEqual(buildAttackPlan(summary, 0, gear).map((hit) => hit.value), expected);
+  assert.equal(summary.totalDamage, expected.reduce((sum, hit) => sum + hit, 0));
 });
 
 test('fractional normal hit rounds up to break shield before evaluating later warhammer hits', () => {
@@ -125,6 +128,6 @@ test('nearest food receives the full farmer boost in the attack plan', () => {
   const pool = [die('a', 'farmer', 1), ...['b', 'c', 'd', 'e'].map((id) => die(id, 'food', 1))];
   const summary = calculateRollResolution(pool, pool.map(() => 0), []);
   assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [1, 1, 1, 1]);
-  assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 4, 1, 1, 1]);
-  assert.equal(summary.totalDamage, 8);
+  assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 1 + 4 * b.farmer.foodBonus, 1, 1, 1]);
+  assert.equal(summary.totalDamage, 5 + 4 * b.farmer.foodBonus);
 });

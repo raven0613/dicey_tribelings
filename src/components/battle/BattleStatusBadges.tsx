@@ -37,7 +37,7 @@ export function RationsBadge() {
   const allocations = comboSummary?.events.filter((event) => equipment && event.equipmentId === equipment.id)
     .flatMap((event) => event.changes.filter((change) => change.kind === 'food').map((change) => {
       const index = comboSummary.items.findIndex((item) => item.diceId === change.targetId);
-      return `第 ${index + 1} 骰・${CREATURE_CONFIG[comboSummary.items[index].creature].name}：儲糧 +${change.after - change.before}`;
+      return `第 ${index + 1} 骰・${CREATURE_CONFIG[comboSummary.items[index].creature].name}：存糧 +${change.after - change.before}`;
     })) ?? [];
   const { tooltip, tooltipProps } = useSkillTooltip(`${equipment?.name ?? ''}：${amount} 點，視為一份食物，本回合有效。\n含廚師面的骰子平均分配：\n${allocations.length ? allocations.join('\n') : '本輪沒有可入庫對象或容量。'}`);
   if (!equipment || amount <= 0) return null;
@@ -52,7 +52,7 @@ export function RationsBadge() {
 }
 
 export function RationsAllocation({ equipment, amount }: { equipment: Equipment; amount: number }) {
-  const { tooltip, tooltipProps } = useSkillTooltip(`${equipment.name}：本骰儲糧 +${amount}`);
+  const { tooltip, tooltipProps } = useSkillTooltip(`${equipment.name}：本骰存糧 +${amount}`);
   const Icon = getEquipmentIcon(equipment.iconName);
   return <span className="rations-allocation" tabIndex={0} {...tooltipProps}>
     <Icon className="ui-icon" /> + {amount}{tooltip}

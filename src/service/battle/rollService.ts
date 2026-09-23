@@ -26,6 +26,9 @@ export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[]
   let round = startCreatureRound(state, Math.floor(random() * 0xffffffff));
   round.virtualFood = virtualFood;
   round.sealedDice = battle.currentEnemy && 'sealedDie' in battle.currentEnemy && battle.currentEnemy.sealedDie ? [battle.currentEnemy.sealedDie] : [];
+  if (state.round === 0) for (const die of dicePool) {
+    if (die.faces.some((face) => getEffectiveFace(face).creature === 'priest')) round.altars[die.id] = 0;
+  }
   round.rerolledDice = [];
   round = lockImposterTargets(dicePool, rolledIndices, round);
   round.teachersAvailable = dicePool.filter((die, index) => getRoundFace(die, rolledIndices[index], round).creature === 'teacher').map((die) => die.id);

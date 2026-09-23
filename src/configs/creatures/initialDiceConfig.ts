@@ -9,6 +9,6 @@ export const INITIAL_DICE_POOL: Dice[] = [
     ['chef', 3], ['food', 4], ['farmer', 3], ['food', 4], ['porter', 3], ['sisters', 3],
   ]),
   configuredDice('dice_starter_3', '勇士骰', 'd6', 'sapphire', [
-    ['boss', 3], ['warrior', 4], ['follower', 3], ['thief', 3], ['artisan', 2], ['loner', 3],
+    ['boss', 3], ['warrior', 4], ['follower', 3], ['thief', 3], ['prankster', 2], ['loner', 3],
   ]),
 ];

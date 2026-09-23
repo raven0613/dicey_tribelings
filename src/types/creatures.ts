@@ -3,7 +3,7 @@ export type CreatureId =
   | 'porter' | 'follower' | 'cheerleader' | 'thief' | 'coward' | 'guard'
   | 'warrior' | 'elder' | 'artisan' | 'priest' | 'knight' | 'teacher'
   | 'royalGuard' | 'prankster' | 'authority' | 'farmer' | 'imposter'
-  | 'glutton' | 'bulwark' | 'bully' | 'herald' | 'princess' | 'food';
+  | 'detective' | 'fruit' | 'glutton' | 'bulwark' | 'bully' | 'herald' | 'princess' | 'food';
 
 export type CreatureTag = 'common' | 'warrior' | 'craftsman' | 'noble' | 'mystery' | 'food';
 
@@ -28,7 +28,7 @@ export interface CreatureBattleState {
   gildedFaces: string[];
   storedFood: Record<string, number>;
   cowardShields: Record<string, number>;
-  priestAttacks: Record<string, { diceId: string; damage: number }>;
+  altars: Record<string, number>;
   teacherBonuses: Record<string, number>;
   teachersAvailable: string[];
   prankstersUsed: string[];

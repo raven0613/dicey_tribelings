@@ -34,7 +34,7 @@ export interface SkillInputs {
   before?: number;
   after?: number;
   virtualFood?: boolean;
-  blockedByRobbery?: boolean;
+  secondaryCount?: number;
 }
 
 export interface SkillChange {
@@ -63,7 +63,7 @@ export interface SkillEvent {
   repeatDiceIds: string[];
 }
 
-export interface RepeatAttack { diceId: string; damage: number; sourceDiceId: string }
+export interface RepeatAttack { diceId: string; damage: number; sourceDiceId: string; label?: string }
 export interface BattleContext { foodCapacity?: number;  control: number; maxControl: number; gold: number; currentEnemy?: import('./enemy').Enemy | { shield: number } | null }
 
 export interface BattleComboSummary {
@@ -80,12 +80,14 @@ export interface BattleComboSummary {
   totalShield: number;
   bonusControlGranted: number;
   goldGranted: number;
+  nextAltars: Record<string, number>;
   nextStoredFood: Record<string, number>;
   leftoverFood: number;
   virtualFood: number;
 }
 
 export interface NumberDisplay {
+  pending?: boolean;
   displayValue: number;
   scale: number;
   isSpinning: boolean;

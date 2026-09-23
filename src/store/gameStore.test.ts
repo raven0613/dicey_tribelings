@@ -245,3 +245,30 @@ test('each paid reroll awaits confirmation before charging, including retries af
   store.getState().startNode(initial.currentNodeIndex);
   assert.equal(store.getState().creatureBattleState.paidRerolls, 0);
 });
+
+test('dice order commits immediately and cannot be changed after the first roll', () => {
+  useGameStore.getState().restartGame();
+  const pool = useGameStore.getState().dicePool;
+  useGameStore.getState().moveDice(pool[0].id, pool.length - 1);
+  assert.equal(useGameStore.getState().dicePool.at(-1)!.id, pool[0].id);
+  const reordered = useGameStore.getState().dicePool;
+  useGameStore.setState({ combatPhase: 'CONTROL_PHASE' });
+  useGameStore.getState().moveDice(pool[0].id, 0);
+  assert.equal(useGameStore.getState().dicePool, reordered);
+  useGameStore.setState({ combatPhase: 'VICTORY' });
+  useGameStore.getState().moveDice(pool[0].id, 0);
+  assert.deepEqual(useGameStore.getState().dicePool, pool);
+});
+
+test('shop and chest nodes allow direct ordering without a battle', () => {
+  for (const type of ['shop', 'chest']) {
+    useGameStore.getState().restartGame();
+    const state = useGameStore.getState();
+    const index = state.mapNodes.findIndex((node) => node.type === type);
+    state.startNode(index);
+    const pool = useGameStore.getState().dicePool;
+    assert.equal(useGameStore.getState().currentEnemy, null);
+    useGameStore.getState().moveDice(pool[0].id, pool.length - 1);
+    assert.equal(useGameStore.getState().dicePool.at(-1), pool[0]);
+  }
+});

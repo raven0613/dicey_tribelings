@@ -195,7 +195,7 @@ export const DiceBoard: React.FC = () => {
               identity={identities[idx]} available={actionTargets.includes(idx)} selectingAction={selectingAction}
               reducedMotion={reducedMotion} bulgeFilter={`url(#${bulgeId})`} trayRef={trayRef}
               inspectionTarget={inspecting && hoveredIndex === idx ? inspectionTarget : null}
-              description={battleDescriptions[idx].description}
+              description={battleDescriptions[idx].description} lines={battleDescriptions[idx].lines}
               rerollFeedback={rerollFeedback} onRollFinish={finishDieRoll} setHoveredId={setHoveredId} />;
           })}
 
@@ -235,12 +235,6 @@ export const DiceBoard: React.FC = () => {
 
       {/* Dice inspection beside the tray. */}
       <div className="board-info">
-        <div className="info-left">
-          <span>
-            <Dices className="ui-icon" />
-            <strong className="highlight">{dicePool.length}</strong>
-          </span>
-        </div>
         <div className="board-right" id="dice-hover-information" aria-live="polite" ref={setInspectionTarget}>
           {!inspecting && <span className="hover-info-placeholder">移到骰子上，查看能力與連動關係</span>}
         </div>

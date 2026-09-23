@@ -61,12 +61,12 @@ for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite r
 
 test('round rollover retains battle resources while reroll earnings and temporary identities reset', () => {
   const state = createCreatureBattleState();
-  state.storedFood.a = 12; state.cowardShields.a = 4; state.priestAttacks['a-face-0'] = { diceId: 'a', damage: 6 };
+  state.storedFood.a = 12; state.cowardShields.a = 4; state.altars.a = 6;
   state.teacherBonuses.a = 3; state.teachersAvailable = ['a']; state.prankstersUsed = ['a'];
   state.authorityTargets.a = { diceId: 'b', version: 2 }; state.lockedDice = ['b'];
   state.virtualFood = 8; state.controlSpent = 2; state.formationUsed = true;
   const next = startCreatureRound(state, 19);
-  assert.deepEqual(next, { ...createCreatureBattleState(), storedFood: { a: 12 }, round: 1, seed: 19 });
+  assert.deepEqual(next, { ...createCreatureBattleState(), storedFood: { a: 12 }, altars: { a: 6 }, round: 1, seed: 19 });
   next.storedFood.a = 1;
   assert.equal(state.storedFood.a, 12);
 });

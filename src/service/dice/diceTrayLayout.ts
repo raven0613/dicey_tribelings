@@ -1,6 +1,6 @@
 import { VIEWPORT_PRESENTATION } from '../../configs/viewportConfig';
 import type { BonusAttackDice, Dice } from '../../types/game';
-import { getAdjacentFaces, getEffectiveFace } from './diceFaces';
+import { getBonusCapacities } from '../battle/creatures/bonusCapacity';
 import { DICE_TRAY_PRESENTATION as layout, DICE_RESULT_PRESENTATION as result } from '../../configs/dicePresentationConfig';
 
 export function getDiceResultMetrics(minimumFontSize: number = VIEWPORT_PRESENTATION.minimumFontSize) {
@@ -25,16 +25,8 @@ export function getDiceTrayMetrics(size: number, minimumFontSize?: number) {
 
 /** Reserve by build, so rolling and revealing bonuses never move the normal row. */
 export function getDiceTrayLayout(width: number, dice: Dice[], size: number = layout.size, minimumFontSize?: number) {
-  const sources = dice.map((die) => {
-    const faces = die.faces.map(getEffectiveFace);
-    const gangCapacity = Math.max(0, ...faces.map((face, index) => (face.creature === 'gang' || face.creature === 'imposter')
-      ? getAdjacentFaces(die, index).filter((neighbor) => neighbor.creature === 'gang').length : 0));
-    const echo = faces.some((face) => face.material === 'echo') ? 2 : 1;
-    const priests = faces.filter((face) => face.creature === 'priest' || face.creature === 'imposter');
-    return { key: `creature:${die.id}`, capacity: Math.max(1, gangCapacity) * echo
-      + priests.reduce((sum, face) => sum + (face.material === 'echo' ? 2 : 1), 0)
-      + Number(faces.some((face) => face.material === 'shock')) };
-  });
+  const capacities = getBonusCapacities(dice);
+  const sources = dice.map((die, index) => ({ key: `creature:${die.id}`, capacity: capacities[index] }));
   const slotCount = sources.reduce((total, source) => total + source.capacity, 0);
   const { topPadding, pitch, normalY, spacing, sidePadding, height } = getDiceTrayMetrics(size, minimumFontSize);
   const contentWidth = Math.max(width, sidePadding * 2 + Math.max(

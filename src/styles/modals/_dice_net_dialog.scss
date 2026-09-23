@@ -84,3 +84,7 @@
     .theme-val { color: $amber-300; }
   }
 }
+
+.dice-tabs-nav.can-reorder .dice-tab-btn { cursor: grab; touch-action: none; }
+.dice-tabs-nav.can-reorder .dice-tab-btn:active { cursor: grabbing; }
+.dice-tab-btn.is-drop-target { outline: 2px solid #f2cd75; outline-offset: -2px; }

@@ -31,6 +31,7 @@ test('negative modifies configuration values, decays only facing up and resets w
 
 test('imposter locks food immediately, keeps identity across rerolls and creates no virtual entity', () => {
   const pool = [die('a', 'imposter'), die('b', 'food')];
+  pool[0].faces[2].creature = 'food'; pool[0].faces[3].creature = 'food';
   const roll = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
   assert.equal(roll.comboSummary.items[0].creature, 'food');
   assert.equal(roll.creatureBattleState.imposterTargets.a, 'food');
@@ -39,13 +40,15 @@ test('imposter locks food immediately, keeps identity across rerolls and creates
   assert.equal(calculateRollResolution(pool, step.rolledIndices, [], step.state).items[0].creature, 'food');
 });
 
-test('imposter priest witnesses rerolls immediately and retains its own source', () => {
-  const pool = [die('a', 'imposter'), die('b', 'priest'), die('c', 'food')];
-  pool[2].faces[0].creature = 'priest';
+test('imposter priest uses only the altar belonging to its own die', () => {
+  const pool = [die('a', 'imposter'), die('b', 'priest'), die('c', 'priest')];
+  pool[0].faces[1].creature = 'priest';
   const roll = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
-  const step = resolveRerollChain(pool, [0, 0, 0], roll.creatureBattleState, 2, [], () => 0)[0];
-  const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
-  assert.equal(result.bonusDice.filter((b) => b.source.kind === 'creature' && b.source.diceId === 'a')[0].bonusDamage, CREATURE_BALANCE.priest.damagePerReroll);
+  const other = resolveRerollChain(pool, [0, 0, 0], roll.creatureBattleState, 1, [], () => 0)[0];
+  assert.equal(calculateRollResolution(pool, other.rolledIndices, [], other.state).bonusDice.filter((bonus) => bonus.source.kind === 'creature' && bonus.source.diceId === 'a').length, 0);
+  const own = resolveRerollChain(pool, other.rolledIndices, other.state, 0, [], () => 0.2)[0];
+  const result = calculateRollResolution(pool, own.rolledIndices, [], own.state);
+  assert.equal(result.bonusDice.find((bonus) => bonus.source.kind === 'creature' && bonus.source.diceId === 'a')!.bonusDamage, CREATURE_BALANCE.priest.damagePerReroll);
 });
 
 test('shared storage admits leftmost food first and iridescent characters count as food', () => {
@@ -60,7 +63,7 @@ test('shared storage admits leftmost food first and iridescent characters count 
 test('ripple contributes to bulwark and shock contributes to herald', () => {
   const pool = [die('a', 'bulwark', 4, 'ripple'), die('b', 'herald', 4, 'shock')];
   const result = calculateRollResolution(pool, [0, 0], []);
-  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage).sort(), [2, 4]);
+  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage).sort(), [2, 4 * CREATURE_BALANCE.bulwark.lowMultiplier]);
   assert.equal(result.totalShield, 4);
   assert.equal(result.items[0].finalDamage, 6);
 });
@@ -69,11 +72,11 @@ test('echo duplicates the whole gang ability once, while previews remain pure', 
   const pool = [die('a', 'gang', 4, 'echo')];
   const state = createCreatureBattleState();
   const first = calculateRollResolution(pool, [0], [], state);
-  assert.equal(first.bonusDice.length, 8);
+  assert.equal(first.bonusDice.length, 4 * CREATURE_BALANCE.gang.copies * 2);
   assert.deepEqual(first, calculateRollResolution(pool, [0], [], state));
   assert.deepEqual(state.echoUsed, []);
   const second = calculateRollResolution(pool, [0], [], { ...state, echoUsed: first.nextEchoUsed });
-  assert.equal(second.bonusDice.length, 4);
+  assert.equal(second.bonusDice.length, 4 * CREATURE_BALANCE.gang.copies);
 });
 
 test('all-imposter board locks the original identity for the whole round', () => {
@@ -83,12 +86,13 @@ test('all-imposter board locks the original identity for the whole round', () =>
   const step = resolveRerollChain(pool, [0, 0], first.creatureBattleState, 1, [], () => 0)[0];
   assert.equal(calculateRollResolution(pool, step.rolledIndices, [], step.state).items[0].creature, 'imposter');
   const next = performStartBattleRoll(pool, [], step.state, undefined, 0, () => 0.2);
-  assert.equal(next.comboSummary.items[0].creature, 'food');
+  assert.equal(next.comboSummary.items[0].creature, 'imposter');
 });
 
 test('imposter preserves its base and material and reuses the first identity after returning', () => {
   const pool = [die('a', 'imposter', 4, 'foil'), die('b', 'sisters', 30)];
   pool[0].faces[1].creature = 'food';
+  pool[0].faces[2].creature = 'sisters'; pool[0].faces[3].creature = 'sisters';
   const first = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
   assert.equal(first.comboSummary.items[0].baseValue, 7);
   assert.equal(first.comboSummary.items[0].material, 'foil');
@@ -122,22 +126,26 @@ test('echo chef spends food once and repeats the full additional attack', () => 
   assert.equal(result.nextStoredFood.a, 0);
 });
 
-test('retained priest earnings cannot consume a different face echo', () => {
+test('unreleased altar neither attacks nor consumes the facing food echo', () => {
   const pool = [die('a', 'priest'), die('b', 'food')];
   pool[0].faces[1] = { ...pool[0].faces[1], creature: 'food', material: 'echo' };
-  const step = resolveRerollChain(pool, [0, 0], createCreatureBattleState(), 0, [], () => 0)[0];
+  const initial = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
+  const step = resolveRerollChain(pool, [0, 0], initial.creatureBattleState, 0, [], () => 0)[0];
   const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
-  assert.equal(result.bonusDice.length, 1);
+  assert.equal(result.bonusDice.length, 0);
+  assert.equal(result.nextAltars.a, 1);
   assert.deepEqual(result.nextEchoUsed, []);
-  assert.equal(result.bonusDice[0].source.kind === 'creature' && result.bonusDice[0].source.faceId, pool[0].faces[0].id);
 });
 
-test('echo priest retains ownership and echoes after being rerolled away', () => {
+test('echo priest releases once after returning, doubles the ability and clears its altar', () => {
   const pool = [die('a', 'priest', 4, 'echo')]; pool[0].faces[1].creature = 'food';
-  const step = resolveRerollChain(pool, [0], createCreatureBattleState(), 0, [], () => 0)[0];
-  const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
-  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage), Array(2).fill(CREATURE_BALANCE.priest.damagePerReroll));
+  const initial = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
+  const away = resolveRerollChain(pool, [0], initial.creatureBattleState, 0, [], () => 0)[0];
+  const back = resolveRerollChain(pool, away.rolledIndices, away.state, 0, [], () => 0)[0];
+  const result = calculateRollResolution(pool, back.rolledIndices, [], back.state);
+  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), Array(2).fill(back.state.altars.a * CREATURE_BALANCE.priest.damagePerReroll));
   assert.deepEqual(result.nextEchoUsed, [pool[0].faces[0].id]);
+  assert.equal(result.nextAltars.a, 0);
 });
 
 test('echo teacher provides a second choice but later rounds do not refresh echo', () => {
@@ -164,7 +172,7 @@ test('iridescent tags survive authority and contribute each tag only once', () =
   const pool = [die('a', 'family', 4, 'iridescent'), die('b', 'authority'), die('c', 'guard')];
   const result = calculateRollResolution(pool, [0, 0, 0], []);
   assert.equal(result.items[0].tags.length, 6);
-  assert.equal(result.items[2].shieldGranted, 4);
+  assert.equal(result.items[2].shieldGranted, 2 * CREATURE_BALANCE.guard.shield);
 });
 
 test('echo farmer doubles food and attack boost while preserving base attacks, and echo herald buffs the full team', () => {

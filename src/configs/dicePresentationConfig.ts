@@ -22,7 +22,7 @@ export const DICE_TRAY_PRESENTATION = {
 } as const;
 
 export const DICE_RESULT_PRESENTATION = {
-  rows: 4, lineHeight: 14, gap: 4, paddingY: 2, paddingX: 4, fontSize: 11,
+  rows: 5, lineHeight: 14, gap: 4, paddingY: 2, paddingX: 4, fontSize: 11,
 } as const;
 
 export const PLAYER_BOARD_PRESENTATION = {
@@ -91,3 +91,5 @@ export const DICE_CHARACTER_PRESENTATION = {
 export const PHANTOM_DICE_PRESENTATION = {
   side: 72, borderWidth: 2, cornerRadius: 12, rotateX: 20, rotateY: -20, floatDistance: 4,
 } as const;
+
+export const DICE_REORDER_PRESENTATION = { threshold: 6, scrollEdge: 28, scrollStep: 12 } as const;

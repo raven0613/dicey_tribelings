@@ -61,7 +61,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
     const previous = valueFor(change);
     if (previous.displayValue === value.displayValue && previous.scale === value.scale
       && previous.isSpinning === value.isSpinning && previous.isLocked === value.isLocked
-      && previous.isBuffed === value.isBuffed) return;
+      && previous.isBuffed === value.isBuffed && previous.pending === value.pending) return;
     if (change.kind === 'attack') dice = { ...dice, [diceIndex.get(change.targetId)!]: value };
     else if (change.kind === 'shield') shields = { ...shields, [change.targetId]: value };
     else if (change.kind === 'food') food = { ...food, [change.targetId]: value };
@@ -107,7 +107,9 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
       }
       const newIds = event.bonusIds.filter((id) => !visible.includes(id));
       if (newIds.length) visible = [...visible, ...newIds];
+      for (const id of newIds) if (!event.changes.some((change) => change.kind === 'bonus' && change.targetId === id)) bonuses = { ...bonuses, [id]: { ...still(0), pending: true } };
       for (const change of event.changes) {
+        if (change.kind === 'bonus' && bonuses[change.targetId]?.pending && event.skill !== 'cheerleader') continue;
         const display = valueFor(change);
         active.set(`${change.kind}:${change.targetId}`, { change, from: display.displayValue, scale: display.scale, start: time });
       }

@@ -1,3 +1,4 @@
+import type { BattleSkillLine } from '../../service/battle/battleSkillDescription';
 import type { CreatureId, CreatureTag } from '../../types/creatures';
 import { SkillText } from '../common/SkillText';
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
@@ -11,6 +12,7 @@ interface DiceInspection {
   title: string;
   attack: number;
   description: string;
+  lines?: BattleSkillLine[];
   material?: FaceMaterial;
   source?: string;
 }
@@ -22,7 +24,10 @@ export function DiceHoverInfo({ info, target }: { info: DiceInspection; target: 
         {info.material && <span style={{ color: MATERIAL_CONFIG[info.material].color }}>
           {MATERIAL_CONFIG[info.material].symbol} {MATERIAL_CONFIG[info.material].name}
         </span>}
-        <p><SkillText text={info.description} /></p>
+        {info.lines ? <div className="battle-skill-lines">{info.lines.map((line, index) => <div key={index} className={`battle-skill-line ${line.achieved === false ? 'is-unmet' : ''}`}>
+          {line.achieved !== undefined && <span className="skill-stage-check" aria-label={line.achieved ? '已達成' : '未達成'}>{line.achieved ? '✓' : ''}</span>}
+          <span className="skill-stage-copy"><SkillText text={line.text} /></span>
+        </div>)}</div> : <p><SkillText text={info.description} /></p>}
       </div>
   </>, target);
 }

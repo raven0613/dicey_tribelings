@@ -35,7 +35,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
     || initial.pendingPaidRerollDiceId || initial.diceAction !== 'reroll' || !summary || !currentEnemy) return;
   const isCurrent = () => get().comboSummary === summary;
   set({ combatPhase: 'RESOLVING_CALCULATION', visibleBonusIds: [], bonusSlotStates: {},
-    creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood },
+    creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood }, altars: { ...summary.nextAltars },
       echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces },
     playerHpDisplay: initial.playerHp,
     playerHp: Math.min(initial.maxHp, initial.playerHp + summary.healing),

@@ -14,7 +14,7 @@ export function buildRawAttackPlan(summary: Pick<BattleComboSummary, 'items' | '
       ? [{ index, bonus: true, value: bonus.bonusDamage, creature: bonus.creature, label: bonus.label }] : []),
     ...summary.repeatAttacks.map((attack) => {
       const index = summary.items.findIndex((item) => item.diceId === attack.diceId);
-      return { index, bonus: false, value: attack.damage, creature: summary.items[index].creature, label: '公主命令' };
+      return { index, bonus: false, value: attack.damage, creature: summary.items[index].creature, label: attack.label ?? '公主命令' };
     }),
   ];
 }

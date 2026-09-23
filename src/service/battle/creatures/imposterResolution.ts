@@ -13,8 +13,12 @@ export function lockImposterTargets(dice: Dice[], indices: number[], state: Crea
   const imposterTargets = { ...state.imposterTargets };
   faces.forEach((face, i) => {
     const id = dice[i].id;
-    if (face.creature === 'imposter' && imposterTargets[id] === undefined)
-      imposterTargets[id] = choose(candidates, state.seed, `imposter:${id}`) ?? 'imposter';
+    if (face.creature !== 'imposter' || imposterTargets[id] !== undefined) return;
+    const local = new Map<CreatureId, number>();
+    for (const original of dice[i].faces.map(getEffectiveFace)) if (original.creature !== 'imposter') local.set(original.creature, (local.get(original.creature) ?? 0) + 1);
+    const localMax = Math.max(0, ...local.values());
+    const choices = maximum > 1 ? candidates : localMax > 1 ? [...local].filter(([, n]) => n === localMax).map(([role]) => role) : [];
+    imposterTargets[id] = choose(choices, state.seed, `imposter:${id}`) ?? 'imposter';
   });
   return { ...state, imposterTargets };
 }

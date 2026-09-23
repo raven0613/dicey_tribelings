@@ -33,6 +33,6 @@ export function PlayerVitals() {
     </div>
     <span className={`player-shield-value ${highlightShield ? 'is-highlighted' : ''}`}><Shield className="ui-icon" />護盾 <strong>{shield}</strong></span>
     <RationsBadge />
-    <span className="food-capacity">儲糧 {stored}／{FOOD_CAPACITY.crocodile}</span>
+    <span className="food-capacity">存糧 {stored}／{FOOD_CAPACITY.crocodile}</span>
   </div>;
 }

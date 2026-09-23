@@ -12,14 +12,34 @@ import type { CreatureId } from '../../../types/creatures';
 const die = (id: string, a: CreatureId, z: CreatureId, first = 3, rest = 5) => configuredDice(id, id, 'd6', 'amber',
   Array.from({ length: 6 }, (_, index) => [index === 0 ? a : z, index === 0 ? first : rest] as [CreatureId, number]));
 
-test('priest witnesses before each reroll, keeps earned bonus after leaving, and has no retrospective credit', () => {
+test('altars count only their own die and retain unspent charges while priest is face down', () => {
   const pool = [die('a', 'priest', 'food'), die('b', 'food', 'priest')];
-  const steps = resolveRerollChain(pool, [0, 0], createCreatureBattleState(), 0, [], () => 0.5);
-  assert.equal(steps[0].state.priestAttacks['a-face-0'].damage, CREATURE_BALANCE.priest.damagePerReroll);
-  const next = resolveRerollChain(pool, steps[0].rolledIndices, steps[0].state, 1, [], () => 0.5)[0];
-  assert.equal(next.state.priestAttacks['b-face-0'], undefined);
+  const state = createCreatureBattleState(); state.altars = { a: 0, b: 0 };
+  const first = resolveRerollChain(pool, [0, 0], state, 0, [], () => 0.5)[0];
+  assert.deepEqual(first.state.altars, { a: 1, b: 0 });
+  const next = resolveRerollChain(pool, first.rolledIndices, first.state, 1, [], () => 0.5)[0];
   const result = calculateRollResolution(pool, next.rolledIndices, [], next.state);
-  assert.equal(result.bonusDice.filter((bonus) => bonus.creature === 'priest').length, 1);
+  assert.deepEqual(result.nextAltars, { a: 1, b: 0 });
+  assert.equal(result.bonusDice.length, 1);
+  assert.equal(result.bonusDice[0].bonusDamage, CREATURE_BALANCE.priest.damagePerReroll);
+});
+
+test('five-charge priest splits retroactive tier damage without losing odd remainder', () => {
+  const state = createCreatureBattleState(); state.altars.a = CREATURE_BALANCE.priest.splitAt;
+  const result = calculateRollResolution([die('a', 'priest', 'food')], [0], [], state);
+  const total = CREATURE_BALANCE.priest.splitAt * CREATURE_BALANCE.priest.highDamage;
+  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [Math.floor(total / 2), Math.ceil(total / 2)]);
+  assert.equal(result.nextAltars.a, 0);
+  assert.equal(state.altars.a, CREATURE_BALANCE.priest.splitAt);
+});
+
+test('teacher includes its own reroll in the team count and freezes the earned amount', () => {
+  const pool = [die('t', 'teacher', 'teacher'), die('a', 'coward', 'food')];
+  const state = createCreatureBattleState(); state.teachersAvailable = ['t']; state.rerollCount = 4;
+  const step = resolveRerollChain(pool, [0, 0], state, 1, [], () => 0, 't')[0];
+  assert.equal(step.state.teacherBonuses.a, (state.rerollCount + 1) * CREATURE_BALANCE.teacher.bonus);
+  const next = resolveRerollChain(pool, step.rolledIndices, step.state, 0, [], () => 0)[0];
+  assert.equal(next.state.teacherBonuses.a, step.state.teacherBonuses.a);
 });
 
 test('prankster chain terminates when every source has fired once even if it lands on prankster again', () => {
@@ -75,4 +95,14 @@ test('opposite face uses geometry and tetrahedra expose no opposite', () => {
   const opposite = getOppositeFace(cube, 0)!;
   assert.equal(getOppositeFace(cube, opposite), 0);
   assert.equal(getOppositeFace({ ...cube, dieType: 'd4' }, 0), null);
+});
+
+test('fruit is food for teacher and prankster target selection', () => {
+  const pool = [die('t', 'teacher', 'teacher', 10), die('f', 'fruit', 'fruit', 1), die('p', 'prankster', 'food', 3)];
+  const state = createCreatureBattleState(); state.teachersAvailable = ['t'];
+  const operation = { dicePool: pool, rolledIndices: [0, 0, 0], equipments: [], creatureBattleState: state, control: 1, maxControl: 3, gold: 0, combatPhase: 'CONTROL_PHASE' as const };
+  assert.equal(performControlReroll(1, operation, () => 0, 't'), null);
+  assert.ok(performControlReroll(2, operation, () => 0, 't'));
+  const chain = resolveRerollChain(pool, [0, 0, 0], state, 2, [], () => 0);
+  assert.equal(chain.length, 1);
 });

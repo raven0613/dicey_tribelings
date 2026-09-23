@@ -45,17 +45,17 @@ test('porter prefixes reset at a gap and do not copy equipment or earlier relay 
     values.porter * (eq.matchedMultiplier - 1));
 });
 
-test('family scales by effective face count across dice geometries, sisters stop scaling after activation', () => {
+test('family uses capped face tiers across geometries and sisters scale with board count', () => {
   for (const type of ['d4', 'd6', 'd8', 'd10', 'd12'] as const) {
     const family = die('family', 'family', values.family, type);
     family.faces[1].temporarySticker = { name: '', description: '', creature: 'food' };
     const result = calculateRollResolution([family], [0], []);
-    assert.equal(result.items[0].finalDamage, combatNumber(values.family * (1 + (family.faces.length - 2) * b.family.perFace)));
+    assert.equal(result.items[0].finalDamage, combatNumber(values.family * b.family.multipliers[Math.min(family.faces.length - 1, b.family.multipliers.length) - 1]));
   }
   for (const count of [1, b.sisters.minimum, b.sisters.minimum + 1]) {
     const pool = Array.from({ length: count }, (_, index) => die(`${index}`, 'sisters'));
     const result = calculateRollResolution(pool, pool.map(() => 0), []);
-    assert.ok(result.items.every((item) => item.finalDamage === values.sisters * (count >= b.sisters.minimum ? b.sisters.multiplier : 1)));
+    assert.ok(result.items.every((item) => item.finalDamage === values.sisters * (count >= b.sisters.middle ? b.sisters.highMultiplier : count >= b.sisters.minimum ? b.sisters.multiplier : 1)));
   }
 });
 
@@ -89,7 +89,7 @@ test('remaining shields expire or retain once; global equipment shields belong t
   const result = calculateRollResolution(pool, [0], equipment);
   assert.equal(result.items[0].shieldGranted, 0);
   assert.equal(result.totalShield, eq.barricadeShield);
-  assert.equal(result.bonusDice[0].bonusDamage, eq.barricadeShield);
+  assert.equal(result.bonusDice[0].bonusDamage, combatNumber(eq.barricadeShield * b.bulwark.lowMultiplier));
   assert.ok(result.events.some((event) => event.equipmentId && event.changes.some((change) => change.kind === 'shield' && change.targetId === 'player')));
 });
 

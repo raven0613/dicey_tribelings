@@ -63,13 +63,13 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
     * Math.cos(config.rotateX * Math.PI / 180) * Math.cos(config.rotateY * Math.PI / 180);
   const renderFace = () => <svg className="phantom-face-art" viewBox="0 0 100 100" aria-hidden="true">
     {dice.creature && <DiceCharacter creature={dice.creature} reducedMotion={reducedMotion} />}
-    <DiceFaceNumber unitScale={numberUnitScale} value={displayNum} tags={tags} scale={slotState?.scale ?? 1} spinning={isSpinning} />
+    {!slotState?.pending && <DiceFaceNumber unitScale={numberUnitScale} value={displayNum} tags={tags} scale={slotState?.scale ?? 1} spinning={isSpinning} />}
   </svg>;
 
   const pose = getAttackPose(isAttacking ? attackingStage : 'idle', attackEmphasis, attackOffset, reducedMotion);
 
   return (<>
-    {inspectionTarget && <DiceHoverInfo target={inspectionTarget} info={{
+    {inspectionTarget && !slotState?.pending && <DiceHoverInfo target={inspectionTarget} info={{
       creature: dice.creature, tags, title: dice.label, attack: displayNum,
       source: `${dice.sourceName}・${dice.label}`, description: dice.description,
     }} />}

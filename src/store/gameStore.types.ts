@@ -57,6 +57,7 @@ export interface GameState {
   maxControl: number;
   playerShield: number;
   dicePool: Dice[];
+  moveDice: (diceId: string, targetIndex: number) => void;
   creatureBattleState: CreatureBattleState;
   equipments: Equipment[];
   consumableStickers: ConsumableSticker[];

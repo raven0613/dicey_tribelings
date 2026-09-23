@@ -6,12 +6,12 @@ export const STICKER_PACKS_CATALOG: StickerPack[] = [
   {
     id: 'pack_tribe', name: '家族貼紙包', rarity: 'rare', stickerCount: 3, permanentCount: 2,
     description: '兩張永久、一張本場貼紙，補齊家族與群體組合。', themeName: '家族',
-    creatures: ['family', 'sisters', 'twins', 'gang', 'boss', 'thief', 'cheerleader', 'imposter']
+    creatures: ['family', 'sisters', 'twins', 'gang', 'boss', 'thief', 'cheerleader', 'imposter', 'detective']
   },
   {
     id: 'pack_food', name: '食物貼紙包', rarity: 'rare', stickerCount: 3, permanentCount: 2,
-    description: '兩張永久、一張本場貼紙，搭配食物、儲糧與職人。', themeName: '食物',
-    creatures: ['food', 'farmer', 'chef', 'glutton', 'porter', 'artisan']
+    description: '兩張永久、一張本場貼紙，搭配食物、存糧與職人。', themeName: '食物',
+    creatures: ['food', 'fruit', 'farmer', 'chef', 'glutton', 'porter', 'artisan']
   },
   {
     id: 'pack_tactical', name: '戰術貼紙包', rarity: 'rare', stickerCount: 3, permanentCount: 2,

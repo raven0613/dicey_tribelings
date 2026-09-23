@@ -6,7 +6,7 @@ import { REGION_CONFIG, REGION_IDS } from '../regions/regionConfig';
 import { SHOP_CONFIG } from '../shopConfig';
 
 export const CREATURE_BASE_VALUES: Record<CreatureId, number> = {
-  family: 3, sisters: 3, twins: 3, gang: 2, boss: 3, loner: 3, chef: 4,
+  detective: 3, fruit: 2, family: 3, sisters: 3, twins: 3, gang: 2, boss: 3, loner: 3, chef: 4,
   porter: 3, follower: 2, cheerleader: 2, thief: 2, coward: 3, guard: 3,
   warrior: 3, elder: 2, artisan: 3, priest: 2, knight: 3, teacher: 3,
   royalGuard: 3, prankster: 3, authority: 2, farmer: 3, imposter: 2,
@@ -14,7 +14,7 @@ export const CREATURE_BASE_VALUES: Record<CreatureId, number> = {
 };
 export const DISPOSABLE_CREATURES: readonly CreatureId[] = [
   'family', 'sisters', 'twins', 'gang', 'boss', 'chef', 'porter', 'follower',
-  'warrior', 'thief', 'coward', 'guard', 'artisan', 'farmer', 'food', 'prankster',
+  'fruit', 'warrior', 'thief', 'coward', 'guard', 'artisan', 'farmer', 'food', 'prankster',
 ];
 export function createPermanentSticker(creature: CreatureId, region: RegionId): PermanentSticker {
   const meta = CREATURE_CONFIG[creature];
