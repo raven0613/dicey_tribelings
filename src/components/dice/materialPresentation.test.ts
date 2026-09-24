@@ -67,7 +67,8 @@ test('net preview preserves temporary materials and shows incoming permanent coa
     face, index: 0, geometry: getDiceNet('d6').faces[0], scale: 180, relation: 'current' as const,
     neighbors: [1, 2, 3, 4], onHover: () => { }, onFocus: () => { }, previewing: true
   };
-  const temporary = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: DISPOSABLE_STICKERS[0] }));
+  const { resolveTemporarySticker } = await import('../../service/inventory/inventoryService');
+  const temporary = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: { ...DISPOSABLE_STICKERS[0], ...resolveTemporarySticker(DISPOSABLE_STICKERS[0]) } }));
   assert.ok(temporary.includes('data-material="negative"'));
   assert.ok(temporary.includes('9（沿用）'));
   const permanent = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: { ...createPermanentSticker('family', 1), material: 'foil' } }));

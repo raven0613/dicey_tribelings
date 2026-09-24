@@ -1,3 +1,4 @@
+import { ARROW_CONFIG, ARROW_PRESENTATION, isArrowFace } from '../../configs/directionalStickerConfig';
 import { useLayoutEffect, useRef } from 'react';
 import { DICE_CHARACTER_LAYERS, DICE_CHARACTER_PRESENTATION, DICE_FACE_PRESENTATION } from '../../configs/dicePresentationConfig';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
@@ -36,6 +37,8 @@ export function DiceCharacter({ creature, rolling = false, reducedMotion = false
     wasRolling.current = rolling;
   }, [rolling, motionEnabled]);
 
+  if (isArrowFace(creature)) return <path d="M43 80V39H25L50 14L75 39H57V80Z"
+    fill={ARROW_PRESENTATION.color} transform={`rotate(${ARROW_CONFIG[creature].rotation} 50 50)`} />;
   const layers = DICE_CHARACTER_LAYERS[creature];
   if (!layers) return <text x="46" y="59" textAnchor="middle" className="battle-die-creature">
     {CREATURE_CONFIG[creature].emoji}

@@ -1,7 +1,7 @@
 import type { CreatureBattleState } from '../../../types/creatures';
 
 export const createCreatureBattleState = (): CreatureBattleState => ({
-  round: 0, imposterTargets: {}, echoUsed: [], gildedFaces: [],
+  round: 0, rollOrigins: {}, imposterTargets: {}, echoUsed: [], gildedFaces: [],
   storedFood: {}, cowardShields: {}, altars: {}, teacherBonuses: {},
   teachersAvailable: [], prankstersUsed: [], faceVersions: {}, authorityTargets: {},
   lockedDice: [], rerollCount: 0, controlSpent: 0, paidRerolls: 0, paidRerollUsed: false, formationUsed: false,

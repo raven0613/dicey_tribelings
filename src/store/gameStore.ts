@@ -75,7 +75,7 @@ function getInitialValues() {
     skillFeedback: [], displayedIdentities: {}, displayedShields: {}, displayedFood: {}, playerShieldDisplay: null, playerHpDisplay: null,
     hoveredEquipmentId: null,
     pendingPaidRerollDiceId: null,
-    diceAction: 'reroll' as const, pendingRerolls: [], rerollAnimationId: 0,
+    diceAction: 'reroll' as const, pendingRerolls: [], rerollAnimationId: 0, rerollAnimationMode: 'roll' as const,
     storedRations: 0, princessPackCount: 0, princessGuaranteed: false,
     diceSlotStates: {},
     bonusSlotStates: {},

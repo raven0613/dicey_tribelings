@@ -1,3 +1,4 @@
+import { resolveLandingFace } from '../../dice/directionalFaces';
 import { lockImposterTargets, getRoundFace } from './imposterResolution';
 import type { Dice, Equipment } from '../../../types/game';
 import type { CreatureBattleState } from '../../../types/creatures';
@@ -61,7 +62,9 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
       }
     }
     const otherFace = Math.floor(random() * (die.faces.length - 1));
-    rolled[action.index] = otherFace >= rolled[action.index] ? otherFace + 1 : otherFace;
+    const origin = otherFace >= rolled[action.index] ? otherFace + 1 : otherFace;
+    next.rollOrigins[die.id] = origin;
+    rolled[action.index] = resolveLandingFace(die, origin);
     next.faceVersions[die.id] = (next.faceVersions[die.id] ?? 0) + 1;
     next.teachersAvailable = next.teachersAvailable.filter((id) => id !== die.id);
     delete next.authorityTargets[die.id];

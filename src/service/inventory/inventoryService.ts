@@ -1,3 +1,6 @@
+import { getArrowConfigurationError } from '../dice/directionalFaces';
+import { ARROW_CONFIG, ARROW_DESCRIPTION, ARROW_IDS } from '../../configs/directionalStickerConfig';
+import type { ArrowId } from '../../types/creatures';
 import {
   ConsumableSticker,
   Dice,
@@ -68,14 +71,17 @@ export function applyTemporaryPlacements(
     faces: die.faces.map((face, faceIndex) => {
       const placement = placementsByFace.get(`${die.id}:${faceIndex}`);
       if (!placement) return face;
-      const temporarySticker: TemporarySticker = {
-        name: placement.consumable.name,
-        creature: placement.consumable.creature,
-        description: placement.consumable.description,
-      };
+      const temporarySticker = resolveTemporarySticker(placement.consumable, placement.direction);
       return { ...face, temporarySticker };
     }),
   }));
+}
+
+export function resolveTemporarySticker(sticker: Pick<ConsumableSticker, 'creature' | 'name' | 'description'>, direction?: ArrowId): TemporarySticker {
+  if (sticker.creature === 'directional') return {
+    creature: direction!, name: ARROW_CONFIG[direction!].name, description: ARROW_DESCRIPTION,
+  };
+  return { creature: sticker.creature, name: sticker.name, description: sticker.description };
 }
 
 export function restoreTemporaryStickers(dicePool: Dice[]): Dice[] {
@@ -89,7 +95,12 @@ export function validateTemporaryPlacements(dicePool: Dice[], inventory: Consuma
   placements: TemporaryStickerPlacement[]): boolean {
   const faces = new Set(placements.map((item) => `${item.diceId}:${item.faceIndex}`));
   const instances = new Set(placements.map((item) => item.consumable.instanceId));
-  return faces.size === placements.length && instances.size === placements.length
+  const valid = faces.size === placements.length && instances.size === placements.length
     && placements.every((item) => inventory.some((owned) => owned.instanceId === item.consumable.instanceId)
       && Boolean(dicePool.find((die) => die.id === item.diceId)?.faces[item.faceIndex]));
+  if (!valid) return false;
+  const owned = placements.map((item) => ({ ...item, consumable: inventory.find((entry) => entry.instanceId === item.consumable.instanceId)! }));
+  if (owned.some((item) => item.consumable.creature === 'directional'
+    ? !item.direction || !ARROW_IDS.includes(item.direction) : item.direction !== undefined)) return false;
+  return getArrowConfigurationError(applyTemporaryPlacements(dicePool, owned)) === null;
 }

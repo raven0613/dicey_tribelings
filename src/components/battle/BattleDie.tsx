@@ -1,3 +1,4 @@
+import { isArrowFace } from '../../configs/directionalStickerConfig';
 import { MaterialPaint } from '../dice/MaterialPaint';
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
 import type { CreatureId, CreatureTag } from '../../types/creatures';
@@ -39,7 +40,8 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
   const face = dice.faces[faceIndex];
   const creature = CREATURE_CONFIG[creatureId];
   const shape = DICE_SHAPES[dice.dieType];
-  const material = unrolled ? undefined : face.material;
+  const arrow = isArrowFace(creatureId);
+  const material = unrolled || arrow ? undefined : face.material;
   const coating = material ? MATERIAL_CONFIG[material] : undefined;
 
   return <button ref={motionRef} type="button" disabled={unrolled} data-material={material}
@@ -47,7 +49,7 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
     onMouseEnter={unrolled ? undefined : () => onInspect(dice.id)} onMouseLeave={unrolled ? undefined : () => onInspect(null)}
     onFocus={unrolled ? undefined : () => onInspect(dice.id)} onBlur={unrolled ? undefined : () => onInspect(null)}
     onKeyDown={(event) => { if (event.key === 'Escape') onInspect(null); }} aria-describedby={unrolled ? undefined : 'dice-hover-information'}
-    aria-label={unrolled ? `${dice.name}，尚未擲骰` : `${dice.name}，${creature.name} ${shownValue}${coating ? `，${coating.name}` : ''}${canReroll ? '，重骰' : ''}`}
+    aria-label={unrolled ? `${dice.name}，尚未擲骰` : `${dice.name}，${creature.name}${arrow ? '' : ` ${shownValue}`}${coating ? `，${coating.name}` : ''}${canReroll ? '，重骰' : ''}`}
     aria-disabled={!canReroll} onClick={() => { if (canReroll) onReroll(); }}
     style={{ width: size, height: size }}>
     <span className="battle-die-shadow" />
@@ -72,10 +74,10 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
         {!unrolled && <DiceCharacter creature={creatureId} rolling={rolling} reducedMotion={reducedMotion} />}
         {!unrolled && <MaterialSheen material={material} />}
       </g>
-      <DiceFaceNumber value={unrolled ? '?' : shownValue} tags={unrolled ? ['common'] : tags}
-        unitScale={size / appearance.viewBoxSize} scale={numberScale} spinning={spinning} />
+      {(!arrow || unrolled) && <DiceFaceNumber value={unrolled ? '?' : shownValue} tags={unrolled ? ['common'] : tags}
+        unitScale={size / appearance.viewBoxSize} scale={numberScale} spinning={spinning} />}
       {!unrolled && protectedDie && <text x="50" y="29" textAnchor="middle" fontSize="12">🛡</text>}
-      {!unrolled && face.temporarySticker && <circle cx="50" cy="33" r="3" fill="#e11d48" stroke="#fff" strokeWidth="1.5" />}
+      {!unrolled && !arrow && face.temporarySticker && <circle cx="50" cy="33" r="3" fill="#e11d48" stroke="#fff" strokeWidth="1.5" />}
     </svg>
   </button>;
 };

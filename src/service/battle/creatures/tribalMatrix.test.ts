@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { INITIAL_DICE_POOL } from '../../../configs/creatures/initialDiceConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
-import type { CreatureId } from '../../../types/creatures';
+import type { PermanentCreatureId } from '../../../types/creatures';
 import type { RegionId } from '../../../types/enemy';
 import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
 import type { Dice } from '../../../types/game';
@@ -13,7 +13,7 @@ import { createCreatureBattleState, combatNumber, startCreatureRound } from './c
 import { resolveRerollChain } from './rerollResolution';
 
 function build(size: number, region: RegionId): Dice[] {
-  const rows: CreatureId[][] = [
+  const rows: PermanentCreatureId[][] = [
     ['sisters', 'sisters', 'gang', 'gang', 'gang', 'family'],
     ['boss', 'thief', 'coward', 'prankster', 'family', 'family'],
     ['chef', 'food', 'food', 'farmer', 'artisan', 'porter'],

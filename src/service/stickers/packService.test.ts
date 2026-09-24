@@ -11,7 +11,7 @@ test('packs fulfill their permanent allocation and theme at the current regional
     assert.equal(new Set(result.stickers.map((item) => item.id)).size, pack.stickerCount);
     assert.equal(result.stickers.filter((item) => !item.isDisposable).length, pack.permanentCount);
     for (const item of result.stickers) {
-      assert.ok(pack.creatures.includes(item.creature));
+      assert.ok(pack.creatures.some((creature) => creature === item.creature));
       if (item.isDisposable === false) assert.equal(item.region, region);
       else assert.equal('baseValue' in item, false);
     }

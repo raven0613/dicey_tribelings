@@ -3,7 +3,7 @@ import { SkillText } from '../common/SkillText';
 import React from 'react';
 import { PackagePlus } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { CreatureBadge } from '../dice/CreatureBadge';
+import { StickerBadge } from './StickerBadge';
 
 export const ConsumableReplacementModal: React.FC = () => {
   const {
@@ -48,7 +48,7 @@ export const ConsumableReplacementModal: React.FC = () => {
 
         <div className="incoming-item-card">
           <strong>本場補組合</strong>
-          <div><h3>{sticker.name}</h3><CreatureBadge creature={sticker.creature} /></div>
+          <div><h3>{sticker.name}</h3><StickerBadge creature={sticker.creature} /></div>
           <p><SkillText text={sticker.description} /></p>
           {pendingShopSticker && <span className="price-note">確認後支付 {pendingShopSticker.cost} 金幣</span>}
         </div>

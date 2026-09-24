@@ -16,7 +16,7 @@ import { RewardModal } from './rewards/RewardModal';
 import { ChestModal } from './chest/ChestModal';
 import { ShopModal } from './shop/ShopModal';
 import { GameOverModal } from './common/GameOverModal';
-import { BattlePreparation } from './battle/BattlePreparation';
+import { BattlePreparationPanel } from './battle/preparation/BattlePreparationPanel';
 import { StickerPackModal } from './stickers/StickerPackModal';
 import { ConsumableReplacementModal } from './stickers/ConsumableReplacementModal';
 import { EquipmentReplacementModal } from './equipment/EquipmentReplacementModal';
@@ -29,6 +29,7 @@ export function GameScreen() {
     combatPhase,
     activeRerollingIndex, pendingPaidRerollDiceId,
     executeBattleSettlement,
+    unlockedDiceNotification, stickerFlow, openedPackResult,
   } = useGameStore(useShallow((state) => ({
     currentNodeIndex: state.currentNodeIndex,
     routeChoices: state.routeChoices,
@@ -37,6 +38,9 @@ export function GameScreen() {
     activeRerollingIndex: state.activeRerollingIndex,
     pendingPaidRerollDiceId: state.pendingPaidRerollDiceId,
     executeBattleSettlement: state.executeBattleSettlement,
+    unlockedDiceNotification: state.unlockedDiceNotification,
+    stickerFlow: state.stickerFlow,
+    openedPackResult: state.openedPackResult,
   })));
 
   const [isDiceBagOpen, setIsDiceBagOpen] = useState(false);
@@ -45,8 +49,10 @@ export function GameScreen() {
   const isCombatNode =
     currentNode?.type === 'fight' || currentNode?.type === 'elite' || currentNode?.type === 'boss';
   const temporaryUnlocked = useStoryStore((state) => state.temporaryUnlocked);
+  const storyPending = useStoryStore((state) => state.queue.length > 0);
   const isCombat = routeChoices.length === 0 && isCombatNode;
   const isConfiguring = isCombat && combatPhase === 'PREPARATION' && temporaryUnlocked;
+  const showPreparation = isConfiguring && !unlockedDiceNotification && !stickerFlow && !openedPackResult && !storyPending;
 
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
@@ -57,20 +63,21 @@ export function GameScreen() {
 
   return (
     <BattleScreenShake>
-      <MapProgress />
-      <main className="app-main">
-        <div className="combat-arena">
-          {isCombat && <EnemyCard />}
-          <PlayerBoard isCombat={isCombat}>
-            {isCombat && (isConfiguring
-              ? <BattlePreparation key={currentNodeIndex} />
-              : <DiceBoard />)}
-            {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
-            {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
-          </PlayerBoard>
-        </div>
-      </main>
-      <Footbar isCombat={isCombat} isConfiguring={isConfiguring} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => setIsDiceBagOpen(true)} />
+      <div className="game-screen-background" inert={isConfiguring}>
+        <MapProgress />
+        <main className="app-main">
+          <div className="combat-arena">
+            {isCombat && <EnemyCard />}
+            <PlayerBoard isCombat={isCombat}>
+              {isCombat && <DiceBoard />}
+              {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
+              {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
+            </PlayerBoard>
+          </div>
+        </main>
+        <Footbar isCombat={isCombat} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => setIsDiceBagOpen(true)} />
+      </div>
+      {showPreparation && <BattlePreparationPanel key={currentNodeIndex} />}
 
       {/* Modals & Overlays */}
       <StickerApplierModal />

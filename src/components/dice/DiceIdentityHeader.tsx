@@ -1,3 +1,4 @@
+import { isArrowFace } from '../../configs/directionalStickerConfig';
 import { Sword } from 'lucide-react';
 import { CREATURE_CONFIG, CREATURE_TAG_NAMES } from '../../configs/creatures/creatureConfig';
 import { DICE_FACE_PRESENTATION, DICE_IDENTITY_PRESENTATION } from '../../configs/dicePresentationConfig';
@@ -24,9 +25,9 @@ export function DiceIdentityHeader({ creature, title, tags, attack }: DiceIdenti
         <strong><SkillText text={creature ? CREATURE_CONFIG[creature].name : title} /></strong>
         {tags && <span className="dice-identity-tags">{tags.map((tag) => CREATURE_TAG_NAMES[tag]).join('・')}</span>}
       </span>
-      <span className="dice-identity-attack" aria-label={`攻擊力 ${attack}`}>
+      {(!creature || !isArrowFace(creature)) && <span className="dice-identity-attack" aria-label={`攻擊力 ${attack}`}>
         <Sword className="ui-icon" aria-hidden="true" /><strong>{attack}</strong>
-      </span>
+      </span>}
     </span>
   </span>;
 }

@@ -1,3 +1,4 @@
+import { resolveLandingFace } from '../dice/directionalFaces';
 import { buildAttackPlan } from './attackPlan';
 import type { Dice, Equipment } from '../../types/game';
 import type { CreatureBattleState } from '../../types/creatures';
@@ -16,7 +17,8 @@ export function predetermineRollResults(dicePool: Dice[], random: () => number =
 export function calculateRollResolution(dicePool: Dice[], rolledIndices: number[], equipments: Equipment[],
   state: CreatureBattleState = createCreatureBattleState(),
   battle: BattleContext = { control: 0, maxControl: 3, gold: 0 }): BattleComboSummary {
-  const c = createResolutionContext(dicePool, rolledIndices, equipments, state, battle);
+  const settled = rolledIndices.map((index, i) => resolveLandingFace(dicePool[i], index));
+  const c = createResolutionContext(dicePool, settled, equipments, state, battle);
   const { captures } = resolveCreatures(c);
   const tags = new Set(c.items.flatMap((item) => item.tags.filter((tag) => tag !== 'food')));
   const bonusControlGranted = hasEquipment(equipments, 'ABACUS') && tags.size >= eq.abacusTags ? eq.abacusControl : 0;

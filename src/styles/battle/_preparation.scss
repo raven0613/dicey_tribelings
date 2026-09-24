@@ -1,25 +1,69 @@
 @use '../variables' as *;
 
-.battle-preparation { flex: 1; width: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; }
-.battle-preparation > :not(.preparation-editor) { flex-shrink: 0; }
-.preparation-summary { background: $slate-950; padding: 0.5rem; }
-.preparation-summary, .preparation-editor-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
-  color: $slate-200; font-size: max(1rem, var(--minimum-font-size));
+.game-screen-background { display: contents; }
+.preparation-panel-viewport { position: absolute; inset: 0; z-index: 1000; overflow: hidden; }
+.preparation-panel {
+  position: absolute; inset: 0; background: $slate-950; color: $slate-100;
+  padding: 1rem; outline: none;
+  font-size: max(1rem, var(--minimum-font-size));
+  &.is-entering { animation: preparation-slide-in var(--preparation-slide-duration) ease-in-out both; }
+  &.is-leaving { animation: preparation-slide-out var(--preparation-slide-duration) ease-in-out both; }
 }
+@keyframes preparation-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes preparation-slide-out { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+.preparation-panel-form { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: .75rem; }
+.preparation-panel-header { flex: 0 0 auto; max-height: 30%; overflow: auto; }
+.preparation-panel-title, .preparation-enemy-heading {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  h1 { font-size: 1.3em; font-weight: 800; }
+}
+.preparation-panel-title { justify-content: space-between; margin-bottom: .5rem; }
+.preparation-enemy { padding: .6rem .8rem; background: $slate-900; border: 1px solid $slate-700; border-radius: $radius-lg;
+  p { margin: .35rem 0; }
+  summary { cursor: pointer; color: $amber-300; }
+  ol { list-style: decimal; padding-left: 1.5rem; }
+  li { margin: .3rem 0; }
+}
+.preparation-panel-body { flex: 1; min-height: 0; display: flex; gap: .75rem; }
+.preparation-panel-body > .equipment-bar { flex-shrink: 0; }
 .preparation-editor {
-  display: flex; flex-direction: column; flex: 1 0 12rem;
-  min-height: 12rem;
-  gap: 0.5rem; padding: 0.75rem; background: $slate-900;
+  display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0;
+  gap: .5rem; padding: .75rem; background: $slate-900;
   border: 1px solid $slate-600; border-radius: $radius-xl;
+  > :not(.dice-net) { flex-shrink: 0; }
+  .consumable-bar { padding: 0; border: 0; }
+  .consumable-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.preparation-assignments { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.preparation-assignments button, .preparation-editor-header button {
-  display: flex; align-items: center; gap: 0.5rem; min-height: 48px;
-  border: 1px solid $slate-600; border-radius: $radius-lg; padding: 0.5rem 0.75rem;
-  background: $slate-800; color: $slate-100; font-size: max(0.875rem, var(--minimum-font-size));
-  &:hover { border-color: $amber-300; }
+.preparation-editor-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.preparation-directions { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  button { min-width: 48px; font-size: 1.4em; }
+  [aria-pressed='true'] { border-color: $amber-300; background: $slate-700; box-shadow: inset 0 0 0 2px $amber-300; }
 }
-.battle-preparation button:focus-visible, .reward-card button:focus-visible, .consumable-slot:focus-visible {
+.preparation-editor-tools button, .consumable-withdraw {
+  min-height: 48px; border: 1px solid $slate-600; border-radius: $radius-md;
+  padding: .4rem .7rem; background: $slate-800; color: $slate-100;
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+.consumable-entry { position: relative; display: flex; min-width: 0; }
+.consumable-entry .consumable-slot { flex: 1; padding-right: 48px; align-content: center; }
+.consumable-location { display: block; color: $slate-300; margin-top: .2rem; }
+.consumable-withdraw { position: absolute; right: 0; top: 0; min-width: 48px; }
+.preparation-panel-footer { flex-shrink: 0; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  .btn-resolve { margin-left: auto; }
+}
+.preparation-panel button:focus-visible, .preparation-panel summary:focus-visible {
   outline: 3px solid $amber-300; outline-offset: 3px;
+}
+@container game-stage (max-width: 799px) {
+  .preparation-panel { padding: .5rem; }
+  .preparation-panel-body { flex-direction: column; }
+  .preparation-panel-body > .equipment-bar { width: 100%; max-height: calc(var(--equipment-slot-size) + .5rem); overflow-x: auto;
+    .slots-grid { grid-auto-flow: column; grid-auto-columns: var(--equipment-slot-size); width: max-content; }
+  }
+  .preparation-editor { padding: .4rem; overflow: auto;
+    .dice-net { flex: 1 0 16rem; }
+    .consumable-slot { padding-left: .3rem; padding-right: 0; padding-top: 48px; font-size: max(.75rem, var(--minimum-font-size)); }
+  }
+  .preparation-panel-footer { gap: .35rem; font-size: max(.8rem, var(--minimum-font-size)); }
+  .preparation-panel-footer > .player-vitals { max-height: 4.5rem; overflow: auto; }
 }

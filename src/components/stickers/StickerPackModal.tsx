@@ -6,7 +6,7 @@ import { RarityBadge } from '../dice/RarityBadge';
 import React from 'react';
 import { Gift, Sparkles } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { CreatureBadge } from '../dice/CreatureBadge';
+import { StickerBadge } from './StickerBadge';
 
 export const StickerPackModal: React.FC = () => {
   const { openedPackResult, beginOpenedPack } = useGameStore(useShallow((state) => ({
@@ -38,7 +38,7 @@ export const StickerPackModal: React.FC = () => {
                 <RarityBadge rarity={sticker.rarity} />
               </div>
               <strong className="pack-sticker-value">{sticker.isDisposable === false ? getEffectiveFace(sticker).baseValue : '沿用原值'}</strong>
-              <CreatureBadge creature={sticker.creature} />
+              <StickerBadge creature={sticker.creature} />
               {sticker.isDisposable === false && <MaterialBadge material={sticker.material} description />}
               <h3>{sticker.name}</h3>
               <p><SkillText text={sticker.description} /></p>

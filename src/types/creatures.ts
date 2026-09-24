@@ -1,9 +1,13 @@
-export type CreatureId =
+export type ArrowId = 'arrowUp' | 'arrowDown' | 'arrowLeft' | 'arrowRight';
+
+export type CreatureId = ArrowId
   | 'family' | 'sisters' | 'twins' | 'gang' | 'boss' | 'loner' | 'chef'
   | 'porter' | 'follower' | 'cheerleader' | 'thief' | 'coward' | 'guard'
   | 'warrior' | 'elder' | 'artisan' | 'priest' | 'knight' | 'teacher'
   | 'royalGuard' | 'prankster' | 'authority' | 'farmer' | 'imposter'
   | 'detective' | 'fruit' | 'glutton' | 'bulwark' | 'bully' | 'herald' | 'princess' | 'food';
+
+export type PermanentCreatureId = Exclude<CreatureId, ArrowId>;
 
 export type CreatureTag = 'common' | 'warrior' | 'craftsman' | 'noble' | 'mystery' | 'food';
 
@@ -21,6 +25,7 @@ export interface AuthorityTarget { diceId: string; version: number }
 
 export interface CreatureBattleState {
   round: number;
+  rollOrigins: Record<string, number>;
   sealedDice?: string[];
   rerolledDice?: string[];
   imposterTargets: Record<string, CreatureId>;

@@ -1,3 +1,6 @@
+import { SHOP_CONFIG } from '../configs/shopConfig';
+import { getArrowTarget } from '../service/dice/directionalFaces';
+import { getEffectiveFace } from '../service/dice/diceFaces';
 import { REWARD_CONFIG } from '../configs/rewardConfig';
 import { getPaidRerollCost } from '../service/battle/rerollCost';
 import { EQUIPMENT_BALANCE } from '../configs/equipment/equipmentConfig';
@@ -271,4 +274,34 @@ test('shop and chest nodes allow direct ordering without a battle', () => {
     useGameStore.getState().moveDice(pool[0].id, pool.length - 1);
     assert.equal(useGameStore.getState().dicePool.at(-1), pool[0]);
   }
+});
+
+
+test('arrow shop purchases charge their configured price and enter the normal consumable inventory', () => {
+  useGameStore.getState().restartGame();
+  const sticker = DISPOSABLE_STICKERS.find((item) => item.creature === 'directional')!;
+  useGameStore.setState({ shopStickers: [sticker], gold: SHOP_CONFIG.directionalCost });
+  assert.equal(useGameStore.getState().buyShopSticker(sticker.id), true);
+  assert.equal(useGameStore.getState().gold, 0);
+  assert.equal(useGameStore.getState().consumableStickers[0].creature, sticker.creature);
+});
+
+test('invalid arrow destinations never consume inventory; valid preparation commits the owned arrow', () => {
+  useGameStore.getState().restartGame();
+  const die = useGameStore.getState().dicePool[0];
+  const first = createConsumableSticker(DISPOSABLE_STICKERS.find((item) => item.creature === 'directional')!, 'first');
+  const second = createConsumableSticker(DISPOSABLE_STICKERS.find((item) => item.creature === 'directional')!, 'second');
+  const source = { diceId: die.id, faceIndex: 0, consumable: first, direction: 'arrowRight' as const };
+  const destination = { diceId: die.id, faceIndex: getArrowTarget(die, 0, 'arrowRight'), consumable: second, direction: 'arrowUp' as const };
+  useGameStore.setState({ consumableStickers: [first, second] });
+  useGameStore.getState().confirmBattlePreparation([source, destination]);
+  assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
+  assert.equal(useGameStore.getState().consumableStickers.length, 2);
+  assert.equal(useGameStore.getState().dicePool[0], die);
+  useGameStore.getState().confirmBattlePreparation([source]);
+  const state = useGameStore.getState();
+  assert.equal(state.combatPhase, 'ROLLING');
+  assert.deepEqual(state.consumableStickers, [second]);
+  assert.equal(getEffectiveFace(state.dicePool[0].faces[0]).creature, source.direction);
+  assert.notEqual(state.rolledIndices[0], 0);
 });

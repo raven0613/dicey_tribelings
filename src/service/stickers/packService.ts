@@ -13,7 +13,7 @@ export function openStickerPack(packId: string, region: RegionId,
   const materialTier = rollMaterialTier(random);
   const pack = [...STICKER_PACKS_CATALOG, FINAL_STICKER_PACK].find((item) => item.id === packId)!;
   const permanent = pack.creatures.map((creature) => createPermanentSticker(creature, region));
-  const disposable = DISPOSABLE_STICKERS.filter((item) => pack.creatures.includes(item.creature));
+  const disposable = DISPOSABLE_STICKERS.filter((item) => pack.creatures.some((creature) => creature === item.creature));
   const stickers: StickerItem[] = [];
   for (let index = 0; index < pack.stickerCount; index++) {
     const item = index < pack.permanentCount ? takeWeighted(permanent, random) : takeWeighted(disposable, random);

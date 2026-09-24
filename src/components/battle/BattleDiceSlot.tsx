@@ -1,3 +1,4 @@
+import { isArrowFace } from '../../configs/directionalStickerConfig';
 import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Dice } from '../../types/game';
@@ -42,20 +43,23 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
   rerollFeedback, onRollFinish, setHoveredId, inspectionTarget, description, lines }: BattleDiceSlotProps) {
   const { rolledIndices, combatPhase, comboSummary, creatureBattleState, currentEnemy,
     activeRerollingIndex, attackingDieIndex, attackingStage, attackEmphasis, skillFeedback,
-    equipments, rerollAnimationId, useControlReroll, slotState, shield, food } = useGameStore(useShallow((state) => ({
+    equipments, rerollAnimationId, rerollAnimationMode, useControlReroll, slotState, shield, food } = useGameStore(useShallow((state) => ({
       rolledIndices: state.rolledIndices, combatPhase: state.combatPhase, comboSummary: state.comboSummary,
       creatureBattleState: state.creatureBattleState, currentEnemy: state.currentEnemy,
       activeRerollingIndex: state.activeRerollingIndex, attackingDieIndex: state.attackingDieIndex,
       attackingStage: state.attackingStage, attackEmphasis: state.attackEmphasis, skillFeedback: state.skillFeedback,
-      equipments: state.equipments, rerollAnimationId: state.rerollAnimationId, useControlReroll: state.useControlReroll,
+      rerollAnimationMode: state.rerollAnimationMode, equipments: state.equipments, rerollAnimationId: state.rerollAnimationId, useControlReroll: state.useControlReroll,
       slotState: state.diceSlotStates[idx], shield: state.displayedShields[die.id], food: state.displayedFood[die.id],
     })));
   const unrolled = combatPhase === 'PREPARATION';
   const rationsEquipment = equipments.find((item) => item.ruleId === 'RATIONS');
   const reroll = activeRerollingIndex === idx;
   const rollKey = reroll ? `reroll:${rerollAnimationId}` : combatPhase === 'ROLLING' ? 'roll' : null;
+  const origin = creatureBattleState.rollOrigins[die.id] ?? rolledIndices[idx] ?? 0;
+  const originRole = getEffectiveFace(die.faces[origin]).creature;
   const roll = useDiceRoll(rollKey, rolledIndices[idx] ?? 0, die.faces.length, size, reroll,
-    () => onRollFinish(idx, reroll));
+    () => onRollFinish(idx, reroll), origin, isArrowFace(originRole) ? originRole : undefined,
+    reroll && rerollAnimationMode === 'flip', reducedMotion);
 
   const calcItem = comboSummary?.items[idx];
 

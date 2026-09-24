@@ -1,3 +1,4 @@
+import { ARROW_DESCRIPTION } from '../directionalStickerConfig';
 import type { CreatureId } from '../../types/creatures';
 import type { SkillInputs } from '../../types/battle';
 import { CREATURE_BALANCE as b } from './creatureBalanceConfig';
@@ -33,6 +34,7 @@ export const CREATURE_SKILL_STAGES: Partial<Record<CreatureId, SkillStage[]>> = 
   fruit: [range(0, 0, `鄰骰各 +${b.fruit.bonus} 攻擊`), range(1, upper, `有其他 [食物]：鄰骰各 +${b.fruit.highBonus} 攻擊`)],
 };
 export const CREATURE_SKILL_INTRO: Record<CreatureId, string> = {
+  arrowUp: ARROW_DESCRIPTION, arrowDown: ARROW_DESCRIPTION, arrowLeft: ARROW_DESCRIPTION, arrowRight: ARROW_DESCRIPTION,
   family: '依同骰土人家族總面數提升攻擊力。', sisters: '依場上土人姐妹花人數強化彼此。',
   twins: '取同骰最高雙胞胎基礎攻擊力。', gang: '依同骰相鄰的土人混混面數產生追加骰。',
   boss: '搶奪另一名普通土人的當前攻擊，本回合全場成功搶奪次數越高則提升越多。',

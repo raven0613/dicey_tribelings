@@ -93,6 +93,7 @@ export interface GameState {
   cancelPaidReroll: () => void;
   pendingRerolls: RerollStep[];
   rerollAnimationId: number;
+  rerollAnimationMode: 'roll' | 'flip';
   storedRations: number;
   princessPackCount: number;
   princessGuaranteed: boolean;

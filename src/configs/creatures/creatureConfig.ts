@@ -1,4 +1,5 @@
-import type { CreatureDefinition, CreatureId, CreatureTag } from '../../types/creatures';
+import { ARROW_CONFIG, ARROW_DESCRIPTION, ARROW_PRESENTATION, isArrowFace } from '../directionalStickerConfig';
+import type { CreatureDefinition, CreatureId, CreatureTag, ArrowId, PermanentCreatureId } from '../../types/creatures';
 import { creatureDescription } from './creatureSkillConfig';
 
 export const CREATURE_TAG_NAMES: Record<CreatureTag, string> = {
@@ -15,7 +16,12 @@ export const CREATURE_TAG_COLORS_DICE: Record<CreatureTag, string> = {
 function role(name: string, emoji: string, tags: CreatureTag[], ability: string, description: string, rarity: CreatureDefinition['rarity'] = 'common'): CreatureDefinition {
   return { name, emoji, tags, ability, description, rarity, color: CREATURE_TAG_COLORS[tags[0]] };
 }
+function arrow(id: ArrowId): CreatureDefinition {
+  return { name: ARROW_CONFIG[id].name, emoji: ARROW_CONFIG[id].glyph, tags: [],
+    ability: '定向翻面', description: ARROW_DESCRIPTION, rarity: 'common', color: ARROW_PRESENTATION.color };
+}
 export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
+  arrowUp: arrow('arrowUp'), arrowDown: arrow('arrowDown'), arrowLeft: arrow('arrowLeft'), arrowRight: arrow('arrowRight'),
   family: role('土人家族', '👪', ['common'], '土人 在一起 強大', creatureDescription('family')),
   sisters: role('土人姐妹花', '👭', ['common'], '互相提攜', creatureDescription('sisters')),
   twins: role('土人雙胞胎', '👯', ['common'], '頂替上場', creatureDescription('twins')),
@@ -49,4 +55,4 @@ export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
   fruit: role('水果拼盤', '🍇', ['food'], '水果拼盤', creatureDescription('fruit')),
   food: role('好吃的', '🍖', ['food'], '好吃的', creatureDescription('food')),
 };
-export const CREATURE_IDS = Object.keys(CREATURE_CONFIG) as CreatureId[];
+export const CREATURE_IDS = (Object.keys(CREATURE_CONFIG) as CreatureId[]).filter((id): id is PermanentCreatureId => !isArrowFace(id));

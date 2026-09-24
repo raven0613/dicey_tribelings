@@ -6,6 +6,8 @@ import {
   ALL_EQUIPMENT_CATALOG,
 } from '../../configs/gameConfig';
 import { createEnemy } from './enemies/enemyFactory';
+import { SHOP_CONFIG } from '../../configs/shopConfig';
+import { DIRECTIONAL_STICKER_ITEM } from '../../configs/creatures/creatureStickerConfig';
 
 export function getEnemyForNode(node: MapNode, nodeIndex: number): Enemy {
   if (!node.enemyId) throw new Error(`Missing monster for node ${nodeIndex}`);
@@ -26,11 +28,13 @@ export function generateShopStock(equipments: Equipment[], random: () => number 
   shopStickers: StickerItem[];
   shopEquipments: Equipment[];
 } {
+  const hasDirectional = random() < SHOP_CONFIG.directionalChance;
   const shopStickers = takeRandom(
-    ALL_STICKERS_CATALOG.filter((sticker) => sticker.isDisposable),
-    4,
+    ALL_STICKERS_CATALOG.filter((sticker) => sticker.isDisposable && sticker.creature !== 'directional'),
+    SHOP_CONFIG.stickerStockCount - Number(hasDirectional),
     random
   );
+  if (hasDirectional) shopStickers.push(DIRECTIONAL_STICKER_ITEM);
   const shopEquipments = takeRandom(
     ALL_EQUIPMENT_CATALOG.filter((equipment) => !equipments.some((owned) => owned.id === equipment.id)),
     3,

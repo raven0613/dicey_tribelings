@@ -12,11 +12,10 @@ interface FootbarProps {
   onResolve: () => void;
   isResolving: boolean;
   onOpenDiceBag: () => void;
-  isConfiguring: boolean;
   isCombat: boolean;
 }
 
-export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, isCombat }: FootbarProps) {
+export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: FootbarProps) {
   const { gold, dicePool, setDiceAction, control, maxControl, diceAction, creatureBattleState, equipments, comboSummary, combatPhase, activeRerollingIndex, pendingPaidRerollDiceId, currentEnemy, hoveredEquipmentId, unlockedDiceNotification, confirmBattlePreparation, stickerFlow } = useGameStore(useShallow((state) => ({
     gold: state.gold,
     dicePool: state.dicePool,
@@ -93,10 +92,9 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isConfiguring, 
 
       {isCombat && <>
         {combatPhase === 'PREPARATION' ?
-          <button type={isConfiguring ? "submit" : "button"}
-            form={isConfiguring ? "battle-preparation" : undefined}
+          <button type="button"
             className="btn-resolve" disabled={!!unlockedDiceNotification || !!stickerFlow}
-            onClick={isConfiguring ? undefined : () => confirmBattlePreparation([])}
+            onClick={() => confirmBattlePreparation([])}
           >
             <Play className="ui-icon" />
             擲骰

@@ -1,3 +1,5 @@
+import { isArrowFace } from '../configs/directionalStickerConfig';
+import { getEffectiveFace } from '../service/dice/diceFaces';
 import { usePreferencesStore } from './preferencesStore';
 import { retainPlayerShield } from '../service/battle/playerShield';
 import type { GameState } from './gameStore.types';
@@ -11,7 +13,7 @@ export function createBattleActions(set: (state: Partial<GameState>) => void, ge
     const state = get();
     const [next, ...pendingRerolls] = state.pendingRerolls;
     if (!next) { set({ activeRerollingIndex: null }); return; }
-    set({ pendingRerolls, activeRerollingIndex: next.dieIndex, rerollAnimationId: state.rerollAnimationId + 1,
+    set({ pendingRerolls, rerollAnimationMode: 'roll', activeRerollingIndex: next.dieIndex, rerollAnimationId: state.rerollAnimationId + 1,
       rolledIndices: next.rolledIndices, creatureBattleState: next.state,
       comboSummary: calculateRollResolution(state.dicePool, next.rolledIndices, state.equipments, next.state, state) });
   };
@@ -63,7 +65,13 @@ export function createBattleActions(set: (state: Partial<GameState>) => void, ge
         commitReroll(index, teacherId);
       } else {
         const result = performDiceAction(state.diceAction, index, state);
-        if (result) set({ ...result, diceAction: 'reroll' });
+        if (result) {
+          const origin = result.creatureBattleState.rollOrigins[state.dicePool[index].id];
+          const redirect = state.diceAction === 'flip' && origin !== undefined
+            && isArrowFace(getEffectiveFace(result.dicePool[index].faces[origin]).creature);
+          set({ ...result, diceAction: 'reroll', ...(redirect ? { activeRerollingIndex: index,
+            rerollAnimationId: state.rerollAnimationId + 1, rerollAnimationMode: 'flip' as const } : {}) });
+        }
       }
     },
     confirmPaidReroll: (dontShowAgain) => {

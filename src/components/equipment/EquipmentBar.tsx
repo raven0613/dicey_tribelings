@@ -18,7 +18,7 @@ const RARITY_LABELS: Record<EquipmentRarity, string> = {
   legendary: '傳奇',
 };
 
-export const EquipmentBar: React.FC = () => {
+export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equipment' }) => {
   const { overlay, width, height } = useGameViewport();
   const actionState = useGameStore(useShallow((state) => ({
     equipments: state.equipments,
@@ -85,14 +85,14 @@ export const EquipmentBar: React.FC = () => {
 
   return (
     <div className="equipment-bar">
-      <div className="slots-grid" id="equipment-slots-container">
+      <div className="slots-grid" id={`${idPrefix}-slots-container`}>
         {Array.from({ length: maxSlots }).map((_, idx) => {
           const equip = equipments[idx];
           if (!equip) {
             return (
               <div
                 key={idx}
-                id={`equipment-slot-${idx}`}
+                id={`${idPrefix}-slot-${idx}`}
                 className="slot-empty"
               >
                 <span className="empty-sub">空</span>
@@ -112,7 +112,7 @@ export const EquipmentBar: React.FC = () => {
           return (
             <div
               key={equip.id}
-              id={`equipment-slot-${idx}`}
+              id={`${idPrefix}-slot-${idx}`}
               onMouseEnter={(e) => {
                 const rect = getGameRect(e.currentTarget);
                 setHoveredEquip({ equip, rect });

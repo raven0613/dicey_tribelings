@@ -1,3 +1,4 @@
+import { resolveLandingFace } from '../dice/directionalFaces';
 import { getPaidRerollCost } from './rerollCost';
 import { EQUIPMENT_ACTIONS } from '../../configs/equipment/equipmentActionConfig';
 import { lockImposterTargets, getRoundFace } from './creatures/imposterResolution';
@@ -22,8 +23,10 @@ export type DiceAction = 'reroll' | 'swap' | 'lock' | 'flip' | `teacher:${string
 export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[],
   state: CreatureBattleState = createCreatureBattleState(),
   battle: import('../../types/battle').BattleContext = { control: 3, maxControl: 3, gold: 0 }, virtualFood = 0, random = Math.random) {
-  const rolledIndices = predetermineRollResults(dicePool, random);
+  const origins = predetermineRollResults(dicePool, random);
+  const rolledIndices = origins.map((index, i) => resolveLandingFace(dicePool[i], index));
   let round = startCreatureRound(state, Math.floor(random() * 0xffffffff));
+  round.rollOrigins = Object.fromEntries(dicePool.map((die, i) => [die.id, origins[i]]));
   round.virtualFood = virtualFood;
   round.sealedDice = battle.currentEnemy && 'sealedDie' in battle.currentEnemy && battle.currentEnemy.sealedDie ? [battle.currentEnemy.sealedDie] : [];
   if (state.round === 0) for (const die of dicePool) {
@@ -90,7 +93,7 @@ export function performDiceAction(action: Exclude<DiceAction, 'reroll'>, index: 
     cost = eq.whistleCost; round.whistleUsed = true; round.lockedDice.push(die.id);
   } else if (action === 'flip') {
     const opposite = getOppositeFace(die, rolled[index])!;
-    cost = eq.prismCost; rolled[index] = opposite;
+    cost = eq.prismCost; round.rollOrigins[die.id] = opposite; rolled[index] = resolveLandingFace(die, opposite);
     round.faceVersions[die.id] = (round.faceVersions[die.id] ?? 0) + 1;
     round.teachersAvailable = round.teachersAvailable.filter((id) => id !== die.id);
     delete round.teacherBonuses[die.id]; delete round.authorityTargets[die.id];

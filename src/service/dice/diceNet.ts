@@ -3,9 +3,9 @@ import { getDiceGeometry, type DiceGeometryFace } from './diceGeometry';
 
 type Point = [number, number];
 type Hinge = [number, number];
-export type DiceNetOrientation = 'horizontal' | 'vertical';
 export interface NetBounds { x: number; y: number; width: number; height: number }
 export interface DiceNetFace {
+  rotation: number;
   points: Point[];
   bounds: NetBounds;
   contentBounds: NetBounds;
@@ -48,7 +48,7 @@ function getContentBounds(points: Point[]): NetBounds {
     width: halfHeight * aspect * 2, height: halfHeight * 2 };
 }
 
-function buildDiceNet(type: Dice['dieType'], orientation: DiceNetOrientation = 'horizontal') {
+function buildDiceNet(type: Dice['dieType']) {
   const geometry = getDiceGeometry(type);
   const vertices = geometry.map(worldVertices);
   const polygons: Point[][] = Array.from({ length: geometry.length });
@@ -75,15 +75,18 @@ function buildDiceNet(type: Dice['dieType'], orientation: DiceNetOrientation = '
     folds.push([p, q]);
   }
 
-  const orient = ([x, y]: Point): Point => type === 'd6' && orientation === 'horizontal' ? [y, -x] : [x, y];
+  const orient = ([x, y]: Point): Point => type === 'd6' ? [y, -x] : [x, y];
   const bounds = getBounds(polygons.flat().map(orient));
   const translate = (point: Point): Point => {
     const [x, y] = orient(point);
     return [x - bounds.x, y - bounds.y];
   };
-  const faces: DiceNetFace[] = polygons.map((polygon) => {
+  const faces: DiceNetFace[] = polygons.map((polygon, index) => {
     const points = polygon.map(translate);
-    return { points, bounds: getBounds(points), contentBounds: getContentBounds(points) };
+    const local = geometry[index].points;
+    const angle = (a: Point, b: Point) => Math.atan2(b[1] - a[1], b[0] - a[0]);
+    const rotation = (angle(points[0], points[1]) - angle(local[0], local[1])) * 180 / Math.PI;
+    return { rotation, points, bounds: getBounds(points), contentBounds: getContentBounds(points) };
   });
   return { faces, width: bounds.width, height: bounds.height,
     folds: folds.map(([a, b]) => [translate(a), translate(b)] as [Point, Point]) };
@@ -94,7 +97,5 @@ const nets = {
   d10: buildDiceNet('d10'), d12: buildDiceNet('d12'),
 };
 
-const verticalCubeNet = buildDiceNet('d6', 'vertical');
-
-export const getDiceNet = (type: Dice['dieType'], orientation: DiceNetOrientation = 'horizontal') =>
-  type === 'd6' && orientation === 'vertical' ? verticalCubeNet : nets[type];
+/** A fixed orientation keeps directional stickers consistent across viewports. */
+export const getDiceNet = (type: Dice['dieType']) => nets[type];

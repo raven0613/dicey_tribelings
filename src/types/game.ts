@@ -1,5 +1,5 @@
 import type { FaceMaterial } from './materials';
-import type { CreatureId } from './creatures';
+import type { ArrowId, CreatureId, PermanentCreatureId } from './creatures';
 
 import type { RegionId } from './enemy';
 
@@ -50,15 +50,18 @@ export interface BonusAttackDice {
   description: string;
 }
 
+export type StickerCreatureId = PermanentCreatureId | 'directional';
+
 interface StickerIdentity {
   id: string;
   name: string;
-  creature: CreatureId;
+  creature: StickerCreatureId;
   description: string;
   rarity: EquipmentRarity;
   cost?: number;
 }
 export interface PermanentSticker extends StickerIdentity {
+  creature: PermanentCreatureId;
   isDisposable: false;
   material?: FaceMaterial;
   baseValue: number;
@@ -68,12 +71,14 @@ export interface DisposableSticker extends StickerIdentity {
   isDisposable: true;
 }
 export type StickerItem = PermanentSticker | DisposableSticker;
+/** A directional inventory item becomes a concrete arrow only during face preview/application. */
+export type FaceSticker = PermanentSticker | (Omit<DisposableSticker, 'creature'> & { creature: CreatureId });
 
 export interface ConsumableSticker {
   instanceId: string;
   stickerId: string;
   name: string;
-  creature: CreatureId;
+  creature: StickerCreatureId;
   description: string;
   rarity: EquipmentRarity;
 }
@@ -86,7 +91,7 @@ export interface StickerPack {
   stickerCount: number;
   permanentCount: number;
   themeName: string;
-  creatures: readonly CreatureId[];
+  creatures: readonly PermanentCreatureId[];
 }
 
 export type BattleRewardOption =
@@ -101,6 +106,7 @@ export interface TemporaryStickerPlacement {
   consumable: ConsumableSticker;
   diceId: string;
   faceIndex: number;
+  direction?: ArrowId;
 }
 
 export type { Enemy, EnemyIntent } from './enemy';
