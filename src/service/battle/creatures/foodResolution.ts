@@ -15,7 +15,12 @@ export function storeRoundFood(c: ResolutionContext) {
   };
   for (const item of cooks) {
     const amount = Math.min(item.tags.includes('food') ? c.foodValues[item.diceId] : 0, room());
-    if (amount > 0) store(item, amount, c.event(5, item, '存糧', [], 'support', 'storage'));
+    if (amount <= 0) continue;
+    const event = c.event(5, item, '存糧', [], 'support', 'storage');
+    store(item, amount, event);
+    const replay = c.echoEvent(event);
+    const extra = Math.min(amount, room());
+    if (replay && extra > 0) store(item, extra, replay);
   }
   const rations = c.equipment.find((item) => item.ruleId === 'RATIONS');
   const total = Math.min(c.virtualFood, room());

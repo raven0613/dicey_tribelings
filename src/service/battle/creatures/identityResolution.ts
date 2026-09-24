@@ -17,6 +17,11 @@ export function resolveIdentities(c: ResolutionContext) {
     farmer.skillInputs = { count: 0, value: farmer.baseValue };
     farmer.creature = 'food'; farmer.tags = getFaceTags(farmer);
     c.identify(e, farmer);
+    const replay = c.echoEvent(e);
+    if (replay) {
+      c.foodValues[farmer.diceId] = combatNumber(c.foodValues[farmer.diceId] + farmer.baseValue);
+      c.attack(replay, farmer, farmer.finalDamage + farmer.baseValue);
+    }
   }
   const originalNobles = items.filter((item) => item.tags.includes('noble')).length;
   for (const [index, authority] of items.entries()) {
@@ -29,10 +34,23 @@ export function resolveIdentities(c: ResolutionContext) {
     authority.skillInputs = { count: originalNobles, secondaryCount: candidates.length };
     if (!target) continue;
     const e = c.event(2, authority, undefined, [target], 'adjacent');
-    target.tags = target.material === 'iridescent' ? getFaceTags(target) : [...new Set(target.tags.map((tag) => tag === 'common' ? 'noble' : tag))];
-    c.identify(e, target);
-    if (originalNobles >= b.authority.threshold) c.attack(e, target, target.finalDamage + target.baseValue * b.authority.bonus);
+    const replay = c.echoEvent(e);
+    const extra = candidates.find(item => item.diceId !== target.diceId);
+    const crownTarget = (subject: typeof target, event: typeof e) => {
+      subject.tags = subject.material === 'iridescent' ? getFaceTags(subject)
+        : [...new Set(subject.tags.map(tag => tag === 'common' ? 'noble' : tag))];
+      c.identify(event, subject);
+      if (originalNobles >= b.authority.threshold) {
+        // Each coronation strengthens its own target once.
+        const before = subject.finalDamage;
+        subject.finalDamage = combatNumber(before + subject.baseValue * b.authority.bonus);
+        event.changes.push({ kind: 'attack', targetId: subject.diceId, before, after: subject.finalDamage });
+      }
+    };
+    crownTarget(target, e);
+    if (replay && extra) { replay.participantDiceIds = [authority.diceId, extra.diceId]; crownTarget(extra, replay); }
   }
+
   const crown = c.equipment.find((item) => item.ruleId === 'CROWN');
   if (crown) {
     const target = items.filter((item) => item.tags.includes('common')).sort((a, z) => z.baseValue - a.baseValue)[0];
@@ -95,10 +113,13 @@ export function resolveFoodBoost(c: ResolutionContext) {
     farmer.skillInputs = { count: foods.length + Number(c.virtualFood > 0), virtualFood: !foods.length };
     if (!foods.length) {
       if (c.virtualFood > 0) {
-        const before = c.virtualFood;
         const e = c.event(4, farmer);
-        c.virtualFood = combatNumber(before + amount * c.echoMultiplier(e));
-        e.changes.push({ kind: 'food', targetId: 'virtual-food', before, after: c.virtualFood });
+        const replay = c.echoEvent(e);
+        for (const event of replay ? [e, replay] : [e]) {
+          const before = c.virtualFood;
+          c.virtualFood = combatNumber(before + amount);
+          event.changes.push({ kind: 'food', targetId: 'virtual-food', before, after: c.virtualFood });
+        }
       }
       continue;
     }

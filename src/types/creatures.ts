@@ -30,6 +30,7 @@ export interface CreatureBattleState {
   rerolledDice?: string[];
   imposterTargets: Record<string, CreatureId>;
   echoUsed: string[];
+  rerollEchoes?: { diceId: string; skill: CreatureId }[];
   gildedFaces: string[];
   storedFood: Record<string, number>;
   cowardShields: Record<string, number>;
@@ -47,6 +48,7 @@ export interface CreatureBattleState {
   formationUsed: boolean;
   whistleUsed: boolean;
   pipeUsed: boolean;
+  roundSeed: number;
   seed: number;
   virtualFood: number;
 }

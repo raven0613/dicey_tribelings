@@ -127,7 +127,26 @@ test('完整格擋首擊削弱後手，每段獨立消耗盾', () => {
   const events = result.events.filter((event) => event.kind === 'enemy');
   assert.equal(events.length, intent.hits);
   assert.equal(events[0].hp, player.hp);
-  assert.ok(events.slice(1).every((event) => event.damage === Math.ceil(intent.value * intent.guardedFollowup!)));
+  assert.ok(events.slice(1).every((event) => event.damage === Math.floor(intent.value * intent.guardedFollowup!)));
+  assert.ok(events.every((event) => Number.isInteger(event.damage) && Number.isInteger(event.hp) && Number.isInteger(event.shield)));
+  assert.equal(result.hp, player.hp - events.slice(1).reduce((sum, event) => sum + event.damage, 0));
+});
+
+test('敵方倍率完整相乘後才捨去，生命與盾扣除守恆', () => {
+  const enemy = withIntent((intent) => !!intent.guardedFollowup);
+  const intent = enemy.intents[enemy.currentIntentIndex];
+  assert.ok('value' in intent);
+  // Fractional fixture catches premature rounding between weakness and follow-up multipliers.
+  const value = intent.value + 0.75;
+  enemy.shield = 0;
+  enemy.intents[enemy.currentIntentIndex] = { ...intent, type: 'heavy_attack', value, guardedFollowup: 2,
+    counter: { type: 'shield_depleted', effect: 'halve' } };
+  const shield = Math.floor(value / 2);
+  const result = resolveEnemyRound(enemy, attacks([]), [], { ...player, shield }, createCreatureBattleState());
+  const events = result.events.filter((event) => event.kind === 'enemy');
+  assert.equal(events[0].damage, shield);
+  assert.ok(events.slice(1).every((event) => event.damage === Math.floor(value / 2 * 2)));
+  assert.equal(player.hp + shield - result.hp - result.shield, events.reduce((sum, event) => sum + event.damage, 0));
 });
 
 test('無盾加傷與持盾倍率都依當下護盾判斷', () => {
@@ -228,5 +247,5 @@ test('鱷文橫掃只計不同的土人標籤，同標籤重複及食物均不�
   assert.equal(single.events[0].damage, intent.value);
   summary.items[0].tags = ['common', 'warrior', 'craftsman', 'food'];
   const diverse = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
-  assert.equal(diverse.events[0].damage, Math.ceil(intent.value / 2));
+  assert.equal(diverse.events[0].damage, Math.floor(intent.value / 2));
 });

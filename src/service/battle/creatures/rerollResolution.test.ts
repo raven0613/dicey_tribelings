@@ -97,12 +97,27 @@ test('opposite face uses geometry and tetrahedra expose no opposite', () => {
   assert.equal(getOppositeFace({ ...cube, dieType: 'd4' }, 0), null);
 });
 
-test('fruit is food for teacher and prankster target selection', () => {
+test('teacher excludes fruit while an edge prankster rerolls its only food neighbor', () => {
   const pool = [die('t', 'teacher', 'teacher', 10), die('f', 'fruit', 'fruit', 1), die('p', 'prankster', 'food', 3)];
   const state = createCreatureBattleState(); state.teachersAvailable = ['t'];
   const operation = { dicePool: pool, rolledIndices: [0, 0, 0], equipments: [], creatureBattleState: state, control: 1, maxControl: 3, gold: 0, combatPhase: 'CONTROL_PHASE' as const };
   assert.equal(performControlReroll(1, operation, () => 0, 't'), null);
   assert.ok(performControlReroll(2, operation, () => 0, 't'));
   const chain = resolveRerollChain(pool, [0, 0, 0], state, 2, [], () => 0);
-  assert.equal(chain.length, 1);
+  assert.deepEqual(chain.map((step) => step.dieIndex), [2, 1]);
+});
+
+
+test('edge pranksters reroll food on either side and respect protection and seals', () => {
+  for (const sourceIndex of [0, 1]) {
+    const pool = [die('p', 'prankster', 'prankster'), die('f', 'food', 'food')];
+    if (sourceIndex === 1) pool.reverse();
+    const state = createCreatureBattleState();
+    const steps = resolveRerollChain(pool, [0, 0], state, sourceIndex, [], () => 0);
+    assert.deepEqual(steps.map((step) => step.dieIndex), [sourceIndex, 1 - sourceIndex]);
+    for (const protection of [{ lockedDice: ['f'] }, { sealedDice: ['f'] }]) {
+      const protectedSteps = resolveRerollChain(pool, [0, 0], { ...state, ...protection }, sourceIndex, [], () => 0);
+      assert.deepEqual(protectedSteps.map((step) => step.dieIndex), [sourceIndex]);
+    }
+  }
 });

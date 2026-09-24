@@ -29,10 +29,9 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
   const net = getDiceNet(dice.dieType);
   const geometry = getDiceGeometry(dice.dieType);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLDivElement>(null);
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   const [focusedFace, setFocusedFace] = useState<number | null>(null);
-  const [{ scale, contentScale }, setLayout] = useState({ scale: presentation.contentWidth / 2, contentScale: 1 });
+  const [scale, setScale] = useState(presentation.minimumContentWidth / 2);
   const activeFace = previewFaceIndex !== undefined ? previewFaceIndex : hoveredFace ?? focusedFace;
   const preview = (index: number | null, focus = false) => {
     if (onPreviewFaceChange) { if (index !== null) onPreviewFaceChange(index); }
@@ -50,38 +49,26 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
 
   useLayoutEffect(() => {
     const viewport: HTMLDivElement = viewportRef.current!;
-    const canvas: HTMLDivElement = canvasRef.current!;
-    const contents = Array.from(canvas.querySelectorAll<HTMLElement>('.dice-net-content'));
-    // Both original and replacement copies occupy the same grid cell during measurement.
     const measure = () => {
-      const readableScale = Math.max(...contents.map((element, index) => {
-        const bounds = net.faces[index].contentBounds;
-        return Math.max(element.offsetWidth / bounds.width, element.offsetHeight / bounds.height);
-      }));
       const padding = presentation.canvasPadding * 2;
-      const availableScale = Math.min((viewport.clientWidth - padding) / net.width,
+      const available = Math.min((viewport.clientWidth - padding) / net.width,
         (viewport.clientHeight - padding) / net.height);
-      const fontSize = Math.max(presentation.fontSize, minimumFontSize);
-      const minimumContentScale = Math.max(presentation.minimumFontSize, minimumFontSize) / fontSize;
-      const scale = Math.max(readableScale * minimumContentScale, availableScale);
-      setLayout({ scale, contentScale: Math.min(1, scale / readableScale) });
+      const readableWidth = presentation.minimumContentWidth * Math.max(1, minimumFontSize / presentation.fontSize);
+      setScale(Math.max(available, ...net.faces.map(face => readableWidth / face.contentBounds.width)));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(viewport);
-    contents.forEach((content) => observer.observe(content));
     return () => observer.disconnect();
-  }, [net, sticker, minimumFontSize]);
+  }, [net, minimumFontSize]);
 
   const width = net.width * scale;
   const height = net.height * scale;
 
   return <section className="dice-net" aria-label={`${dice.name}展開圖`} style={{
     '--net-padding': `${presentation.canvasPadding}px`,
-    '--net-content-width': `${presentation.contentWidth}px`,
     '--net-description-gap': `${presentation.descriptionGap}px`,
     '--net-font-size': `${presentation.fontSize}px`,
-    '--net-content-scale': contentScale,
   } as CSSProperties}>
     <div className="dice-net-status" aria-live="polite" aria-atomic="true">
       {activeFace === null
@@ -90,7 +77,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
     </div>
     <div ref={viewportRef} className="dice-net-viewport">
       <div className="dice-net-stage" style={{ width: width + presentation.canvasPadding * 2, height: height + presentation.canvasPadding * 2 }}>
-        <div ref={canvasRef} className="dice-net-canvas" style={{ width, height }}>
+        <div className="dice-net-canvas" style={{ width, height }}>
           <svg className="dice-net-outlines" width={width} height={height}
             viewBox={`0 0 ${net.width} ${net.height}`} aria-hidden="true">
             {net.faces.map((face, index) => <polygon key={index}

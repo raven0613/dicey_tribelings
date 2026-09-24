@@ -83,12 +83,12 @@ test('damage counts actual shield and HP loss once, clamps overkill, and is per 
   assert.equal(resolveEnemyIntent(createEnemy('r1_slinger'), 0).counterTriggered, false);
 });
 
-test('shield depleted earlier still halves; odd damage rounds upward', () => {
+test('shield depleted earlier still halves; odd damage rounds downward', () => {
   const enemy = createEnemy('r2_harpoon');
   enemy.shield = 0;
   enemy.intents = [{ type: 'heavy_attack', name: '測試衝撞', value: 9,
     counter: { type: 'shield_depleted', effect: 'halve' } }];
-  assert.equal(resolveEnemyIntent(enemy, 0).damage, 5);
+  assert.equal(resolveEnemyIntent(enemy, 0).damage, 4);
   enemy.shield = 1;
   assert.equal(resolveEnemyIntent(enemy, 99).damage, 9);
 });

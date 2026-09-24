@@ -1,3 +1,4 @@
+import { createEchoResolution } from './echoResolution';
 import { lockImposterTargets, getRoundFace } from './imposterResolution';
 import type { Dice, Equipment, BonusAttackDice } from '../../../types/game';
 import type { CreatureBattleState, CreatureId } from '../../../types/creatures';
@@ -59,50 +60,47 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
     triggeredEquipmentIds.add(eq.id);
     return result;
   };
-  const echoMultiplier = (e: SkillEvent): number => {
-    if (e.echoed) return 2;
-    const source = items.find((item) => item.diceId === e.sourceDiceId);
-    const faceId = e.sourceFaceId;
-    const original = dice.flatMap((die) => die.faces).find((face) => face.id === faceId);
-    if (!source || !faceId || original?.material !== 'echo' || echoUsed.has(faceId)
-      || e.skill === 'material' || e.skill === 'equipment' || e.skill === 'storage'
-      || e.skill === 'imposter' || e.skill === 'princessReady' || e.skill === 'coward' || e.skill === 'teacher') return 1;
-    echoUsed.add(faceId); e.echoed = true; e.ability += '・迴響';
-    return 2;
-  };
+  const echoEvent = createEchoResolution(dice, items, events, echoUsed);
+  const echoMultiplier = (e: SkillEvent) => echoEvent(e) ? 2 : 1;
   const attack = (e: SkillEvent, item: CalculatedRollItem, value: number, label?: string) => {
     if (combatNumber(value) === item.finalDamage) return;
-    const multiplier = value > item.finalDamage || e.skill === 'glutton' ? echoMultiplier(e) : 1;
-    const after = combatNumber(Math.max(0, item.finalDamage + (value - item.finalDamage) * multiplier));
-    const delta = ceilDamage(after) - ceilDamage(item.finalDamage);
-    const changeLabel = label ?? (after === 0 ? '歸零' : `${delta > 0 ? '+' : ''}${delta}`);
-    e.changes.push({ kind: 'attack', targetId: item.diceId, before: item.finalDamage, after });
-    item.finalDamage = after;
-    item.bonusTags.push(`${e.ability} ${changeLabel}`);
+    const amount = value - item.finalDamage;
+    const replay = amount > 0 || e.skill === 'glutton' ? echoEvent(e) : undefined;
+    for (const event of replay ? [e, replay] : [e]) {
+      const before = item.finalDamage;
+      const after = combatNumber(Math.max(0, before + amount));
+      const delta = ceilDamage(after) - ceilDamage(before);
+      event.changes.push({ kind: 'attack', targetId: item.diceId, before, after });
+      item.finalDamage = after;
+      item.bonusTags.push(`${event.ability} ${label ?? (after === 0 ? '歸零' : `${delta > 0 ? '+' : ''}${delta}`)}`);
+    }
   };
   const shield = (e: SkillEvent, item: CalculatedRollItem, amount: number) => {
     if (amount <= 0) return;
-    amount *= echoMultiplier(e);
-    const before = item.shieldGranted;
-    item.shieldGranted = combatNumber(before + amount);
-    e.changes.push({ kind: 'shield', targetId: item.diceId, before, after: item.shieldGranted });
-    item.bonusTags.push(`${e.ability} 護盾 +${amount}`);
+    const replay = echoEvent(e);
+    const total = Math.ceil(combatNumber(amount * (replay ? 2 : 1)));
+    for (const [index, event] of (replay ? [e, replay] : [e]).entries()) {
+      const gain = index ? total - Math.ceil(amount) : Math.ceil(amount);
+      const before = item.shieldGranted;
+      item.shieldGranted = combatNumber(before + gain);
+      event.changes.push({ kind: 'shield', targetId: item.diceId, before, after: item.shieldGranted });
+      item.bonusTags.push(`${event.ability} 護盾 +${gain}`);
+    }
   };
   const bonus = (e: SkillEvent, source: CalculatedRollItem, amount: number, creature: CreatureId = source.creature) => {
     if (amount <= 0) return;
-    const copies = echoMultiplier(e);
-    for (let copy = 0; copy < copies; copy++) {
+    const replay = echoEvent(e);
+    for (const event of replay ? [e, replay] : [e]) {
       const value = combatNumber(amount);
       const id = `bonus-${bonusDice.length}`;
-      bonusDice.push({ id, creature, source: { kind: 'creature', diceId: source.diceId, faceId: e.sourceFaceId, ability: e.ability },
-        sourceName: CREATURE_CONFIG[creature].name, bonusDamage: value, label: e.ability, description: `追加攻擊 ${ceilDamage(value)}` });
-      e.bonusIds.push(id);
-      e.changes.push({ kind: 'bonus', targetId: id, before: 0, after: value });
-      source.bonusTags.push(`${e.ability} 追傷 +${ceilDamage(value)}`);
+      bonusDice.push({ id, creature, source: { kind: 'creature', diceId: source.diceId, faceId: e.sourceFaceId, ability: event.ability },
+        sourceName: CREATURE_CONFIG[creature].name, bonusDamage: value, label: event.ability, description: `追加攻擊 ${ceilDamage(value)}` });
+      event.bonusIds.push(id);
+      event.changes.push({ kind: 'bonus', targetId: id, before: 0, after: value });
+      source.bonusTags.push(`${event.ability} 追傷 +${ceilDamage(value)}`);
     }
   };
   const identify = (e: SkillEvent, item: CalculatedRollItem) => {
-    echoMultiplier(e);
     e.identities.push({ diceId: item.diceId, creature: item.creature, tags: [...item.tags] });
   };
   const countParticipants = (predicate: (item: Pick<CalculatedRollItem, 'creature' | 'tags'>) => boolean) => items.filter(predicate);
@@ -111,7 +109,7 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
   const neighbors = (index: number) => items.filter((_, other) => Math.abs(index - other) === 1);
   const faceCount = (index: number, creature: CreatureId) => faces[index].filter((face) => face.creature === creature).length;
   const adjacentFaces = (index: number) => getDiceGeometry(dice[index].dieType)[items[index].faceIndex].neighbors.map((neighbor) => faces[index][neighbor]);
-  return { teamShield, foodValues, dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, repeatFactors, tailMultipliers, pendingCheers, nextAltars, nextStoredFood, echoUsed, echoMultiplier, materials, virtualFood: state.virtualFood,
+  return { teamShield, foodValues, dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, repeatFactors, tailMultipliers, pendingCheers, nextAltars, nextStoredFood, echoUsed, echoMultiplier, echoEvent, materials, virtualFood: state.virtualFood,
     countParticipants, triggeredEquipmentIds, event, equipmentEvent, attack, shield, bonus,
     identify, speciesCount, tagCount, neighbors, faceCount, adjacentFaces };
 }

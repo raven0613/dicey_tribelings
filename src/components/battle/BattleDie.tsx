@@ -20,7 +20,7 @@ interface BattleDieProps {
   unrolled: boolean;
   bulgeFilter?: string;
   value: number;
-  numberScale: number;
+  numberFontSize?: number;
   effectiveCreature: CreatureId;
   effectiveTags: readonly CreatureTag[];
   reducedMotion?: boolean;
@@ -34,7 +34,7 @@ interface BattleDieProps {
 }
 
 export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rotation, motionRef,
-  rolling, unrolled, bulgeFilter, value: shownValue, numberScale, effectiveCreature: creatureId, effectiveTags: tags, reducedMotion,
+  rolling, unrolled, bulgeFilter, value: shownValue, numberFontSize, effectiveCreature: creatureId, effectiveTags: tags, reducedMotion,
   protectedDie, spinning, buffed, locked, canReroll, onReroll, onInspect }) => {
   const id = useId();
   const face = dice.faces[faceIndex];
@@ -75,7 +75,7 @@ export const BattleDie: React.FC<BattleDieProps> = ({ dice, faceIndex, size, rot
         {!unrolled && <MaterialSheen material={material} />}
       </g>
       {(!arrow || unrolled) && <DiceFaceNumber value={unrolled ? '?' : shownValue} tags={unrolled ? ['common'] : tags}
-        unitScale={size / appearance.viewBoxSize} scale={numberScale} spinning={spinning} />}
+        unitScale={size / appearance.viewBoxSize} fontSize={numberFontSize} reducedMotion={reducedMotion} spinning={spinning} />}
       {!unrolled && protectedDie && <text x="50" y="29" textAnchor="middle" fontSize="12">🛡</text>}
       {!unrolled && !arrow && face.temporarySticker && <circle cx="50" cy="33" r="3" fill="#e11d48" stroke="#fff" strokeWidth="1.5" />}
     </svg>

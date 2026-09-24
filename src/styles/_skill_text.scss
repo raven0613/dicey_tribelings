@@ -17,3 +17,7 @@
 .skill-stage-copy { min-width: 0; }
 .battle-skill-line.is-unmet { opacity: 0.6; }
 .skill-stage-check { color: #8cdeaa; flex: 0 0 1em; }
+
+.skill-tooltip-dismiss-layer { position: absolute; inset: 0; z-index: 99999; pointer-events: auto; }
+.skill-tooltip.is-interactive { pointer-events: auto; padding-top: 2.5rem !important; }
+.skill-tooltip-close { position: absolute; right: .35rem; top: .25rem; width: 2rem; height: 2rem; font-size: max(20px, var(--minimum-font-size)); }

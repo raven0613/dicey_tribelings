@@ -50,7 +50,7 @@ export const RewardModal: React.FC<{ onOpenDiceBag: () => void; inspectingDice: 
           {battleRewardOptions.map((option) => <article key={option.id} className="reward-option-card"
             data-material={option.kind === 'sticker' ? option.sticker.material : undefined}
             style={materialStyle(option.kind === 'sticker' ? option.sticker.material : undefined)}>
-            <button type="button" className="reward-option-main" onClick={() => option.kind === 'sticker' ? setPreviewId(option.id) : claimBattleRewardPack(option.id)}>
+            <button type="button" className={`reward-option-main ${option.kind === 'sticker' ? 'has-preview-action' : ''}`} onClick={() => option.kind === 'sticker' ? setPreviewId(option.id) : claimBattleRewardPack(option.id)}>
               {option.kind === 'stickerPack' ? <>
                 <div className="card-tag-row"><span className="type-badge pack">貼紙包</span><RarityBadge rarity={option.pack.rarity} /></div>
                 <div className="card-value-box"><Gift size={36} /><strong>{option.pack.stickerCount} 張</strong></div>

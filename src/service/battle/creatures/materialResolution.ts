@@ -1,6 +1,7 @@
 import type { Dice } from '../../../types/game';
 import { MATERIAL_BALANCE as b, MATERIAL_CONFIG } from '../../../configs/materials/materialConfig';
 import type { ResolutionContext } from './resolutionContext';
+import { combatNumber } from './creatureState';
 
 export function resolveMaterials(c: ResolutionContext) {
   for (const [index, item] of c.items.entries()) {
@@ -21,7 +22,8 @@ export function resolveMaterials(c: ResolutionContext) {
         break;
       case 'ripple': c.shield(e, item, b.ripple); break;
       case 'vial':
-        c.materials.healing += b.vial; e.activated = true; e.healing = b.vial; break;
+        e.healing = Math.ceil(combatNumber(b.vial));
+        c.materials.healing += e.healing; e.activated = true; break;
       case 'mirror': c.materials.reflection += b.mirror; break;
       case 'gilded':
         if (!c.materials.gildedFaces.has(item.faceId)) {

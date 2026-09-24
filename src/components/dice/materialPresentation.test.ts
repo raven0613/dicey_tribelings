@@ -22,7 +22,7 @@ for (const material of Object.keys(MATERIAL_CONFIG) as FaceMaterial[]) test(`${m
   const props = {
     dice, faceIndex: 0, size: 100, rotation: 0, motionRef: { current: null }, rolling: false, unrolled: false,
     value: ceilDamage(face.baseValue), effectiveCreature: face.creature, effectiveTags: getFaceTags(face),
-    numberScale: 1, protectedDie: false, spinning: false, buffed: false, locked: false, canReroll: false,
+    protectedDie: false, spinning: false, buffed: false, locked: false, canReroll: false,
     onReroll: () => { }, onInspect: () => { }
   };
   const markup = renderToStaticMarkup(createElement(BattleDie, props));

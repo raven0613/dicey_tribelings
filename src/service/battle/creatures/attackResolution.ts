@@ -4,6 +4,18 @@ import { EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentCon
 import { choose, combatNumber } from './creatureState';
 import type { ResolutionContext } from './resolutionContext';
 
+function chooseRobberyTarget(c: ResolutionContext, sourceId: string, candidates: ResolutionContext['items']) {
+  const remaining = c.items.map((item) => item.diceId).filter((id) => id !== sourceId).sort();
+  const key = `steal:${sourceId}:${c.state.faceVersions[sourceId] ?? 0}`;
+  // Draw from the complete roster in a stable order; eligibility only controls acceptance.
+  for (let priority = 0; remaining.length; priority++) {
+    const id = choose(remaining, c.state.roundSeed, `${key}:${priority}`)!;
+    const target = candidates.find((item) => item.diceId === id);
+    if (target) return target;
+    remaining.splice(remaining.indexOf(id), 1);
+  }
+}
+
 export function resolveRobbery(c: ResolutionContext) {
   const stolen = new Set<string>();
   const culprits = new Set<string>();
@@ -13,7 +25,7 @@ export function resolveRobbery(c: ResolutionContext) {
     const candidates = source.creature === 'boss'
       ? c.items.filter((item) => item.diceId !== source.diceId && item.tags.includes('common') && item.finalDamage > 0 && !stolen.has(item.diceId))
       : c.neighbors(index).filter((item) => !CREATURE_CONFIG[item.creature].tags.includes('food') && item.finalDamage > 0);
-    const target = source.creature === 'boss' ? choose(candidates, c.state.seed, `steal:${source.diceId}`) : undefined;
+    const target = source.creature === 'boss' ? chooseRobberyTarget(c, source.diceId, candidates) : undefined;
     const targets = source.creature === 'boss' ? target ? [target] : [] : candidates;
     source.skillInputs = { count: captures, secondaryCount: targets.length };
     for (const victim of targets) {
@@ -80,9 +92,12 @@ export function resolveFinalAttacks(c: ResolutionContext) {
     const e = c.event(9, herald, undefined, c.items);
     for (const item of c.items) c.attack(e, item, item.finalDamage + c.bonusDice.length * (c.bonusDice.length >= b.herald.threshold ? b.herald.highBonus : b.herald.bonusPerAttack));
     if (c.bonusDice.length >= b.herald.threshold) for (const bonus of c.bonusDice) {
-      const before = bonus.bonusDamage;
-      bonus.bonusDamage = combatNumber(before + b.herald.bonusDiceDamage * c.echoMultiplier(e));
-      e.changes.push({ kind: 'bonus', targetId: bonus.id, before, after: bonus.bonusDamage });
+      const replay = c.echoEvent(e);
+      for (const event of replay ? [e, replay] : [e]) {
+        const before = bonus.bonusDamage;
+        bonus.bonusDamage = combatNumber(before + b.herald.bonusDiceDamage);
+        event.changes.push({ kind: 'bonus', targetId: bonus.id, before, after: bonus.bonusDamage });
+      }
     }
   }
   const reserve = c.equipment.find((item) => item.ruleId === 'RESERVE');
@@ -109,18 +124,18 @@ export function resolveFinalAttacks(c: ResolutionContext) {
     const before = bonus.bonusDamage;
     bonus.bonusDamage = combatNumber(before + strongest.finalDamage);
     bonus.description = `取${strongest.diceName}的最終攻擊，追加攻擊 ${Math.ceil(bonus.bonusDamage)}`;
-    const e = c.event(10, source, undefined, [strongest]);
+    const e = c.event(10, source, opening.ability, [strongest]);
+    e.echoed = opening.echoed;
     e.changes.push({ kind: 'bonus', targetId: id, before, after: bonus.bonusDamage });
   }
   for (const [id, factors] of c.repeatFactors) {
     const item = c.items.find((entry) => entry.diceId === id)!;
     if (item.finalDamage <= 0 || !factors.length) continue;
-    const echoed = c.events.some((event) => event.sourceFaceId === item.faceId && event.skill === item.creature && event.echoed);
     const e = c.event(11, item);
-    const copies = echoed ? 2 : c.echoMultiplier(e);
-    for (let copy = 0; copy < copies; copy++) for (const factor of factors) {
-      c.repeatAttacks.push({ diceId: id, sourceDiceId: id, damage: combatNumber(item.finalDamage * factor), label: e.ability });
-      e.repeatDiceIds.push(id);
+    const replay = c.echoEvent(e);
+    for (const event of replay ? [e, replay] : [e]) for (const factor of factors) {
+      c.repeatAttacks.push({ diceId: id, sourceDiceId: id, damage: combatNumber(item.finalDamage * factor), label: event.ability });
+      event.repeatDiceIds.push(id);
     }
   }
   for (const princess of c.items.filter((item) => item.creature === 'princess')) {
@@ -128,10 +143,10 @@ export function resolveFinalAttacks(c: ResolutionContext) {
     princess.skillInputs = { count: targets.length };
     if (!targets.length) continue;
     const e = c.event(11, princess, undefined, targets, 'attack');
-    const copies = c.echoMultiplier(e);
-    for (let copy = 0; copy < copies; copy++) for (const target of targets) {
-      c.repeatAttacks.push({ diceId: target.diceId, damage: target.finalDamage, sourceDiceId: princess.diceId });
-      e.repeatDiceIds.push(target.diceId);
+    const replay = c.echoEvent(e);
+    for (const event of replay ? [e, replay] : [e]) for (const target of targets) {
+      c.repeatAttacks.push({ diceId: target.diceId, damage: target.finalDamage, sourceDiceId: princess.diceId, label: event.ability });
+      event.repeatDiceIds.push(target.diceId);
       target.bonusTags.push('公主命令：再攻擊');
     }
   }

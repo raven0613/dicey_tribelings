@@ -5,6 +5,7 @@ import { DICE_TRAY_PRESENTATION as layout, DICE_NUMBER_PRESENTATION as number,
 import { VIEWPORT_PRESENTATION } from '../../configs/viewportConfig';
 import { ALL_FACE_TAGS } from '../../configs/materials/materialConfig';
 import { configuredDice } from './diceFactory';
+import { calculateRollResolution } from '../battle/battleEngine';
 import { getDiceTrayLayout } from './diceTrayLayout';
 import { getNumberPaint } from './diceNumberPaint';
 import { getPhantomProjection } from './phantomProjection';
@@ -15,14 +16,15 @@ test('tray rows keep fixed height and positions while narrow viewports extend ho
   dice[0].faces[0].material = 'echo';
   for (const minimumFontSize of [VIEWPORT_PRESENTATION.minimumFontSize, VIEWPORT_PRESENTATION.minimumFontSize * 1.5])
   for (const size of [layout.size, layout.mobileSize]) for (const width of [320, 768, 1440]) {
-    const tray = getDiceTrayLayout(width, dice, size, minimumFontSize);
+    const bonusCount = calculateRollResolution(dice, dice.map(() => 0), []).bonusDice.length;
+    const tray = getDiceTrayLayout(width, dice, size, minimumFontSize, bonusCount);
     assert.equal(tray.size, size);
     assert.ok(tray.width >= width);
     const reference = getDiceTrayLayout(width / 2, dice.slice(0, 1), size, minimumFontSize);
     assert.equal(tray.height, reference.height);
     assert.deepEqual(tray.positions.map((position) => position.y), dice.map(() => reference.positions[0].y));
-    assert.equal(new Set(Object.values(tray.bonusPositions).flat().map((position) => position.y)).size, 1);
-    const positions = [...tray.positions, ...Object.values(tray.bonusPositions).flat()];
+    assert.equal(new Set(tray.bonusPositions.map((position) => position.y)).size, 1);
+    const positions = [...tray.positions, ...tray.bonusPositions];
     for (const p of positions) {
       assert.ok(p.x >= size / 2 && p.x <= tray.width - size / 2);
       assert.ok(p.y >= size / 2 && p.y <= tray.height - size / 2);

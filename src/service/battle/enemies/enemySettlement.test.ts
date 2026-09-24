@@ -10,7 +10,7 @@ import { calculateRollResolution, type BattleComboSummary } from '../battleEngin
 import { runBattleSettlement } from '../battleSettlement';
 import { createEnemy } from './enemyFactory';
 import { resolveEnemyRound } from './enemyRound';
-import type { Dice } from '../../../types/game';
+import type { DamagePopInput, Dice } from '../../../types/game';
 
 function summaryWithDamage(damage: number): BattleComboSummary {
   return { healing: 0, reflection: 0, nextEchoUsed: [], nextGildedFaces: [], items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, virtualFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
@@ -38,11 +38,12 @@ async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSu
   let state: GameState = { ...useGameStore.getInitialState(), currentEnemy: enemy,
     comboSummary: summary, playerHp, playerShield: 0, combatPhase: 'CONTROL_PHASE', activeRerollingIndex: null, ...initial };
   let rolls = 0;
+  const pops: DamagePopInput[] = [];
   const result = runBattleSettlement({
     get: () => state,
     set: (partial) => { state = { ...state, ...partial }; },
     triggerScreenShake: () => {},
-    addDamagePop: () => {},
+    addDamagePop: (pop) => { pops.push(pop); },
     waitForAttackMotion: async () => true,
     startBattleRoll: () => { rolls++; },
   });
@@ -52,8 +53,18 @@ async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSu
     await Promise.resolve();
   }
   await result;
-  return { state, rolls };
+  return { state, rolls, pops };
 }
+
+test('overkill floating feedback receives the full attack damage instead of remaining HP', async (context) => {
+  const enemy = createEnemy('r1_slinger');
+  enemy.hp = 20;
+  enemy.shield = 0;
+  const damage = 120;
+  const { state, pops } = await settle(context, enemy, summaryWithDamage(damage));
+  assert.equal(state.currentEnemy?.hp, 0);
+  assert.deepEqual(pops.map((pop) => pop.value), [damage]);
+});
 
 test('production settlement counts each normal and additional attack once including shield loss', async (context) => {
   const enemy = createEnemy('r1_slinger');
@@ -150,7 +161,7 @@ test('locking commits chef food once and rejects another settlement during the a
   enemy.hp = enemy.maxHp = 100;
   const creatureBattleState = { ...createCreatureBattleState(), storedFood: { chef: 7.25 }, cowardShields: { chef: 9.75 } };
   let state: GameState = { ...useGameStore.getInitialState(), dicePool: [chef], rolledIndices: [0],
-    currentEnemy: enemy, creatureBattleState, playerShield: 0.5, combatPhase: 'CONTROL_PHASE',
+    currentEnemy: enemy, creatureBattleState, playerShield: 1, combatPhase: 'CONTROL_PHASE',
     comboSummary: calculateRollResolution([chef], [0], [], creatureBattleState) };
   const frames: Pick<GameState, 'diceSlotStates' | 'bonusSlotStates' | 'displayedShields' | 'displayedFood' | 'playerShieldDisplay'>[] = [];
   const methods = { get: () => state, set: (partial: Partial<GameState>) => {
@@ -179,7 +190,7 @@ test('locking commits chef food once and rejects another settlement during the a
   }
   shieldFrames.forEach((frame, index) => {
     const value = frame.displayedShields.chef.displayValue;
-    assert.ok(value >= 0 && value <= 9, `護盾輪播超出目標整數位數：${value}`);
+    assert.ok(value >= 0 && value <= Math.ceil(creatureBattleState.cowardShields.chef), `護盾輪播超出目標：${value}`);
     assert.ok(Number.isInteger(frame.playerShieldDisplay));
     if (index > 0) assert.ok(value >= shieldFrames[index - 1].displayedShields.chef.displayValue);
   });
@@ -188,9 +199,9 @@ test('locking commits chef food once and rejects another settlement during the a
     assert.ok(value >= 0 && value <= 7);
     if (index > 0) assert.ok(value <= foodFrames[index - 1].displayedFood.chef.displayValue);
   });
-  assert.equal(frames.at(-1)?.displayedShields.chef.displayValue, 9.75);
+  assert.equal(frames.at(-1)?.displayedShields.chef.displayValue, Math.ceil(creatureBattleState.cowardShields.chef));
   assert.equal(frames.at(-1)?.displayedFood.chef.displayValue, 0);
-  assert.equal(frames.at(-1)?.playerShieldDisplay, 10.25);
+  assert.equal(frames.at(-1)?.playerShieldDisplay, 1 + Math.ceil(creatureBattleState.cowardShields.chef));
 });
 
 

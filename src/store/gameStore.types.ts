@@ -11,6 +11,7 @@ import {
   CombatPhase,
   ConsumableSticker,
   DamagePop,
+  DamagePopInput,
   Dice,
   Enemy,
   Equipment,
@@ -124,7 +125,7 @@ export interface GameState {
   setDiceAction: (action: DiceAction) => void;
   finishRerollAnimation: (dieIndex: number) => void;
   executeBattleSettlement: (waitForAttackMotion: WaitForAttackMotion) => Promise<void>;
-  addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
+  addDamagePop: (pop: DamagePopInput) => void;
   removeDamagePop: (id: number) => void;
   openPackAction: (packId: string, completion: FlowCompletion) => void;
   beginOpenedPack: () => void;

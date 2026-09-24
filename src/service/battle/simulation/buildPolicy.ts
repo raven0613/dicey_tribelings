@@ -15,7 +15,7 @@ export function evaluateBuild(pool: Dice[], gear: Equipment[], seed: number) {
   let damage = 0, shield = 0;
   for (let sample = 0; sample < config.evaluationSamples; sample++) {
     const summary = calculateRollResolution(pool, predetermineRollResults(pool, random), gear,
-      { ...createCreatureBattleState(), seed: sample + seed }, { control: 1, maxControl: 3, gold: 0 });
+      createCreatureBattleState(sample + seed), { control: 1, maxControl: 3, gold: 0 });
     damage += summary.totalDamage; shield += summary.totalShield;
   }
   return { damage: damage / config.evaluationSamples, score: (damage + shield * config.shieldScore) / config.evaluationSamples };

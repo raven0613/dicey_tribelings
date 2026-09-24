@@ -115,8 +115,9 @@ export function resolveSupport(c: ResolutionContext) {
   const barricade = c.equipment.find((item) => item.ruleId === 'BARRICADE');
   if (barricade) {
     const e = c.equipmentEvent(4, barricade, []);
-    e.changes.push({ kind: 'shield', targetId: 'player', before: c.teamShield.value, after: c.teamShield.value + eq.barricadeShield });
-    c.teamShield.value += eq.barricadeShield;
+    const gain = Math.ceil(combatNumber(eq.barricadeShield));
+    e.changes.push({ kind: 'shield', targetId: 'player', before: c.teamShield.value, after: c.teamShield.value + gain });
+    c.teamShield.value += gain;
   }
 }
 
@@ -152,13 +153,14 @@ export function resolveFoodAndBonuses(c: ResolutionContext) {
       for (const warrior of warriors) c.attack(e, warrior, warrior.finalDamage + b.cheerleader.bonusPerWarrior);
       if (warriors.length >= b.cheerleader.copyAt) {
         // Register quantity now. Damage is filled after every warrior's final modifier.
-        const changes = e.changes.length;
+        const previousIds = new Set(c.bonusDice.map(bonus => bonus.id));
         c.bonus(e, item, b.cheerleader.bonusPerWarrior);
-        for (const id of e.bonusIds) {
-          c.bonusDice.find((bonus) => bonus.id === id)!.bonusDamage = 0;
-          c.pendingCheers.set(id, e);
+        for (const bonus of c.bonusDice.filter(bonus => !previousIds.has(bonus.id))) {
+          const opening = c.events.find(event => event.bonusIds.includes(bonus.id))!;
+          bonus.bonusDamage = 0;
+          c.pendingCheers.set(bonus.id, opening);
+          opening.changes = opening.changes.filter(change => change.targetId !== bonus.id);
         }
-        e.changes.splice(changes);
       }
     }
     if (item.creature === 'priest') {

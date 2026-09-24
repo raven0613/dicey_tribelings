@@ -34,7 +34,7 @@ for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite r
   const values: number[] = [];
   let maximumBonuses = 0;
   for (let sample = 0; sample < 500; sample++) {
-    let state = createCreatureBattleState(); state.seed = seed;
+    let state = createCreatureBattleState(seed);
     const first = predetermineRollResults(pool, random);
     const chain = resolveRerollChain(pool, first, state, sample % size, gear, random);
     assert.ok(chain.length <= size + 1);
@@ -66,7 +66,7 @@ test('round rollover retains battle resources while reroll earnings and temporar
   state.authorityTargets.a = { diceId: 'b', version: 2 }; state.lockedDice = ['b'];
   state.virtualFood = 8; state.controlSpent = 2; state.formationUsed = true;
   const next = startCreatureRound(state, 19);
-  assert.deepEqual(next, { ...createCreatureBattleState(), storedFood: { a: 12 }, altars: { a: 6 }, round: 1, seed: 19 });
+  assert.deepEqual(next, { ...createCreatureBattleState(), storedFood: { a: 12 }, altars: { a: 6 }, round: 1, roundSeed: 19, seed: 19 });
   next.storedFood.a = 1;
   assert.equal(state.storedFood.a, 12);
 });

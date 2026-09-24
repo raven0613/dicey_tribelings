@@ -64,5 +64,4 @@
 @media (prefers-reduced-motion: reduce) {
   .skill-pulse { animation: none; opacity: .15; box-shadow: none; }
   .skill-name { animation-timing-function: step-end; }
-  .dice-face-number { transform: none !important; }
 }

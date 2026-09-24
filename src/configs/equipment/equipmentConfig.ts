@@ -18,7 +18,7 @@ export const ALL_EQUIPMENT_CATALOG: Equipment[] = [
   equipment('eq_pipe', '長老煙斗', 'PIPE', 'control', 'common', 'RotateCcw', `起始 Control +${b.pipeControl}；花費 Control 重骰後，基礎攻擊力持平或下降，返還 ${b.pipeRefund} Control，每回合一次。`),
   equipment('eq_prism', '強力探照燈透鏡', 'PRISM', 'control', 'rare', 'Sparkles', `花 ${b.prismCost} Control 翻至幾何相對面，適用具有相對面的骰型。`),
   equipment('eq_abacus', '土人算盤', 'ABACUS', 'control', 'rare', 'Layers', `場上有 ${b.abacusTags} 種土人標籤時，回合結束獲得 ${b.abacusControl} Control，上限為起始值 +${b.controlHeadroom}。`),
-  equipment('eq_shield_wrap', '鱷皮護盾套', 'SHIELD_RETENTION', 'global', 'rare', 'Shield', `下回合保留 ${b.shieldRetention * 100}% 剩餘護盾。`),
+  equipment('eq_shield_wrap', '鱷皮護盾套', 'SHIELD_RETENTION', 'global', 'rare', 'Shield', `下回合保留 ${b.shieldRetention * 100}% 剩餘護盾，向上取整。`),
   equipment('eq_barricade', '巨骨護身壁', 'BARRICADE', 'global', 'rare', 'Shield', `每回合獲得 ${b.barricadeShield} 額外護盾。`),
   equipment('eq_resonator', '戰鼓共鳴箱', 'RESONATOR', 'global', 'rare', 'Zap', `所有追加攻擊骰的傷害 +${b.bonusDamage}。`),
   equipment('eq_rations', '備用乾糧袋', 'RATIONS', 'global', 'rare', 'Backpack', '勝利時帶走實體食物值。下場首回合視為一份食物，平均分給含廚師面的骰子存糧。'),

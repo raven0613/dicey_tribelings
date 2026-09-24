@@ -2,23 +2,23 @@ import { useGameViewport } from '../layout/GameViewportContext';
 import { useId } from 'react';
 import { DICE_NUMBER_PRESENTATION as config } from '../../configs/dicePresentationConfig';
 import { getNumberPaint } from '../../service/dice/diceNumberPaint';
+import { getDiceNumberLayout } from '../../service/battle/presentation/numberFeedback';
 import type { CreatureTag } from '../../types/creatures';
 
 interface DiceFaceNumberProps {
   value: number | '?';
   tags: readonly CreatureTag[];
-  scale?: number;
+  fontSize?: number;
+  reducedMotion?: boolean;
   unitScale: number;
   spinning?: boolean;
 }
 
-export function DiceFaceNumber({ value, tags, unitScale, scale = 1, spinning = false }: DiceFaceNumberProps) {
+export function DiceFaceNumber({ value, tags, unitScale, fontSize: animatedSize, reducedMotion = false, spinning = false }: DiceFaceNumberProps) {
   const { minimumFontSize } = useGameViewport();
   const id = `die-number-${useId()}`;
   const paint = getNumberPaint(tags);
-  const fontSize = Math.max(minimumFontSize / unitScale,
-    Math.min(config.fontSize, config.maxWidth / (String(value).length * 0.65)));
-  const width = Math.min(config.maxWidth, String(value).length * fontSize * 0.65);
+  const { fontSize, width, fitted } = getDiceNumberLayout(value, reducedMotion ? undefined : animatedSize, minimumFontSize / unitScale);
   const x = value === '?' ? 50 : config.x;
   const y = value === '?' ? 62 : config.y;
   const centerX = value === '?' ? x : x - width / 2;
@@ -38,10 +38,11 @@ export function DiceFaceNumber({ value, tags, unitScale, scale = 1, spinning = f
       </linearGradient>
     </defs>
     <text x={x} y={y} textAnchor={value === '?' ? 'middle' : 'end'} className="dice-face-number"
+      textLength={fitted ? width : undefined} lengthAdjust={fitted ? 'spacingAndGlyphs' : undefined}
       fill={`url(#${id})`} stroke={config.strokeColor} strokeWidth={config.strokeWidth}
       strokeLinejoin="round" paintOrder="stroke fill"
       style={{ fontFamily: config.fontFamily, fontWeight: config.fontWeight, fontSize,
-        opacity: spinning ? 0.65 : 1, transform: `scale(${scale})`, transformOrigin: `${centerX}px ${centerY}px` }}>
+        opacity: spinning ? 0.65 : 1 }}>
       {value}
     </text>
   </>;

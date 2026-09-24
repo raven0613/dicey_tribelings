@@ -94,6 +94,7 @@ export interface BattleComboSummary {
 
 export interface NumberDisplay {
   pending?: boolean;
+  fontSize?: number;
   displayValue: number;
   scale: number;
   isSpinning: boolean;

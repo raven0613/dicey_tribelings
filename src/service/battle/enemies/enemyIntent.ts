@@ -27,7 +27,7 @@ export interface EnemyIntentResult {
 
 /** 條件讀取本輪逐段紀錄；玩家護盾條件由每次攻擊前的狀態判斷。 */
 export function resolveEnemyIntent(enemy: Enemy, damageTaken = enemy.roundDamage ?? 0,
-  playerShield = 0, tagCount = 0): EnemyIntentResult {
+  playerShield = 0, tagCount = 0, hitMultiplier = 1): EnemyIntentResult {
   const result: EnemyIntentResult = { damage: 0, hits: 0, shieldGain: 0, healing: 0,
     shieldCost: 0, strengthGain: 0, counterTriggered: false, cancelled: false, nextIntentIndex: enemy.currentIntentIndex };
   if (enemy.hp <= 0) return result;
@@ -57,7 +57,7 @@ export function resolveEnemyIntent(enemy: Enemy, damageTaken = enemy.roundDamage
     || (intent.singleHitThreshold !== undefined && (enemy.largestHit ?? 0) >= intent.singleHitThreshold)
     || (intent.diverseTags !== undefined && tagCount >= intent.diverseTags);
   result.counterTriggered ||= Boolean(weakened);
-  result.damage = Math.ceil(value * (weakened ? 0.5 : 1));
+  result.damage = Math.floor(combatNumber(value * (weakened ? 0.5 : 1) * hitMultiplier));
   result.hits = intent.hits ?? 1;
   return result;
 }

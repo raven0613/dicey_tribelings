@@ -203,7 +203,7 @@ test('next round expires player shields or preserves the configured share as exi
     useGameStore.setState({ playerShield: shield,
       equipments: retain ? ALL_EQUIPMENT_CATALOG.filter((item) => item.ruleId === 'SHIELD_RETENTION') : [] });
     useGameStore.getState().startBattleRoll();
-    assert.equal(useGameStore.getState().playerShield, retain ? shield * EQUIPMENT_BALANCE.shieldRetention : 0);
+    assert.equal(useGameStore.getState().playerShield, retain ? Math.ceil(shield * EQUIPMENT_BALANCE.shieldRetention) : 0);
     assert.deepEqual(useGameStore.getState().creatureBattleState.cowardShields, {});
   }
 });

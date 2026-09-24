@@ -85,35 +85,23 @@
 
   .dice-net-content {
     position: absolute;
-    width: var(--net-content-width);
     display: flex;
     flex-direction: column;
     gap: 0.15em;
-    transform: translate(-50%, -50%) scale(var(--net-content-scale));
-    transform-origin: center;
+    overflow: hidden;
     white-space: normal;
     overflow-wrap: anywhere;
     line-height: 1.35;
   }
 
-  .dice-net-copies {
-    display: grid;
-
-    > span { grid-area: 1 / 1; }
-    > .is-hidden { visibility: hidden; pointer-events: none; }
-  }
-
-  .dice-net-copy {
-    display: flex;
-    flex-direction: column;
-    gap: var(--net-description-gap);
-  }
-
-  .dice-net-description {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2em;
-  }
+  .dice-net-copies { display: flex; min-height: 0; flex: 1; }
+  .dice-net-copy { position: relative; display: flex; flex-direction: column; gap: var(--net-description-gap); min-width: 0; min-height: 0; width: 100%; flex: 1; }
+  .dice-identity-header { flex-shrink: 0; }
+  .dice-net-description { display: flex; flex-direction: column; gap: .3em; min-height: 0; overflow: hidden; }
+  .dice-net-description > * { flex-shrink: 0; }
+  .dice-net-description-measure { position: absolute; width: 100%; top: 0; visibility: hidden; pointer-events: none; overflow: visible; }
+  .dice-net-summary { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .dice-net-ability-title { color: var(--face-color); }
 
   .dice-net-relation {
     min-height: 1.35em;
@@ -128,7 +116,6 @@
   .is-arrow-invalid .dice-net-relation { color: $rose-300; }
 
   .dice-net-ability { color: $slate-100; }
-  .dice-net-ability strong { color: var(--face-color); }
   .dice-net-sticker { color: $rose-300; }
 
   .material-info { display: block; }
@@ -165,4 +152,20 @@
   &.is-invalid { color: $rose-300; }
   .dice-net-arrow-link-shadow { fill: none; stroke: $slate-950; stroke-width: 6; }
   .dice-net-arrow-link-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-dasharray: 6 4; }
+}
+
+.dice-net-face-wrapper { position: absolute; pointer-events: none; }
+.game-stage[data-layout='mobile'] .dice-net-summary { display: none; }
+.dice-net-face-wrapper > button { pointer-events: auto; }
+.dice-net-info { position: absolute; z-index: 3; padding: 0; border-radius: 50%; background: #0f172acc; color: #e2e8f0; border: 1px solid #94a3b8; font-size: max(18px, var(--minimum-font-size)); }
+.skill-tooltip.dice-net-tooltip {
+  background: #0f172aeb;
+  white-space: normal;
+  overflow: visible;
+  .dice-net-copy { display: flex; flex-direction: column; gap: .65em; }
+  .dice-net-description { display: flex; flex-direction: column; gap: .45em; }
+  .dice-net-ability-title { color: var(--face-color); }
+  .material-info { display: block; border-top: 1px solid #94a3b855; padding-top: .5em; }
+  .material-description { display: block; font-size: inherit; line-height: inherit; margin-top: .25em; }
+  .dice-net-sticker { color: #fda4af; }
 }

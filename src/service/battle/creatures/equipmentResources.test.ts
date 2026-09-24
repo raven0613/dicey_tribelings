@@ -80,17 +80,37 @@ test('rations distribute one capped total, keep their equipment source and never
 });
 
 test('remaining shields expire or retain once; global equipment shields belong to the player and feed bulwark', () => {
-  const remaining = INITIAL_PLAYER_STATS.maxHp;
+  const remaining = eq.barricadeShield;
   assert.equal(retainPlayerShield(remaining, []), 0);
   const equipment = gear('SHIELD_RETENTION', 'BARRICADE');
   const retained = retainPlayerShield(remaining, equipment);
-  assert.equal(retained, combatNumber(remaining * eq.shieldRetention));
+  assert.equal(retained, Math.ceil(combatNumber(remaining * eq.shieldRetention)));
+  assert.equal(retainPlayerShield(1, equipment), Math.ceil(eq.shieldRetention));
   const pool = [die('a', 'bulwark')];
   const result = calculateRollResolution(pool, [0], equipment);
   assert.equal(result.items[0].shieldGranted, 0);
   assert.equal(result.totalShield, eq.barricadeShield);
   assert.equal(result.bonusDice[0].bonusDamage, combatNumber(eq.barricadeShield * b.bulwark.lowMultiplier));
   assert.ok(result.events.some((event) => event.equipmentId && event.changes.some((change) => change.kind === 'shield' && change.targetId === 'player')));
+});
+
+test('fractional coward shield rounds up before feeding bulwark and survives as integer shield', () => {
+  const value = values.coward * eq.frugalMultiplier;
+  const pool = [die('coward', 'coward', value), die('bulwark', 'bulwark')];
+  const state = { dicePool: pool, rolledIndices: [0, 0], equipments: [],
+    creatureBattleState: createCreatureBattleState(), control: INITIAL_PLAYER_STATS.maxControl,
+    maxControl: INITIAL_PLAYER_STATS.maxControl, gold: 0, combatPhase: 'CONTROL_PHASE' as const };
+  const step = performControlReroll(0, state, () => 0)!.steps.at(-1)!;
+  const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
+  const shield = Math.ceil(combatNumber(value));
+  assert.equal(step.state.cowardShields.coward, shield);
+  assert.equal(result.items[0].shieldGranted, shield);
+  assert.equal(result.totalShield, shield);
+  const multiplier = shield >= b.bulwark.high ? b.bulwark.highMultiplier
+    : shield >= b.bulwark.middle ? b.bulwark.multiplier : b.bulwark.lowMultiplier;
+  assert.equal(result.bonusDice[0].bonusDamage, combatNumber(shield * multiplier));
+  assert.ok(result.events.flatMap((event) => event.changes).filter((change) => change.kind === 'shield')
+    .every((change) => Number.isInteger(change.before) && Number.isInteger(change.after)));
 });
 
 test('paid rerolls charge the growing battle price, preserve it across rounds and reset at a new battle', () => {

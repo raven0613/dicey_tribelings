@@ -13,7 +13,7 @@
     "package:win": "npm run lint && node --import tsx desktop/packaging/package.ts win",
     "package:mac": "npm run lint && node --import tsx desktop/packaging/package.ts mac",
     "package:desktop": "npm run lint && node --import tsx desktop/packaging/package.ts desktop",
-    "test": "node --import tsx --test src/service/dice/*.test.ts src/service/battle/creatures/*.test.ts src/service/battle/nodeService.test.ts src/service/battle/enemies/*.test.ts src/service/regions/*.test.ts src/service/inventory/inventoryService.test.ts src/service/rewards/rewardService.test.ts src/service/shop/shopService.test.ts src/service/stickers/packService.test.ts src/store/gameStore.test.ts src/service/battle/simulation/*.test.ts src/service/telemetry/*.test.ts",
+    "test": "node --import tsx --test src/service/dice/*.test.ts src/service/battle/creatures/*.test.ts src/service/battle/nodeService.test.ts src/service/battle/enemies/*.test.ts src/service/regions/*.test.ts src/service/inventory/inventoryService.test.ts src/service/rewards/rewardService.test.ts src/service/shop/shopService.test.ts src/service/stickers/packService.test.ts src/store/gameStore.test.ts src/service/battle/simulation/*.test.ts src/service/telemetry/*.test.ts src/service/battle/presentation/*.test.ts",
     "test:monsters": "node --import tsx --test src/service/battle/enemies/*.test.ts src/service/regions/*.test.ts"
   },
   "dependencies": {

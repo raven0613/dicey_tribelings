@@ -11,6 +11,6 @@ export function findTeacherTargets(items: RerollCandidate[], state: CreatureBatt
 }
 
 export function findPranksterTargets(items: RerollCandidate[], state: CreatureBattleState, sourceIndex: number): number[] {
-  return items.flatMap((item, index) => Math.abs(index - sourceIndex) === 1 && !CREATURE_CONFIG[item.creature].tags.includes('food')
+  return items.flatMap((item, index) => Math.abs(index - sourceIndex) === 1
     && !state.lockedDice.includes(item.diceId) && !state.sealedDice?.includes(item.diceId) ? [index] : []);
 }

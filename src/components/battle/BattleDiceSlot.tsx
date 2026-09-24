@@ -30,7 +30,7 @@ interface BattleDiceSlotProps {
   reducedMotion: boolean;
   bulgeFilter: string;
   trayRef: React.RefObject<HTMLDivElement | null>;
-  rerollFeedback: { id: number; diceIds: string[] } | null;
+  rerollFeedback: { id: number; diceIds: string[]; echoes: import('../../types/battle').SkillFeedback[] } | null;
   onRollFinish: (index: number, reroll: boolean) => void;
   setHoveredId: (id: string | null) => void;
   inspectionTarget: HTMLDivElement | null;
@@ -71,7 +71,7 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
     `攻擊 ${ceilDamage(calcItem.finalDamage)}`,
     altar !== undefined ? `祭壇 ${altar} 次` : '',
     calcItem.shieldGranted > 0 ? `護盾 ${calcItem.shieldGranted}` : '',
-    storedFood > 0 || nextFood > 0 ? `存糧 ${storedFood}→${nextFood}` : '',
+    storedFood > 0 || nextFood > 0 ? `存糧 ${storedFood === nextFood ? storedFood : `${storedFood}→${nextFood}`}` : '',
   ].filter(Boolean) : resolving ? [
     combatPhase === 'RESOLVING_ATTACK' && altar !== undefined ? `祭壇 ${altar} 次` : '',
     (shield?.displayValue ?? 0) > 0 ? `護盾 ${shield.displayValue}` : '',
@@ -123,6 +123,8 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
           ? <DieStatusBadge sealed /> : currentEnemy?.grapple?.diceId === die.id && !creatureBattleState.rerolledDice?.includes(die.id)
             ? <DieStatusBadge damage={currentEnemy.grapple.damage} /> : null)}
         <SkillFeedback diceId={die.id} feedback={skillFeedback} />
+        {combatPhase === 'CONTROL_PHASE' && rerollFeedback &&
+          <SkillFeedback diceId={die.id} feedback={rerollFeedback.echoes} />}
         {combatPhase === 'CONTROL_PHASE' && !isRerolling && rerollFeedback?.diceIds.includes(die.id)
           && <RerollPulse key={rerollFeedback.id} />}
         {/* Dash Motion Speed Trail */}
@@ -139,7 +141,7 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
           unrolled={unrolled} bulgeFilter={isAttacking && attackEmphasis > 0 && !reducedMotion ? bulgeFilter : undefined}
           faceIndex={roll.faceIndex} rolling={isRerolling}
           value={shownValue} spinning={slotState?.isSpinning ?? false} locked={slotState?.isLocked ?? false} buffed={slotState?.isBuffed ?? false}
-          numberScale={slotState?.scale ?? 1} effectiveCreature={shownCreature}
+          numberFontSize={isRerolling ? undefined : slotState?.fontSize} effectiveCreature={shownCreature}
           effectiveTags={shownTags} reducedMotion={reducedMotion}
           protectedDie={creatureBattleState.lockedDice.includes(die.id)}
           canReroll={combatPhase === 'CONTROL_PHASE' && available && activeRerollingIndex === null}

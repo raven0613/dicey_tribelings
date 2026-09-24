@@ -161,6 +161,11 @@
         line-height: 1.4;
       }
 
+      .reward-option-main.has-preview-action {
+        > .sticker-desc { margin-bottom: 1rem; }
+        > .btn-pick-reward { margin-top: auto; }
+      }
+
       .btn-pick-reward {
         margin-top: 1rem;
         width: 100%;

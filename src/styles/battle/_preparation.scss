@@ -1,6 +1,5 @@
 @use '../variables' as *;
 
-.game-screen-background { display: contents; }
 .preparation-panel-viewport { position: absolute; inset: 0; z-index: 1000; overflow: hidden; }
 .preparation-panel {
   position: absolute; inset: 0; background: $slate-950; color: $slate-100;

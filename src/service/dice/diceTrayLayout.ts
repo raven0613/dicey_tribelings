@@ -1,6 +1,5 @@
 import { VIEWPORT_PRESENTATION } from '../../configs/viewportConfig';
-import type { BonusAttackDice, Dice } from '../../types/game';
-import { getBonusCapacities } from '../battle/creatures/bonusCapacity';
+import type { Dice } from '../../types/game';
 import { DICE_TRAY_PRESENTATION as layout, DICE_RESULT_PRESENTATION as result } from '../../configs/dicePresentationConfig';
 
 export function getDiceResultMetrics(minimumFontSize: number = VIEWPORT_PRESENTATION.minimumFontSize) {
@@ -23,36 +22,19 @@ export function getDiceTrayMetrics(size: number, minimumFontSize?: number) {
   };
 }
 
-/** Reserve by build, so rolling and revealing bonuses never move the normal row. */
-export function getDiceTrayLayout(width: number, dice: Dice[], size: number = layout.size, minimumFontSize?: number) {
-  const capacities = getBonusCapacities(dice);
-  const sources = dice.map((die, index) => ({ key: `creature:${die.id}`, capacity: capacities[index] }));
-  const slotCount = sources.reduce((total, source) => total + source.capacity, 0);
+/** Lay out the complete round before reveal; normal dice keep independent, stable positions. */
+export function getDiceTrayLayout(width: number, dice: Dice[], size: number = layout.size,
+  minimumFontSize?: number, bonusCount = 0) {
   const { topPadding, pitch, normalY, spacing, sidePadding, height } = getDiceTrayMetrics(size, minimumFontSize);
   const contentWidth = Math.max(width, sidePadding * 2 + Math.max(
-    Math.max(0, dice.length - 1) * spacing + size, Math.max(0, slotCount - 1) * pitch + size));
+    Math.max(0, dice.length - 1) * spacing + size, Math.max(0, bonusCount - 1) * pitch + size));
   const positions = dice.map((_, index) => ({
     x: Math.max(sidePadding + size / 2, (width - (dice.length - 1) * spacing) / 2) + index * spacing,
     y: normalY,
   }));
-  const bonusPositions: Record<string, { x: number; y: number }[]> = {};
-  let slot = 0;
-  for (const source of sources) {
-    bonusPositions[source.key] = Array.from({ length: source.capacity }, () => {
-      const index = slot++;
-      return { x: (contentWidth - (slotCount - 1) * pitch) / 2 + index * pitch,
-        y: topPadding + size / 2 };
-    });
-  }
+  const bonusPositions = Array.from({ length: bonusCount }, (_, index) => ({
+    x: Math.max(sidePadding + size / 2, (width - (bonusCount - 1) * pitch) / 2) + index * pitch,
+    y: topPadding + size / 2,
+  }));
   return { size, width: contentWidth, height, positions, spacing, bonusPositions };
-}
-
-export function placeBonusDice(bonuses: BonusAttackDice[], positions: ReturnType<typeof getDiceTrayLayout>['bonusPositions']) {
-  const counts: Record<string, number> = {};
-  return bonuses.map(({ source }) => {
-    const key = source.kind === 'creature' ? `creature:${source.diceId}` : `equipment:${source.equipmentId}`;
-    const index = counts[key] ?? 0;
-    counts[key] = index + 1;
-    return positions[key][index];
-  });
 }

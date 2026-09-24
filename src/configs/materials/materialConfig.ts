@@ -23,3 +23,5 @@ export const FOOD_CAPACITY = { crocodile: 150, underground: 200 } as const;
 export const MATERIAL_SHEEN: Partial<Record<FaceMaterial, { color: string; opacity: number; angle: number }>> = {
   mirror: { color: '#ffffff', opacity: 0.22, angle: -30 },
 };
+
+export const echoAbilityName = (ability: string) => `${MATERIAL_CONFIG.echo.name}：${ability}`;

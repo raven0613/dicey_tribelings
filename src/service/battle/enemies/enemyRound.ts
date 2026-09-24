@@ -26,6 +26,7 @@ export function resolveEnemyRound(source: Enemy, summary: BattleComboSummary, eq
   const events: EnemyRoundEvent[] = [];
   let hpHits = 0;
   const receive = (damage: number, heavy = false, grows = false, source: EnemyDamageSource = 'intent') => {
+    damage = Math.floor(combatNumber(damage));
     const absorbed = Math.min(shield, damage);
     shield = combatNumber(shield - absorbed);
     const loss = Math.min(hp, damage - absorbed);
@@ -56,9 +57,9 @@ export function resolveEnemyRound(source: Enemy, summary: BattleComboSummary, eq
     let firstBlocked = false;
     for (let hit = 0; hit < resolution.hits && enemy.hp > 0 && hp > 0; hit++) {
       const powered = { ...enemy, strength: (enemy.strength ?? 0) + hpHits * (enemy.traits?.onHpHit ?? 0) };
-      const current = resolveEnemyIntent(powered, enemy.roundDamage, shield, tags);
-      const damage = Math.ceil(current.damage * (hit > 0 && firstBlocked ? intent.guardedFollowup ?? 1 : 1));
-      const blocked = receive(damage, intent.type === 'heavy_attack', true);
+      const current = resolveEnemyIntent(powered, enemy.roundDamage, shield, tags,
+        hit > 0 && firstBlocked ? intent.guardedFollowup ?? 1 : 1);
+      const blocked = receive(current.damage, intent.type === 'heavy_attack', true);
       if (hit === 0) firstBlocked = blocked;
     }
     if (enemy.hp > 0 && hp > 0) {

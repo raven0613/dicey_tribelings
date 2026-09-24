@@ -1,12 +1,14 @@
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import type { BattleComboSummary, NumberDisplay, SkillChange, SkillEvent, SkillFeedback } from '../../types/battle';
 import type { GameState } from '../../store/gameStore.types';
-import type { DamagePop } from '../../types/game';
+import type { DamagePopInput } from '../../types/game';
 import type { BattleStoreMethods } from './battleSettlement';
 import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
 import { soundService } from '../audio/soundService';
 import { ceilDamage } from './damageValue';
 import { combatNumber } from './creatures/creatureState';
+import { getNumberDuration } from './presentation/numberFeedback';
+import { createNumberTimeline } from './presentation/numberTimeline';
 
 export const waitForAnimation = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const still = (value: number): NumberDisplay => ({ displayValue: value, scale: 1, isSpinning: false, isLocked: true, isBuffed: false });
@@ -28,8 +30,6 @@ function scheduleSkills(events: SkillEvent[]) {
   });
 }
 
-interface NumberTween { change: SkillChange; from: number; scale: number; start: number }
-
 export async function animateCalculatedNumbers(methods: BattleStoreMethods, summary: BattleComboSummary,
   initialShield: number, initialFood: Record<string, number>) {
   const { get, set } = methods;
@@ -41,13 +41,13 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   let shields = Object.fromEntries(summary.items.map((item) => [item.diceId, still(0)]));
   let food = Object.fromEntries(summary.items.map((item) => [item.diceId, still(initialFood[item.diceId] ?? 0)]));
   let identities = Object.fromEntries(summary.items.map((item) => [item.diceId, { creature: item.rolledCreature, tags: [...CREATURE_CONFIG[item.rolledCreature].tags] }]));
-  const active = new Map<string, NumberTween>();
+  const active = createNumberTimeline();
   let visible: string[] = [];
   let feedback: SkillFeedback[] = [];
   const nameLifetime = timing.nameDelayMs + timing.nameFadeInMs + timing.nameHoldMs + timing.nameFadeOutMs;
   const numberDelay = timing.nameDelayMs + timing.nameFadeInMs;
   const duration = schedule.length ? Math.max(...schedule.map((entry) => entry.start))
-    + Math.max(nameLifetime, numberDelay + timing.numberDurationMs) : 0;
+    + Math.max(nameLifetime, numberDelay + Math.max(0, ...summary.events.flatMap(event => event.changes.map(getNumberDuration)))) : 0;
   const timeline = schedule.flatMap(({ event, start }) => [
     { event, time: start, numbers: false }, { event, time: start + numberDelay, numbers: true },
   ]).sort((a, b) => a.time - b.time);
@@ -59,7 +59,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   };
   const writeValue = (change: SkillChange, value: NumberDisplay) => {
     const previous = valueFor(change);
-    if (previous.displayValue === value.displayValue && previous.scale === value.scale
+    if (previous.displayValue === value.displayValue && previous.scale === value.scale && previous.fontSize === value.fontSize
       && previous.isSpinning === value.isSpinning && previous.isLocked === value.isLocked
       && previous.isBuffed === value.isBuffed && previous.pending === value.pending) return;
     if (change.kind === 'attack') dice = { ...dice, [diceIndex.get(change.targetId)!]: value };
@@ -67,24 +67,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
     else if (change.kind === 'food') food = { ...food, [change.targetId]: value };
     else bonuses = { ...bonuses, [change.targetId]: value };
   };
-  const advanceNumbers = (elapsed: number) => {
-    let settled = false;
-    for (const [key, tween] of active) {
-      const { change } = tween;
-      const progress = Math.min(1, (elapsed - tween.start) / timing.numberDurationMs);
-      const eased = 1 - (1 - progress) ** 3;
-      const target = change.kind === 'attack' || change.kind === 'bonus' ? ceilDamage(change.after) : change.after;
-      const peak = Math.abs(change.after - change.before) >= timing.heavyDamage ? timing.numberScaleLarge : timing.numberScaleSmall;
-      writeValue(change, {
-        displayValue: progress === 1 ? target : Math.round(Math.floor(tween.from) + (Math.floor(target) - Math.floor(tween.from)) * eased),
-        scale: progress < 0.3 ? tween.scale + (peak - tween.scale) * (progress / 0.3)
-          : peak + (1 - peak) * (1 - (1 - (progress - 0.3) / 0.7) ** 2),
-        isSpinning: progress < 1, isLocked: progress === 1, isBuffed: change.after > change.before,
-      });
-      if (progress === 1) { active.delete(key); settled = true; }
-    }
-    return settled;
-  };
+  const advanceNumbers = (elapsed: number) => active.advance(elapsed, writeValue);
   set({ diceSlotStates: dice, bonusSlotStates: bonuses, displayedShields: shields, displayedFood: food,
     displayedIdentities: identities, playerShieldDisplay: initialShield, skillFeedback: feedback, visibleBonusIds: visible });
   const startedAt = performance.now();
@@ -111,7 +94,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
       for (const change of event.changes) {
         if (change.kind === 'bonus' && bonuses[change.targetId]?.pending && event.skill !== 'cheerleader') continue;
         const display = valueFor(change);
-        active.set(`${change.kind}:${change.targetId}`, { change, from: display.displayValue, scale: display.scale, start: time });
+        active.start(change, display, time);
       }
     }
     settled = advanceNumbers(elapsed) || settled;
@@ -141,7 +124,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
 }
 
 export async function animateAttack(methods: BattleStoreMethods, index: number, bonus: boolean,
-  pop: Omit<DamagePop, 'id'>, applyDamage: () => void, isCurrent = () => true, strength = 0) {
+  pop: DamagePopInput, applyDamage: () => void, isCurrent = () => true, strength = 0) {
   const { set, triggerScreenShake, addDamagePop, waitForAttackMotion } = methods;
   if (!isCurrent()) return false;
   const heavy = strength > 0;

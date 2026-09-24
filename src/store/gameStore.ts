@@ -1,4 +1,6 @@
 import { canReorderDice, reorderDice } from '../service/dice/diceOrder';
+import { DAMAGE_POP_PRESENTATION } from '../configs/numberFeedbackConfig';
+import { appendDamagePop } from '../service/battle/presentation/damagePops';
 import { completeRouteNode, selectRouteNode } from '../service/regions/routeService';
 import { useStoryStore } from './storyStore';
 import { syncStoryProgress } from '../service/story/syncStoryProgress';
@@ -34,6 +36,7 @@ import { soundService } from '../service/audio/soundService';
 import { FlowCompletion, GameState, StickerFlow } from './gameStore.types';
 
 let consumableSequence = 0;
+let damagePopSequence = 0;
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -150,11 +153,9 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     addDamagePop: (pop) => {
-      const id = Date.now() + Math.random();
-      set((state) => ({
-        damagePops: [...state.damagePops.slice(-6), { ...pop, id, xOffset: (Math.random() - 0.5) * 44 }],
-      }));
-      setTimeout(() => get().removeDamagePop(id), 850);
+      const id = ++damagePopSequence;
+      set((state) => ({ damagePops: appendDamagePop(state.damagePops, pop, id, performance.now()) }));
+      setTimeout(() => get().removeDamagePop(id), DAMAGE_POP_PRESENTATION.lifetimeMs);
     },
 
     removeDamagePop: (id) => set((state) => ({

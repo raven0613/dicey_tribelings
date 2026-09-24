@@ -1,0 +1,25 @@
+.damage-pops-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 180;
+  pointer-events: none;
+}
+
+.damage-pop-item {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.damage-pop-number {
+  position: absolute;
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke fill;
+  transform-origin: center;
+  text-shadow: 0 2px 3px #000d, 0 0 8px #0008;
+  will-change: transform, opacity;
+}

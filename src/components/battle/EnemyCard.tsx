@@ -1,3 +1,4 @@
+import { DamagePopLayer } from './DamagePopLayer';
 import { getGameRect } from '../../service/layout/gameViewport';
 import { useShallow } from 'zustand/react/shallow';
 import { ExposureBadge } from './BattleStatusBadges';
@@ -75,30 +76,13 @@ export const EnemyCard: React.FC = () => {
     .filter(Boolean)
     .join(' ');
 
-  return (
+  return (<>
     <div ref={enemyRef} id="battle-enemy-target" className={cardClass}
       data-stage={enemyAttack?.stage ?? 'idle'} style={{
         '--strike-y': `${attackDistance}px`,
         '--windup-duration': `${timing.enemyWindupMs}ms`, '--dash-duration': `${timing.enemyDashMs}ms`,
         '--impact-duration': `${timing.enemyImpactMs}ms`, '--recoil-duration': `${timing.enemyRecoilMs}ms`,
       } as React.CSSProperties}>
-      {/* Floating Damage Pops */}
-      <div className="damage-pops-layer">
-        {damagePops.map((pop) => (
-          <div
-            key={pop.id}
-            className="damage-pop-item animate-float-damage"
-            style={{
-              left: `calc(50% + ${pop.xOffset || 0}px)`,
-              color: pop.creature ? CREATURE_CONFIG[pop.creature].color : '#e9d5ff',
-            }}
-          >
-            <span>-{pop.value}</span>
-            {pop.label && <span className="pop-label">{pop.label}</span>}
-          </div>
-        ))}
-      </div>
-
       <div className="enemy-card-content">
         {/* Enemy Header & Badges */}
         <div className="enemy-header">
@@ -193,5 +177,7 @@ export const EnemyCard: React.FC = () => {
         </div>
       </div>
     </div>
+    <DamagePopLayer anchorRef={enemyRef} pops={damagePops} />
+    </>
   );
 };

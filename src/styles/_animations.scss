@@ -11,25 +11,6 @@
   }
 }
 
-@keyframes floatDamage {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 0) scale(0.6);
-  }
-  20% {
-    opacity: 1;
-    transform: translate(-50%, -15px) scale(1.2);
-  }
-  60% {
-    opacity: 1;
-    transform: translate(-50%, -35px) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -55px) scale(0.8);
-  }
-}
-
 @keyframes flinchShake {
   0%, 100% {
     transform: translate(0, 0) scale(1);
@@ -84,10 +65,6 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-float-damage {
-  animation: floatDamage 0.8s ease-out forwards;
 }
 
 .animate-flinch {

@@ -63,21 +63,23 @@ export function GameScreen() {
 
   return (
     <BattleScreenShake>
-      <div className="game-screen-background" inert={isConfiguring}>
-        <MapProgress />
-        <main className="app-main">
-          <div className="combat-arena">
-            {isCombat && <EnemyCard />}
-            <PlayerBoard isCombat={isCombat}>
-              {isCombat && <DiceBoard />}
-              {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
-              {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
-            </PlayerBoard>
-          </div>
-        </main>
-        <Footbar isCombat={isCombat} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => setIsDiceBagOpen(true)} />
+      <MapProgress />
+      <div className="game-screen-content">
+        <div className="game-screen-background" inert={isConfiguring}>
+          <main className="app-main">
+            <div className="combat-arena">
+              {isCombat && <EnemyCard />}
+              <PlayerBoard isCombat={isCombat}>
+                {isCombat && <DiceBoard />}
+                {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
+                {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
+              </PlayerBoard>
+            </div>
+          </main>
+          <Footbar isCombat={isCombat} onResolve={handleResolveBattle} isResolving={isResolving} onOpenDiceBag={() => setIsDiceBagOpen(true)} />
+        </div>
+        {showPreparation && <BattlePreparationPanel key={currentNodeIndex} />}
       </div>
-      {showPreparation && <BattlePreparationPanel key={currentNodeIndex} />}
 
       {/* Modals & Overlays */}
       <StickerApplierModal />

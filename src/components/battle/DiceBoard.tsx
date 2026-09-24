@@ -15,7 +15,7 @@ import { getAttackPose } from '../../service/battle/attackPresentation';
 import { DiceBulgeFilter } from './DiceBulgeFilter';
 import { useGameStore } from '../../store/gameStore';
 import { DiceAttackPortal } from './DiceAttackPortal';
-import { getDiceTrayLayout, placeBonusDice } from '../../service/dice/diceTrayLayout';
+import { getDiceTrayLayout } from '../../service/dice/diceTrayLayout';
 import { BonusPhantomDice } from './BonusPhantomDice';
 import { Dices, Sparkles } from 'lucide-react';
 import { useDiceSize } from './useDiceSize';
@@ -65,7 +65,7 @@ export const DiceBoard: React.FC = () => {
     diceAction, rerollAnimationId,
     creatureBattleState,
   } = actionState;
-  const { feedback: rerollFeedback, finish: finishRerollFeedback } = useRerollFeedback(comboSummary, rerollAnimationId, combatPhase);
+  const { feedback: rerollFeedback, finish: finishRerollFeedback } = useRerollFeedback(comboSummary, rerollAnimationId, combatPhase, creatureBattleState.rerollEchoes);
   const unrolled = combatPhase === 'PREPARATION';
   const actionTargets = getActionTargets(diceAction, actionState);
   const selectingAction = diceAction !== 'reroll' && combatPhase === 'CONTROL_PHASE';
@@ -88,8 +88,10 @@ export const DiceBoard: React.FC = () => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [traySize, setTraySize] = useState({ width: 640, height: 280 });
   const [attackTarget, setAttackTarget] = useState({ x: 0, y: 0 });
-  const trayLayout = useMemo(() => getDiceTrayLayout(traySize.width, dicePool, diceSize, minimumFontSize), [traySize.width, dicePool, diceSize, minimumFontSize]);
-  const bonusPositions = useMemo(() => placeBonusDice(comboSummary?.bonusDice ?? [], trayLayout.bonusPositions), [comboSummary, trayLayout]);
+  const bonusCount = comboSummary?.bonusDice.length ?? 0;
+  const trayLayout = useMemo(() => getDiceTrayLayout(traySize.width, dicePool, diceSize, minimumFontSize, bonusCount),
+    [traySize.width, dicePool, diceSize, minimumFontSize, bonusCount]);
+  const bonusPositions = trayLayout.bonusPositions;
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [inspectionTarget, setInspectionTarget] = useState<HTMLDivElement | null>(null);
   const [viewportLeft, setViewportLeft] = useState(0);

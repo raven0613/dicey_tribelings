@@ -1,5 +1,5 @@
 export const CREATURE_BALANCE = {
-  family: { multipliers: [1, 1.5, 2, 2.5, 3.2, 4] },
+  family: { multipliers: [100, 150, 2, 2.5, 3.2, 4] },
   sisters: { minimum: 2, middle: 3, repeatAt: 4, multiplier: 2, highMultiplier: 2.5 },
   twins: { halfAt: 2, fullAt: 4, doubleAt: 6, half: 0.5 },
   gang: { middle: 3, doubleAt: 4, damagePerNeighbor: 2, highDamage: 3, copies: 2 },

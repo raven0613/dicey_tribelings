@@ -141,11 +141,12 @@ export type CombatPhase =
 
 export type AttackStage = 'idle' | 'windup' | 'dash' | 'impact' | 'recoil';
 
-export interface DamagePop {
-  id: number;
+export interface DamagePopInput {
   value: number;
   creature?: CreatureId;
-  isShield?: boolean;
-  label?: string;
-  xOffset?: number;
+}
+
+export interface DamagePop extends DamagePopInput {
+  id: number;
+  startedAt: number;
 }

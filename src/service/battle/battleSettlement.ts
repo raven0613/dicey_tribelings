@@ -5,7 +5,7 @@ import { resolveEnemyRound } from './enemies/enemyRound';
 import { getAttackEmphases } from './attackPresentation';
 import { EQUIPMENT_BALANCE, hasEquipment } from '../../configs/equipment/equipmentConfig';
 import { combatNumber } from './creatures/creatureState';
-import type { DamagePop } from '../../types/game';
+import type { DamagePopInput } from '../../types/game';
 import type { GameState } from '../../store/gameStore.types';
 import { soundService } from '../audio/soundService';
 import { REWARD_CONFIG } from '../../configs/rewardConfig';
@@ -23,7 +23,7 @@ export interface BattleStoreMethods {
   set: (partial: Partial<GameState>) => void;
   triggerScreenShake: (intensity?: number) => void;
   startBattleRoll: () => void;
-  addDamagePop: (pop: Omit<DamagePop, 'id'>) => void;
+  addDamagePop: (pop: DamagePopInput) => void;
   waitForAttackMotion: WaitForAttackMotion;
 }
 
@@ -59,7 +59,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
       set({ combatPhase: 'RESOLVING_ATTACK' });
       const attack = event.attack;
       const completed = await animateAttack(methods, attack.index, attack.bonus,
-        { value: event.damage, creature: attack.creature, label: attack.label || undefined },
+        { value: event.damage, creature: attack.creature },
         () => { if (isCurrent()) set({ currentEnemy: event.enemy, combatImpact: { kind: 'player' } }); }, isCurrent, emphases[position++]);
       if (!completed) return;
     } else if (event.kind === 'enemy') {
@@ -69,7 +69,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
       await animateEnemyAttack(methods, event, Boolean(event.heavy), isCurrent);
     } else {
       set({ currentEnemy: event.enemy, combatImpact: { kind: 'reflection' } });
-      methods.addDamagePop({ value: event.damage, label: '鏡面反射' });
+      methods.addDamagePop({ value: event.damage });
     }
     if (!isCurrent()) return;
     set({ currentEnemy: event.enemy, playerHp: event.hp, playerShield: event.shield });

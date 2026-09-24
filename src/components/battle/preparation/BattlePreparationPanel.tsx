@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { createPortal } from 'react-dom';
 import { useReducedMotion } from 'motion/react';
 import { Coins, Play } from 'lucide-react';
 import { BATTLE_PREPARATION_PRESENTATION as config } from '../../../configs/battlePreparationConfig';
 import { useGameStore } from '../../../store/gameStore';
 import { validateTemporaryPlacements } from '../../../service/inventory/inventoryService';
 import type { TemporaryStickerPlacement } from '../../../types/game';
-import { useGameViewport } from '../../layout/GameViewportContext';
 import { EquipmentBar } from '../../equipment/EquipmentBar';
 import { PlayerVitals } from '../PlayerVitals';
 import { PreparationEnemySummary } from './PreparationEnemySummary';
@@ -14,7 +12,6 @@ import { PreparationEditor } from './PreparationEditor';
 import { usePreparation } from './usePreparation';
 
 export function BattlePreparationPanel() {
-  const { overlay } = useGameViewport();
   const reducedMotion = useReducedMotion();
   const gold = useGameStore((state) => state.gold);
   const p = usePreparation();
@@ -22,8 +19,7 @@ export function BattlePreparationPanel() {
   const [error, setError] = useState('');
   const pending = useRef<TemporaryStickerPlacement[] | null>(null);
   const panel = useRef<HTMLDivElement>(null);
-  useEffect(() => { panel.current?.focus(); }, [overlay]);
-  if (!overlay) return null;
+  useEffect(() => { panel.current?.focus(); }, []);
 
   const enterBattle = () => {
     if (stage !== 'ready' || pending.current) return;
@@ -34,8 +30,8 @@ export function BattlePreparationPanel() {
     pending.current = p.placements;
     setStage('leaving');
   };
-  return createPortal(<div className="preparation-panel-viewport">
-    <div ref={panel} className={`preparation-panel is-${stage}`} role="dialog" aria-modal="true"
+  return <div className="preparation-panel-viewport">
+    <div ref={panel} className={`preparation-panel is-${stage}`} role="region"
       aria-labelledby="preparation-title" tabIndex={-1}
       onAnimationEnd={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -46,19 +42,7 @@ export function BattlePreparationPanel() {
           useGameStore.getState().confirmBattlePreparation(placements);
         }
       }}
-      onKeyDown={(event) => {
-        if (event.key !== 'Tab') return;
-        const targets = Array.from(panel.current!.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), summary, [tabindex="0"]',
-        )).filter((item) => !item.closest('[inert]') && item.getClientRects().length > 0);
-        const first = targets[0], last = targets.at(-1);
-        if (!first) { event.preventDefault(); return; }
-        if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
-          event.preventDefault(); last!.focus();
-        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panel.current)) {
-          event.preventDefault(); first.focus();
-        }
-      }} style={{
+      style={{
         '--preparation-slide-duration': `${reducedMotion ? 1 : config.slideMs}ms`,
         '--equipment-slot-size': `${config.equipmentSlotSize}px`,
         '--equipment-slot-gap': `${config.equipmentSlotGap}px`,
@@ -83,5 +67,5 @@ export function BattlePreparationPanel() {
         </footer>
       </form>
     </div>
-  </div>, overlay);
+  </div>;
 }
