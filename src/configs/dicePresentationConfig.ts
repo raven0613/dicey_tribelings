@@ -75,6 +75,38 @@ export const DICE_CHARACTER_LAYERS: Partial<Record<CreatureId, readonly string[]
 };
 
 export const DICE_CHARACTER_PRESENTATION = {
+  sisters: {
+    // 臉眼同步移動，手提前接上；耗時與開始延遲皆為獨立毫秒數。
+    staggerMs: 50,
+    red: {
+      head: { durationMs: 500, easing: '0.2 0.4 0.6 1' },
+      face: {
+        movingLayer: 0, start: { x: 7, y: -6 }, control: { x: 1, y: -5 },
+      },
+      // 相對臉的偏移，與臉同步歸零；時間及 easing 共用 head。
+      eyes: {
+        movingLayer: 1, start: { x: 1, y: -7 }, control: { x: 0.2, y: -2.5 },
+      },
+      hand: {
+        movingLayer: 2, start: { x: 8, y: 4 }, control: { x: 0, y: -4 },
+        startDelayMs: 250, durationMs: 600, easing: '0.1 0.4 0.6 1',
+      },
+    },
+    blue: {
+      head: { durationMs: 500, easing: '0.2 0.4 0.6 1' },
+      face: {
+        movingLayer: 3, start: { x: -7, y: 7 }, control: { x: -6, y: 0 },
+      },
+      // 相對臉的偏移，與臉同步歸零；時間及 easing 共用 head。
+      eyes: {
+        movingLayer: 4, start: { x: -2, y: 8 }, control: { x: 1.5, y: 2 },
+      },
+      hand: {
+        movingLayer: 5, start: { x: -8, y: 8 }, control: { x: -6, y: 0 },
+        startDelayMs: 250, durationMs: 700, easing: '0.05 0.8 0.6 1',
+      },
+    },
+  },
   gang: {
     movingLayer: 1,
     durationMs: 800, start: { x: -24, y: 27 }, control: { x: -4, y: -15 },
