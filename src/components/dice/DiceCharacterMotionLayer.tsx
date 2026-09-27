@@ -1,11 +1,7 @@
 import { useImperativeHandle, useRef, type ReactNode, type Ref } from 'react';
 import { DICE_FACE_PRESENTATION } from '../../configs/dicePresentationConfig';
 import type { CharacterEntranceMotion } from '../../service/dice/characterEntrancePath';
-
-export interface CharacterEntranceHandle {
-  start: () => void;
-  stop: () => void;
-}
+import type { CharacterEntranceHandle } from './characterEntranceHandle';
 
 interface DiceCharacterMotionLayerProps {
   source: string;

@@ -16,9 +16,9 @@
 
 ## 角色圖層與資訊頭像
 
-骰面與右側資訊頭像共用 `DICE_CHARACTER_LAYERS` 的圖層順序，依設定由底至頂疊合 `src/assets/dice/face/` 的透明圖片。圖片以完整畫布對齊同一個 100 × 100 SVG 座標並等比縮放，保留原始構圖與留白。角色對應為 `family` 家族、`divas` 姐妹花、`twins` 雙胞胎、`hood` 混混、`buster` 孩子王、`loner` 獨行俠、`chef` 廚師、`porter` 搬運工、`sidekick` 跟班、`crook` 毛賊、`coward` 膽小土人、`bodyguard` 侍衛、`hero` 勇士與 `elder` 耆老。姐妹花合併藍紅兩人，家族合併兩位家長與小孩，侍衛使用 `bodyguard_hair_1`；其餘尚無素材的角色沿用 emoji。角色圖層沿用主選單圖片預熱流程。
+骰面與右側資訊頭像共用 `DICE_CHARACTER_LAYERS` 的圖層順序，依設定由底至頂疊合 `src/assets/dice/face/` 的透明圖片。圖片以完整畫布對齊同一個 100 × 100 SVG 座標並等比縮放，保留原始構圖與留白。角色對應為 `family` 家族、`divas` 姐妹花、`twins` 雙胞胎、`hood` 混混、`buster` 孩子王、`loner` 獨行俠、`chef` 廚師、`porter` 搬運工、`sidekick` 跟班、`crook` 毛賊、`coward` 膽小土人、`bodyguard` 侍衛、`hero` 勇士與 `elder` 耆老。姐妹花合併藍紅兩人，家族合併兩位家長與小孩，侍衛靜態構圖使用 `bodyguard_hair_1`，出場時播放頭髮序列；其餘尚無素材的角色沿用 emoji。角色圖層沿用主選單圖片預熱流程。
 
-右側資訊與所有骰面展開圖共用 `DiceIdentityHeader`，左側使用 87 × 87 設計單位的靜態角色圖，尺寸由 `DICE_IDENTITY_PRESENTATION.portraitSize` 管理並套用所在畫面的縮放倍率。頭像右側第一行為土人名稱與 tag，第二行為劍圖示與攻擊力。右側資訊由正在檢視的單顆骰子提供，擲骰換面與結算數字沿用該骰既有顯示狀態；追加骰沿用自己的顯示數字並保留來源與追傷說明。右側資訊的頭像區與下方完整技能說明以分隔線分開，材質名稱與符號保留在說明區。正常骰與追加骰共用角色圖層，正常骰初擲或重骰落定時，混混與姐妹花播放各自的出場動畫；追加骰、資訊頭像與展開圖呈現完整靜態構圖。
+右側資訊與所有骰面展開圖共用 `DiceIdentityHeader`，左側使用 87 × 87 設計單位的靜態角色圖，尺寸由 `DICE_IDENTITY_PRESENTATION.portraitSize` 管理並套用所在畫面的縮放倍率。頭像右側第一行為土人名稱與 tag，第二行為劍圖示與攻擊力。右側資訊由正在檢視的單顆骰子提供，擲骰換面與結算數字沿用該骰既有顯示狀態；追加骰沿用自己的顯示數字並保留來源與追傷說明。右側資訊的頭像區與下方完整技能說明以分隔線分開，材質名稱與符號保留在說明區。正常骰與追加骰共用角色圖層，正常骰初擲或重骰落定時，混混、姐妹花與侍衛播放各自的出場動畫；追加骰、資訊頭像與展開圖呈現完整靜態構圖。
 
 骰子檢視、[滿版戰前面板](battle-preparation.md)與貼紙覆蓋流程皆使用共用展開圖元件。每面在頭像資訊區下方以 `DICE_NET_PRESENTATION.descriptionGap` 留白接續技能、材質與本場覆蓋說明。展開圖顯示該面的有效基礎攻擊力，永久貼紙預覽呈現「原值 → 新值」，臨時貼紙預覽呈現「數值（沿用）」；角色頭像、名稱與 tag 同步切換為預覽內容。桌面與手機使用同一份固定展開方向。一般檢視保留相鄰面、目前檢視與相同土人提示；方向貼紙依[方向貼紙](directional-stickers.md)突出來源與目的面、標示連線，各面內容依自身多邊形安全區寬高排版，保持可讀字級及完整換行；內容超出安全區時收成摘要，完整角色技能按基本效果與各門檻分段，材質與覆蓋資訊各自分段。桌面滑入或鍵盤聚焦骰面時顯示半透明說明小窗；手機省略面內摘要，保留角色資訊並由獨立資訊入口點開完整說明，點擊窗外或關閉鈕收起，資訊入口與貼紙套用各自處理。骰面說明及小窗維持完整排版，外層展開圖沿用縮放與捲動。
 
@@ -48,9 +48,19 @@
 
 混混與姐妹花共用角色出場路徑服務及 SVG `animateMotion` 播放流程，時間軸依各段毫秒數建立，等待期間維持起點，落定時啟動所有活動圖層的時間軸。重骰開始時清除上次動畫，角色切換或卸載時釋放對應動畫元素。
 
+## 土人侍衛出場
+
+侍衛使用 `bodyguard_face` 與 `bodyguard_hair_1` 至 `bodyguard_hair_8`，皆為 174 × 174px 透明圖片，完整畫布沿用共用 SVG 座標及骰面縮放。臉固定於原位並覆在頭髮前方，頭髮以等間隔逐張切換，依序播放 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8。整束頭髮同時以頂部根部為軸心，從原角度逆時針甩出，再回到原角度。每次初擲或重骰落定且結果為侍衛時立即啟動出場演出，每次循環都完整播放一次序列及一次甩動，最後停留在第 8 張與原角度。
+
+設定集中於 `DICE_CHARACTER_PRESENTATION.guard`：`frameLayer` 指定頭髮所在圖層，`frames` 按播放順序列出圖片，`durationMs` 是完整播放一次 1～8 所需的毫秒數，每張分配 `durationMs / frames.length`。`loopCount` 是包含第一次在內的總循環次數，使用正整數。`swing.pivot` 是旋轉軸心，使用共用 100 × 100 SVG 座標，x 向右、y 向下；初始值 `(40, 14)` 約對應 174px 原圖的 `(70, 24)`。`swing.angleDeg` 是甩出的最大角度，負值為逆時針，初始值為 −30°。
+
+甩出時間 `swing.outDurationMs` 與回正時間 `swing.returnDurationMs` 各自代表實際毫秒數，初始設定為 180ms 與 420ms；`outEasing` 與 `returnEasing` 分別管理兩段速度。頭髮序列與旋轉在每次循環同時開始，共用循環長度與次數，每輪長度為 `max(durationMs, outDurationMs + returnDurationMs)`。較早完成的序列保持第 8 張，較早完成的旋轉保持原角度，兩者都完成後才開始下一輪，各段均保留自己設定的完整耗時。例如序列 600ms、甩出 180ms、回正 420ms，三次循環共 1800ms；若回正改成 620ms，每輪為 800ms，序列播放 600ms 後保持第 8 張等待回正，三次循環共 2400ms。
+
+序列與旋轉共用既有落定觸發及開始／停止介面，由 SVG 離散動畫切換圖片，SVG 旋轉動畫帶動頭髮容器，時間軸服務統一換算每輪的關鍵時間。重骰開始時停止上一輪並恢復第 1 張與原角度，下一次落定重新開始；角色切換或卸載時釋放動畫元素。Hover 與數字更新保留當前播放進度，資訊頭像、展開圖、追加骰及減少動態效果設定使用第 1 張靜態構圖。八張序列圖片沿用主選單預熱流程。
+
 ## 調整入口與驗證
 
-外觀與場地參數集中於 [dicePresentationConfig.ts](../src/configs/dicePresentationConfig.ts)：`DICE_NUMBER_PRESENTATION` 管理數字字體、描邊、tag 色票與切分角度，`DICE_FACE_PRESENTATION` 管理骰體與貼紙，`DICE_CHARACTER_LAYERS` 管理角色圖片與疊合順序，`DICE_CHARACTER_PRESENTATION` 管理混混與姐妹花的曲線動畫，`DICE_IDENTITY_PRESENTATION` 管理共用頭像尺寸，`DICE_TRAY_PRESENTATION` 管理桌面與手機尺寸及間距，`DICE_RESULT_PRESENTATION` 管理數值基準行高、行數與留白，`PLAYER_BOARD_PRESENTATION` 管理裝備欄尺寸與捲軸預留，`PHANTOM_DICE_PRESENTATION` 管理追傷骰投影。展開圖內容寬度、字級與說明間距由 [diceNetPresentationConfig.ts](../src/configs/diceNetPresentationConfig.ts) 管理，材質反光由 [materialConfig.ts](../src/configs/materials/materialConfig.ts) 管理。
+外觀與場地參數集中於 [dicePresentationConfig.ts](../src/configs/dicePresentationConfig.ts)：`DICE_NUMBER_PRESENTATION` 管理數字字體、描邊、tag 色票與切分角度，`DICE_FACE_PRESENTATION` 管理骰體與貼紙，`DICE_CHARACTER_LAYERS` 管理角色圖片與疊合順序，`DICE_CHARACTER_PRESENTATION` 管理混混與姐妹花的曲線動畫及侍衛的序列動畫，`DICE_CHARACTER_SEQUENCES` 提供序列圖層的播放與預熱設定，`DICE_IDENTITY_PRESENTATION` 管理共用頭像尺寸，`DICE_TRAY_PRESENTATION` 管理桌面與手機尺寸及間距，`DICE_RESULT_PRESENTATION` 管理數值基準行高、行數與留白，`PLAYER_BOARD_PRESENTATION` 管理裝備欄尺寸與捲軸預留，`PHANTOM_DICE_PRESENTATION` 管理追傷骰投影。展開圖內容寬度、字級與說明間距由 [diceNetPresentationConfig.ts](../src/configs/diceNetPresentationConfig.ts) 管理，材質反光由 [materialConfig.ts](../src/configs/materials/materialConfig.ts) 管理。
 
 字級與數字回饋由 [numberFeedbackConfig.ts](../src/configs/numberFeedbackConfig.ts) 管理，包含正常／追加骰的結果字級、成長曲線、落定膨脹，以及敵人命中浮字的字級、生命週期與錯位間距。傷害浮字使用本次攻擊值，完整規則見[攻擊與收尾](spec.md#205-攻擊與收尾)。
 

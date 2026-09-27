@@ -6,7 +6,7 @@ export const INITIAL_DICE_POOL: Dice[] = [
     ['family', 2], ['family', 2], ['sisters', 3], ['coward', 3], ['gang', 3], ['guard', 3],
   ]),
   configuredDice('dice_starter_2', '職人骰', 'd6', 'amber', [
-    ['sisters', 3], ['sisters', 4], ['sisters', 3], ['sisters', 4], ['sisters', 3], ['sisters', 3],
+    ['guard', 3], ['guard', 4], ['guard', 3], ['guard', 4], ['guard', 3], ['guard', 3],
   ]),
   // configuredDice('dice_starter_2', '職人骰', 'd6', 'amber', [
   //   ['chef', 3], ['food', 4], ['farmer', 3], ['food', 4], ['porter', 3], ['sisters', 3],

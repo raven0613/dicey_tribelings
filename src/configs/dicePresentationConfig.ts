@@ -75,6 +75,19 @@ export const DICE_CHARACTER_LAYERS: Partial<Record<CreatureId, readonly string[]
 };
 
 export const DICE_CHARACTER_PRESENTATION = {
+  guard: {
+    frameLayer: 0,
+    frames: characterLayers('bodyguard_hair_1', 'bodyguard_hair_2', 'bodyguard_hair_3', 'bodyguard_hair_4',
+      'bodyguard_hair_5', 'bodyguard_hair_6', 'bodyguard_hair_7', 'bodyguard_hair_8'),
+    // durationMs 是序列單次耗時；每輪等序列與甩動都完成，loopCount 包含第一次。
+    durationMs: 600, loopCount: 1,
+    swing: {
+      // 100 × 100 SVG 座標，約為原圖 (70, 24)；負角度為逆時針。
+      pivot: { x: 40, y: 14 }, angleDeg: -30,
+      outDurationMs: 180, returnDurationMs: 420,
+      outEasing: '0.2 0.6 0.4 1', returnEasing: '0.3 0 0.6 1',
+    },
+  },
   sisters: {
     // 臉眼同步移動，手提前接上；耗時與開始延遲皆為獨立毫秒數。
     staggerMs: 50,
@@ -119,6 +132,25 @@ export const DICE_CHARACTER_PRESENTATION = {
     reboundEasing: '0.16 0.8 0.3 1',
   },
 } as const;
+
+export interface CharacterFrameSequence {
+  frameLayer: number;
+  frames: readonly string[];
+  durationMs: number;
+  loopCount: number;
+  swing?: {
+    pivot: { x: number; y: number };
+    angleDeg: number;
+    outDurationMs: number;
+    returnDurationMs: number;
+    outEasing: string;
+    returnEasing: string;
+  };
+}
+
+export const DICE_CHARACTER_SEQUENCES: Partial<Record<CreatureId, CharacterFrameSequence>> = {
+  guard: DICE_CHARACTER_PRESENTATION.guard,
+};
 
 export const PHANTOM_DICE_PRESENTATION = {
   side: 72, borderWidth: 2, cornerRadius: 12, rotateX: 20, rotateY: -20, floatDistance: 4,
