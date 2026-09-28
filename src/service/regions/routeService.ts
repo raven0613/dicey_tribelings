@@ -10,13 +10,13 @@ export function selectRouteNode(nodes: MapNode[], choices: number[], id: number)
     skipped: node.skipped || (choices.includes(node.id) && node.id !== id) }));
 }
 
-export function chapterPath(nodes: MapNode[], route: 'safe' | 'challenge'): MapNode[] {
+export function chapterPath(nodes: MapNode[], route: 'safe' | 'challenge', entry: 'combat' | 'camp' = 'combat'): MapNode[] {
   const path: MapNode[] = [];
   let node: MapNode | undefined = nodes[0];
   while (node) {
     path.push(node);
     const next: MapNode[] = nodes.filter((candidate) => node!.next.includes(candidate.id));
-    node = next.find((candidate) => candidate.route === route) ?? next[0];
+    node = next.find((candidate) => candidate.route === route) ?? next.find(candidate => candidate.route === entry) ?? next[0];
   }
   return path;
 }

@@ -1,5 +1,5 @@
 import { createEchoResolution } from './echoResolution';
-import { lockImposterTargets, getRoundFace } from './imposterResolution';
+import { refreshImposterTargets, getRoundFace } from './imposterResolution';
 import type { Dice, Equipment, BonusAttackDice } from '../../../types/game';
 import type { CreatureBattleState, CreatureId } from '../../../types/creatures';
 import type { BattleContext, CalculatedRollItem, SkillEvent, RepeatAttack } from '../../../types/battle';
@@ -12,7 +12,7 @@ import { findPranksterTargets, findTeacherTargets } from './rerollTargets';
 
 export function createResolutionContext(dice: Dice[], indices: number[], equipment: Equipment[],
   state: CreatureBattleState, battle: BattleContext) {
-  state = lockImposterTargets(dice, indices, state);
+  state = refreshImposterTargets(dice, indices, state);
   const echoUsed = new Set(state.echoUsed);
   const materials = { healing: 0, reflection: 0, gildedFaces: new Set(state.gildedFaces) };
   const faces = dice.map((die) => die.faces.map(getEffectiveFace));

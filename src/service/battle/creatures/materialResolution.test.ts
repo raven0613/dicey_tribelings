@@ -5,7 +5,10 @@ import { configuredDice } from '../../dice/diceFactory';
 import { getEffectiveFace } from '../../dice/diceFaces';
 import { calculateRollResolution } from '../battleEngine';
 import { createCreatureBattleState } from './creatureState';
-import { performStartBattleRoll } from '../rollService';
+import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
+import { refreshImposterTargets, getRoundFace } from './imposterResolution';
+import { findTeacherTargets } from './rerollTargets';
+import { performDiceAction, getOppositeFace, performStartBattleRoll } from '../rollService';
 import { resolveRerollChain } from './rerollResolution';
 import { commitMaterialRound } from './materialResolution';
 import type { CreatureId } from '../../../types/creatures';
@@ -29,7 +32,7 @@ test('negative modifies configuration values, decays only facing up and resets w
   assert.equal(getEffectiveFace(current[1].faces[0]).baseValue, 9);
 });
 
-test('imposter locks food immediately, keeps identity across rerolls and creates no virtual entity', () => {
+test('imposter selects local food immediately and preserves unchanged candidates across rerolls', () => {
   const pool = [die('a', 'imposter'), die('b', 'food')];
   pool[0].faces[2].creature = 'food'; pool[0].faces[3].creature = 'food';
   const roll = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
@@ -79,7 +82,7 @@ test('echo duplicates the whole gang ability once, while previews remain pure', 
   assert.equal(second.bonusDice.length, 4 * CREATURE_BALANCE.gang.copies);
 });
 
-test('all-imposter board locks the original identity for the whole round', () => {
+test('imposters stay themselves when both board and own die lack a majority', () => {
   const pool = [die('a', 'imposter'), die('b', 'imposter')];
   const first = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
   pool[1].faces[1].creature = 'food';
@@ -89,7 +92,7 @@ test('all-imposter board locks the original identity for the whole round', () =>
   assert.equal(next.comboSummary.items[0].creature, 'imposter');
 });
 
-test('imposter preserves its base and material and reuses the first identity after returning', () => {
+test('imposter preserves its base and material when returning to the same local majority', () => {
   const pool = [die('a', 'imposter', 4, 'foil'), die('b', 'sisters', 30)];
   pool[0].faces[1].creature = 'food';
   pool[0].faces[2].creature = 'sisters'; pool[0].faces[3].creature = 'sisters';
@@ -193,4 +196,77 @@ test('echo princess repeats commands, gold faces are recorded once and hidden ma
   assert.deepEqual(second.nextGildedFaces, [pool[1].faces[0].id]);
   assert.equal(second.repeatAttacks.length, 1);
   assert.deepEqual(calculateRollResolution(pool, [1, 1], []).nextGildedFaces, []);
+});
+
+
+test('other dice rerolls update all imposters together and lost board majorities fall back to each own die', () => {
+  const pool = [die('a', 'imposter'), die('b', 'imposter'), die('c', 'porter'), die('d', 'guard')];
+  pool[0].faces[1].creature = 'guard'; pool[0].faces[2].creature = 'guard';
+  pool[3].faces[1].creature = 'porter';
+  const first = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
+  assert.deepEqual(first.creatureBattleState.imposterTargets, { a: 'guard', b: 'imposter' });
+  const joined = resolveRerollChain(pool, first.rolledIndices, first.creatureBattleState, 3, [], () => 0)[0];
+  assert.deepEqual(joined.state.imposterTargets, { a: 'porter', b: 'porter' });
+  const result = calculateRollResolution(pool, joined.rolledIndices, [], joined.state);
+  assert.ok(result.items.every(item => item.creature === 'porter'));
+  assert.ok(result.events.some(event => event.skill === 'porter' && event.activated));
+  const fallback = resolveRerollChain(pool, joined.rolledIndices, joined.state, 3, [], () => 0)[0];
+  assert.deepEqual(fallback.state.imposterTargets, { a: 'guard', b: 'imposter' });
+  assert.equal(fallback.state.rerollCount, 2);
+  assert.deepEqual(fallback.state.faceVersions, { d: 2 });
+  assert.deepEqual(fallback.state.cowardShields, {});
+  assert.deepEqual(fallback.state.prankstersUsed, []);
+  assert.deepEqual(fallback.state.echoUsed, []);
+  assert.deepEqual(result, calculateRollResolution(pool, joined.rolledIndices, [], joined.state));
+});
+
+test('new tied candidates take part in a fresh choice while unchanged candidates preserve it', () => {
+  const pool = [die('a', 'imposter'), die('b', 'porter'), die('c', 'porter'), die('d', 'guard'), die('e', 'food')];
+  pool[4].faces[1].creature = 'guard';
+  const seen = new Set<CreatureId>();
+  for (let seed = 1; seed <= 32; seed++) {
+    const state = refreshImposterTargets(pool, [0, 0, 0, 0, 0], createCreatureBattleState(seed));
+    assert.equal(state.imposterTargets.a, 'porter');
+    const step = resolveRerollChain(pool, [0, 0, 0, 0, 0], state, 4, [], () => 0)[0];
+    seen.add(step.state.imposterTargets.a);
+    const changedSeed = { ...step.state, seed: seed + 1 };
+    const same = resolveRerollChain(pool, step.rolledIndices, changedSeed, 1, [], () => 0)[0];
+    assert.equal(same.state.imposterTargets.a, step.state.imposterTargets.a);
+    const reordered = refreshImposterTargets([...pool].reverse(), [...step.rolledIndices].reverse(), changedSeed);
+    assert.equal(reordered.imposterTargets.a, step.state.imposterTargets.a);
+  }
+  assert.deepEqual(seen, new Set(['porter', 'guard']));
+});
+
+test('flip refreshes imposter majority without creating reroll effects', () => {
+  const pool = [die('a', 'imposter'), die('b', 'porter'), die('c', 'porter')];
+  pool[0].faces[1].creature = 'food'; pool[0].faces[2].creature = 'food';
+  pool[2].faces[getOppositeFace(pool[2], 0)!].creature = 'guard';
+  const first = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
+  assert.equal(first.creatureBattleState.imposterTargets.a, 'porter');
+  const flipped = performDiceAction('flip', 2, { ...first, dicePool: pool, equipments: ALL_EQUIPMENT_CATALOG,
+    control: 3, maxControl: 3, gold: 0, combatPhase: 'CONTROL_PHASE' })!;
+  assert.equal(flipped.creatureBattleState.imposterTargets.a, 'food');
+  assert.equal(flipped.creatureBattleState.rerollCount, 0);
+  assert.deepEqual(flipped.creatureBattleState.rerolledDice, []);
+});
+
+test('dynamic teacher identity preserves only unused initial eligibility', () => {
+  const pool = [die('a', 'imposter'), die('b', 'teacher'), die('c', 'teacher')];
+  pool[0].faces[1].creature = 'food'; pool[0].faces[2].creature = 'food';
+  pool[2].faces[1].creature = 'guard';
+  const first = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0);
+  const targets = (indices: number[], state: typeof first.creatureBattleState) => findTeacherTargets(
+    pool.map((d, i) => ({ ...getRoundFace(d, indices[i], state), diceId: d.id })), state, 'a');
+  assert.ok(targets(first.rolledIndices, first.creatureBattleState).length > 0);
+  const away = resolveRerollChain(pool, first.rolledIndices, first.creatureBattleState, 2, [], () => 0)[0];
+  assert.equal(away.state.imposterTargets.a, 'food');
+  assert.deepEqual(targets(away.rolledIndices, away.state), []);
+  const back = resolveRerollChain(pool, away.rolledIndices, away.state, 2, [], () => 0)[0];
+  assert.ok(targets(back.rolledIndices, back.state).length > 0);
+  const used = resolveRerollChain(pool, back.rolledIndices, back.state, 1, [], () => 0, 'a')[0];
+  const againAway = resolveRerollChain(pool, used.rolledIndices, used.state, 2, [], () => 0)[0];
+  const againBack = resolveRerollChain(pool, againAway.rolledIndices, againAway.state, 2, [], () => 0)[0];
+  assert.equal(againBack.state.imposterTargets.a, 'teacher');
+  assert.deepEqual(targets(againBack.rolledIndices, againBack.state), []);
 });

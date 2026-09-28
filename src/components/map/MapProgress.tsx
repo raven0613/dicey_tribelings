@@ -17,7 +17,7 @@ export const MapProgress: React.FC = () => {
     soundMuted: state.soundMuted,
     gold: state.gold,
   })));
-  const region = mapNodes[currentNodeIndex].region;
+  const region = mapNodes.find(node => node.id === routeChoices[0])?.region ?? mapNodes[currentNodeIndex].region;
   const nodes = mapNodes.filter((node) => node.region === region);
   const depths = [...new Set(nodes.map((node) => node.regionNode))].sort((a, b) => a - b);
   const currentRegion = REGION_IDS.find(id => id === region) ?? 1;

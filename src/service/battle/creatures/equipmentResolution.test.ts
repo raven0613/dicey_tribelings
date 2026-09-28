@@ -1,3 +1,4 @@
+import { CAMP_BUFFS } from '../../../configs/campConfig';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -71,7 +72,7 @@ test('warhammer shares exact preview and sequential normal, bonus and repeat dam
   const gear = equipment('WARHAMMER');
   const enemy = createEnemy('r1_slinger'); enemy.hp = enemy.maxHp = 1000; enemy.shield = 6;
   const summary = calculateRollResolution(pool, [0, 0, 0], gear, createCreatureBattleState(),
-    { control: 0, maxControl: 3, gold: 0, currentEnemy: enemy });
+    { control: 0, maxControl: 3, gold: 0, enemies: [enemy] });
   const plan = buildAttackPlan(summary, enemy.shield, gear);
   assert.equal(plan[0].value, Math.ceil(combatNumber(summary.items[0].finalDamage * eq.shieldDamageMultiplier)));
   assert.equal(plan[1].value, Math.ceil(combatNumber(summary.items[1].finalDamage * eq.shieldDamageMultiplier)));
@@ -109,7 +110,7 @@ test('fractional normal hit rounds up to break shield before evaluating later wa
   const pool = [die('a', 'glutton', 3), die('b', 'chef', 2)];
   const gear = equipment('WARHAMMER');
   const summary = calculateRollResolution(pool, [0, 0], gear, createCreatureBattleState(),
-    { control: 0, maxControl: 3, gold: 0, currentEnemy: { shield: 4 } });
+    { control: 0, maxControl: 3, gold: 0, targetShield: 4 });
   assert.equal(summary.items[0].finalDamage, 2.7);
   const plan = buildAttackPlan(summary, 4, gear);
   assert.deepEqual(plan.map((hit) => hit.value), [4, 2]);
@@ -130,4 +131,44 @@ test('nearest food receives the full farmer boost in the attack plan', () => {
   assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [1, 1, 1, 1]);
   assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 1 + 4 * b.farmer.foodBonus, 1, 1, 1]);
   assert.equal(summary.totalDamage, 5 + 4 * b.farmer.foodBonus);
+});
+
+test('camp attack buffs modify only final positive normal attacks during configured opening rounds', () => {
+  const pool = [die('gang', 'gang'), die('elder', 'elder'), die('princess', 'princess', 0), die('chef', 'chef')];
+  pool[0].faces[0].material = 'echo';
+  const gear = equipment('FRUGAL');
+  for (const id of ['sharpen', 'initiative'] as const) {
+    const buff = CAMP_BUFFS[id];
+    for (const round of [1, buff.rounds, buff.rounds + 1]) {
+      const state = { ...createCreatureBattleState(), round };
+      const base = calculateRollResolution(pool, pool.map(() => 0), gear, state);
+      const result = calculateRollResolution(pool, pool.map(() => 0), gear, state,
+        { control: 0, maxControl: 3, gold: 0, campBuff: id });
+      assert.ok(base.bonusDice.length && base.repeatAttacks.length);
+      assert.deepEqual(result.bonusDice, base.bonusDice);
+      assert.deepEqual(result.repeatAttacks, base.repeatAttacks);
+      assert.deepEqual(result.nextStoredFood, base.nextStoredFood);
+      result.items.forEach((item, i) => {
+        const damage = base.items[i].finalDamage;
+        const expected = round > buff.rounds || damage === 0 ? damage : id === 'sharpen'
+          ? damage + CAMP_BUFFS.sharpen.attack : combatNumber(damage * CAMP_BUFFS.initiative.multiplier);
+        assert.equal(item.finalDamage, expected);
+        assert.equal(item.baseValue, base.items[i].baseValue);
+      });
+    }
+  }
+});
+
+test('camp ward adds new shield before bulwark scaling and expires after its opening rounds', () => {
+  const pool = [die('bulwark', 'bulwark')], gear = equipment('BARRICADE');
+  const round = { ...createCreatureBattleState(), round: CAMP_BUFFS.ward.rounds };
+  const context = { control: 0, maxControl: 3, gold: 0, campBuff: 'ward' as const };
+  const result = calculateRollResolution(pool, [0], gear, round, context);
+  const expectedShield = eq.barricadeShield + CAMP_BUFFS.ward.shield;
+  assert.equal(result.totalShield, expectedShield);
+  const without = calculateRollResolution(pool, [0], gear, { ...round, round: round.round + 1 }, context);
+  assert.equal(without.totalShield, eq.barricadeShield);
+  assert.ok(result.bonusDice[0].bonusDamage > without.bonusDice[0].bonusDamage);
+  const shieldEvents = result.events.flatMap(event => event.changes.filter(change => change.kind === 'shield'));
+  assert.equal(shieldEvents.at(-1)?.after, expectedShield);
 });

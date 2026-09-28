@@ -1,3 +1,4 @@
+import { currentIntent } from '../battle/enemies/enemyIntent';
 import { combatOf } from './snapshot';
 import { DAMAGE_SOURCE_LABELS } from '../../configs/telemetryConfig';
 import type { BattleRecord, TelemetryState, RoundRecord } from './types';
@@ -48,8 +49,8 @@ export function updateBattle(battle: BattleRecord, state: TelemetryState, previo
     const healing = loss(state.playerHp, previous.playerHp);
     const attackImpact = state.combatImpact !== previous.combatImpact && state.combatImpact
       && state.combatImpact.kind !== 'enemy';
-    const enemyHpLoss = attackImpact ? loss(previous.currentEnemy?.hp ?? 0, state.currentEnemy?.hp ?? 0) : 0;
-    const enemyShieldLoss = attackImpact ? loss(previous.currentEnemy?.shield ?? 0, state.currentEnemy?.shield ?? 0) : 0;
+    const enemyHpLoss = attackImpact ? previous.enemies.reduce((sum, enemy) => sum + loss(enemy.hp, state.enemies.find(item => item.id === enemy.id)?.hp ?? enemy.hp), 0) : 0;
+    const enemyShieldLoss = attackImpact ? previous.enemies.reduce((sum, enemy) => sum + loss(enemy.shield, state.enemies.find(item => item.id === enemy.id)?.shield ?? enemy.shield), 0) : 0;
     round.takenHp += hpLoss;
     round.absorbed += shieldLoss;
     round.healing += healing;
@@ -57,8 +58,8 @@ export function updateBattle(battle: BattleRecord, state: TelemetryState, previo
     round.damageShield += enemyShieldLoss;
     changed ||= hpLoss + shieldLoss + healing + enemyHpLoss + enemyShieldLoss > 0;
     if (previous.playerHp > 0 && state.playerHp <= 0) {
-      const enemy = previous.currentEnemy;
-      const intent = enemy?.intents[enemy.currentIntentIndex]?.name ?? '';
+      const enemy = previous.enemies.find(item => item.id === previous.activeEnemyId);
+      const intent = enemy ? currentIntent(enemy).name : '';
       battle.death = { phase: previous.combatPhase, intent,
         source: DAMAGE_SOURCE_LABELS[state.combatImpact?.source ?? 'intent'],
         beforeHit: combatOf(previous), afterHit: combatOf(state) };

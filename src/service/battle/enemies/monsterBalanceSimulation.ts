@@ -1,6 +1,6 @@
-import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
+import { INITIAL_MAP_NODES } from '../../../configs/regions/mapConfig';
+import { getEnemiesForNode } from '../nodeService';
 import { MONSTER_BALANCE_CONFIG, getEncounterDamageBudget } from '../../../configs/monsters/monsterBalanceConfig';
-import { createEnemy } from './enemyFactory';
 import { resolveEnemyRound } from './enemyRound';
 import { calculateRollResolution } from '../battleEngine';
 import { configuredDice } from '../../dice/diceFactory';
@@ -8,7 +8,7 @@ import { createCreatureBattleState } from '../creatures/creatureState';
 
 type Scenario = keyof typeof MONSTER_BALANCE_CONFIG.scenarios;
 export interface MonsterBalanceResult {
-  monsterId: string;
+  nodeId: number;
   scenario: Scenario;
   medianTurns: number;
   p90Turns: number;
@@ -33,7 +33,7 @@ function seededRandom(seed: number): () => number {
 export function simulateMonsterBalance(): MonsterBalanceResult[] {
   const config = MONSTER_BALANCE_CONFIG;
   const results: MonsterBalanceResult[] = [];
-  for (const monster of MONSTER_CONFIG) {
+  for (const node of INITIAL_MAP_NODES.filter(node => node.enemyIds)) {
     for (const scenario of Object.keys(config.scenarios) as Scenario[]) {
       // 各情境共用亂數序列，單獨比較輸出倍率的敏感度。
       const random = seededRandom(config.seed);
@@ -43,32 +43,31 @@ export function simulateMonsterBalance(): MonsterBalanceResult[] {
       let counters = 0;
       let stalledRuns = 0;
       for (let run = 0; run < config.runsPerScenario; run++) {
-        let enemy = createEnemy(monster.id);
+        let enemies = getEnemiesForNode(node);
         const rolls = Array.from({ length: config.maxTurns }, random);
         let turn = 0;
-        while (enemy.hp > 0 && turn < config.maxTurns) {
+        while (enemies.some(enemy => enemy.hp > 0) && turn < config.maxTurns) {
           const variance = config.rollRange[0] + rolls[turn] * (config.rollRange[1] - config.rollRange[0]);
-          const damage = Math.max(1, Math.ceil(getEncounterDamageBudget(monster.id)
+          const damage = Math.max(1, Math.ceil(getEncounterDamageBudget(node.id)
             * config.scenarios[scenario] * variance));
           turn++;
-          const intent = enemy.intents[enemy.currentIntentIndex];
-          if ('counter' in intent && intent.counter) counterOpportunities++;
-          const diceCount = config.diceCountByRegion[monster.region];
+          counterOpportunities += enemies.filter(enemy => enemy.hp > 0 && (enemy.intents[enemy.currentIntentIndex].counter || enemy.intents[enemy.currentIntentIndex].hitWeaken || enemy.intents[enemy.currentIntentIndex].shieldWeaken)).length;
+          const diceCount = config.diceCountByRegion[node.region];
           const pool = Array.from({ length: diceCount }, (_, index) => configuredDice(`envelope-${index}`, '輸出包絡', 'd6', 'emerald',
             Array.from({ length: 6 }, () => ['food', damage / diceCount] as const)));
           const round = { ...createCreatureBattleState(), round: turn };
           const summary = calculateRollResolution(pool, pool.map(() => 0), [], round);
-          const resolution = resolveEnemyRound(enemy, summary, [], { hp: config.playerHp, shield: 0 }, round);
+          const resolution = resolveEnemyRound(enemies, summary, [], { hp: config.playerHp, shield: 0 }, round);
           incomingDamage += config.playerHp - resolution.hp;
-          if (resolution.resolution.counterTriggered) counters++;
-          enemy = resolution.enemy;
+          counters += Object.values(resolution.resolutions).filter(value => value.counterTriggered).length;
+          enemies = resolution.enemies;
         }
-        if (enemy.hp > 0) stalledRuns++;
+        if (enemies.some(enemy => enemy.hp > 0)) stalledRuns++;
         turns.push(turn);
       }
       turns.sort((a, b) => a - b);
       results.push({
-        monsterId: monster.id, scenario,
+        nodeId: node.id, scenario,
         medianTurns: turns[Math.ceil(turns.length * 0.5) - 1],
         p90Turns: turns[Math.ceil(turns.length * 0.9) - 1],
         meanIncomingDamage: incomingDamage / config.runsPerScenario,

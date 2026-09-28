@@ -8,7 +8,7 @@ export function createEchoResolution(dice: Dice[], items: CalculatedRollItem[], 
   const activations = new Map<string, string>();
   const replays = new Map<string, SkillEvent>();
   return (event: SkillEvent): SkillEvent | undefined => {
-    if (event.echoed || ['material', 'equipment', 'imposter', 'princessReady', 'coward', 'teacher'].includes(event.skill)) return;
+    if (event.echoed || ['camp', 'material', 'equipment', 'imposter', 'princessReady', 'coward', 'teacher'].includes(event.skill)) return;
     const source = items.find(item => item.diceId === event.sourceDiceId);
     const faceId = event.sourceFaceId;
     const original = dice.flatMap(die => die.faces).find(face => face.id === faceId);

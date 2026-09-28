@@ -124,7 +124,7 @@ test('teacher compares the final destination and one real reroll charges the alt
   const { CREATURE_BALANCE: b } = await import('../../configs/creatures/creatureBalanceConfig');
   const die = makeDie(), target = getArrowTarget(die, 0, 'arrowRight');
   die.faces[target].creature = 'priest';
-  die.faces[target].baseValue = createPermanentSticker('priest', 6).baseValue;
+  die.faces[target].baseValue = createPermanentSticker('priest', 3).baseValue;
   const teacher = configuredDice('teacher', 'teacher', 'd6', 'amber', Array.from({ length: 6 }, () => ['teacher', die.faces[target].baseValue]));
   const pool = applyTemporaryPlacements([die, teacher], [{ diceId: die.id, faceIndex: 0, consumable: owned(), direction: 'arrowRight' }]);
   const initial = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0.5);
@@ -172,10 +172,10 @@ test('direct opposite-face actions resolve arrows without becoming rerolls', asy
 });
 
 test('imposters never choose arrow configurations as a local majority', async () => {
-  const { lockImposterTargets } = await import('../battle/creatures/imposterResolution');
+  const { refreshImposterTargets } = await import('../battle/creatures/imposterResolution');
   const die = makeDie(); die.faces[0].creature = 'imposter';
   const pool = applyTemporaryPlacements([die], [2, 3, 4].map((faceIndex, i) => ({ diceId: die.id, faceIndex,
     consumable: owned(`up-${i}`), direction: 'arrowUp' as const })));
-  const state = lockImposterTargets(pool, [0], createCreatureBattleState());
+  const state = refreshImposterTargets(pool, [0], createCreatureBattleState());
   assert.equal(state.imposterTargets[die.id], 'family');
 });

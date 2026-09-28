@@ -14,8 +14,8 @@ export function locationOf(state: TelemetryState): RunLocation {
 
 export function combatOf(state: TelemetryState): CombatSnapshot {
   return structuredClone({ hp: state.playerHp, maxHp: state.maxHp, shield: state.playerShield,
-    gold: state.gold, control: state.control, phase: state.combatPhase,
-    rolledIndices: state.rolledIndices, creatureState: state.creatureBattleState, enemy: state.currentEnemy });
+    campBuff: state.campBuff, gold: state.gold, control: state.control, phase: state.combatPhase,
+    rolledIndices: state.rolledIndices, creatureState: state.creatureBattleState, enemies: state.enemies, selectedEnemyId: state.selectedEnemyId });
 }
 
 export function buildOf(state: TelemetryState, metadata: Pick<BuildSnapshot, 'id' | 'at' | 'elapsedMs' | 'activeMs' | 'reason'>): BuildSnapshot {
@@ -34,9 +34,9 @@ export function buildChanged(state: TelemetryState, previous: TelemetryState): b
   const shape = (value: TelemetryState) => ({
     dice: value.dicePool.map((die) => ({ id: die.id, type: die.dieType,
       faces: die.faces.map(({ materialDecay: _decay, ...face }) => face) })),
-    equipment: value.equipments, consumables: value.consumableStickers,
+    campBuff: value.campBuff, equipment: value.equipments, consumables: value.consumableStickers,
   });
-  if (state.dicePool === previous.dicePool && state.equipments === previous.equipments
+  if (state.campBuff === previous.campBuff && state.dicePool === previous.dicePool && state.equipments === previous.equipments
     && state.consumableStickers === previous.consumableStickers) return false;
   return JSON.stringify(shape(state)) !== JSON.stringify(shape(previous));
 }

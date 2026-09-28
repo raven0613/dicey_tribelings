@@ -27,7 +27,7 @@ function build(size: number, region: RegionId): Dice[] {
 }
 
 for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite rerolls, exact attack plans and event continuity`, (context) => {
-  const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size, size === 6 ? 2 : 5);
+  const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size, size === 6 ? 2 : 3);
   const gear = size === 3 ? [] : ALL_EQUIPMENT_CATALOG.filter((item) => ['RESONATOR', 'BARRICADE', 'CROWN', 'WARHAMMER', 'RESERVE'].includes(item.ruleId));
   let seed = 741;
   const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 0x100000000);
@@ -39,7 +39,7 @@ for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite r
     const chain = resolveRerollChain(pool, first, state, sample % size, gear, random);
     assert.ok(chain.length <= size + 1);
     const last = chain.at(-1)!; state = last.state;
-    const battle = { control: sample % 4, maxControl: 3, gold: 0, currentEnemy: { shield: 12 } };
+    const battle = { control: sample % 4, maxControl: 3, gold: 0, targetShield: 12 };
     const summary = calculateRollResolution(pool, last.rolledIndices, gear, state, battle);
     assert.deepEqual(summary, calculateRollResolution(pool, last.rolledIndices, gear, state, battle));
     const events = new Map(summary.items.map((item) => [`attack:${item.diceId}`, item.rolledBaseValue]));
@@ -50,7 +50,7 @@ for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite r
       events.set(key, change.after);
     }
     for (const item of summary.items) assert.equal(events.get(`attack:${item.diceId}`), item.finalDamage);
-    const plan = buildAttackPlan(summary, battle.currentEnemy.shield, gear);
+    const plan = buildAttackPlan(summary, battle.targetShield, gear);
     assert.equal(combatNumber(plan.reduce((sum, hit) => sum + hit.value, 0)), summary.totalDamage);
     maximumBonuses = Math.max(maximumBonuses, summary.bonusDice.length);
     values.push(summary.totalDamage);

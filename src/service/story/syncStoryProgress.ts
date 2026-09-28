@@ -11,8 +11,8 @@ export function syncStoryProgress(state: GameState, previous: GameState): void {
   if (leftChest) story.leaveChest();
   if (!leftChest && previous.chestRewardOptions.length === 0) story.enqueue('chest');
 
-  if (state.currentNodeIndex === 0 && state.currentEnemy) {
-    if (state.combatPhase === 'PREPARATION' && state.currentEnemy !== previous.currentEnemy) story.enqueue('battle');
+  if (state.currentNodeIndex === 0 && state.enemies[0]) {
+    if (state.combatPhase === 'PREPARATION' && state.enemies[0] !== previous.enemies[0]) story.enqueue('battle');
     if (state.combatPhase === 'CONTROL_PHASE' && previous.combatPhase === 'ROLLING') story.enqueue('control');
   }
   if (state.consumableStickers.some((item) => !previous.consumableStickers.some((old) => old.instanceId === item.instanceId))) {
@@ -21,6 +21,6 @@ export function syncStoryProgress(state: GameState, previous: GameState): void {
   const sticker = state.stickerFlow?.items[state.stickerFlow.index];
   if (sticker?.creature === 'princess' && !sticker.isDisposable) story.enqueue('princess');
 
-  if (state.combatPhase === 'VICTORY' && previous.combatPhase !== 'VICTORY'
-    && state.currentEnemy?.isBoss && state.currentEnemy.region === 6) story.enqueue('ending');
+  if (node?.type === 'boss' && node.region === 3 && node.completed
+    && !previous.mapNodes.find(item => item.id === node.id)?.completed) story.enqueue('ending');
 }

@@ -1,5 +1,5 @@
 import { resolveLandingFace } from '../../dice/directionalFaces';
-import { lockImposterTargets, getRoundFace } from './imposterResolution';
+import { refreshImposterTargets, getRoundFace } from './imposterResolution';
 import type { Dice, Equipment } from '../../../types/game';
 import type { CreatureBattleState } from '../../../types/creatures';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
@@ -11,7 +11,7 @@ import { findPranksterTargets } from './rerollTargets';
 export interface RerollStep { dieIndex: number; rolledIndices: number[]; state: CreatureBattleState }
 
 export function refreshAuthorityTargets(dice: Dice[], indices: number[], equipment: Equipment[], state: CreatureBattleState) {
-  state = lockImposterTargets(dice, indices, state);
+  state = refreshImposterTargets(dice, indices, state);
   const c = createResolutionContext(dice, indices, equipment, state, { control: 0, maxControl: 3, gold: 0 });
   resolveIdentities(c);
   const authorityTargets: CreatureBattleState['authorityTargets'] = {};
@@ -27,7 +27,7 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
   targetIndex: number, equipment: Equipment[], random: () => number = Math.random,
   teacherId?: string): RerollStep[] {
   const rolled = [...indices];
-  let next = structuredClone(lockImposterTargets(dice, indices, state));
+  let next = structuredClone(refreshImposterTargets(dice, indices, state));
   next.rerollEchoes = [];
   const useEcho = (diceId: string, face: Dice['faces'][number]) => {
     if (face.material !== 'echo' || next.echoUsed.includes(face.id)) return false;
@@ -72,7 +72,7 @@ export function resolveRerollChain(dice: Dice[], indices: number[], state: Creat
     next.teachersAvailable = next.teachersAvailable.filter((id) => id !== die.id);
     delete next.authorityTargets[die.id];
     delete next.teacherBonuses[die.id];
-    next = lockImposterTargets(dice, rolled, next);
+    next = refreshImposterTargets(dice, rolled, next);
     const face = getRoundFace(die, rolled[action.index], next);
     next.rerollCount++;
     if (action.teacher && face.baseValue > previous.baseValue) next.teacherBonuses[die.id] = b.teacher.bonus * next.rerollCount;

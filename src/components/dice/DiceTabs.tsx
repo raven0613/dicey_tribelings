@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Dices } from 'lucide-react';
 import type { Dice } from '../../types/game';
 import { useGameStore } from '../../store/gameStore';
@@ -13,7 +13,7 @@ interface DiceTabsProps {
 }
 export function DiceTabs({ dicePool, selectedDiceId, onSelect, matchCounts }: DiceTabsProps) {
   const phase = useGameStore((state) => state.combatPhase);
-  const hasEnemy = useGameStore((state) => state.currentEnemy !== null);
+  const hasEnemy = useGameStore((state) => state.enemies.length > 0);
   const moveDice = useGameStore((state) => state.moveDice);
   const enabled = canReorderDice(phase, hasEnemy);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean; index: number } | null>(null);

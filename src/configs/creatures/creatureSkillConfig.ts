@@ -47,7 +47,7 @@ export const CREATURE_SKILL_INTRO: Record<CreatureId, string> = {
   knight: '依場上其他普通土人提高攻擊力。', teacher: `免費重骰一顆最低值土人；數值提高時，本回合全隊每次重骰使其攻擊 +${b.teacher.bonus}。`,
   royalGuard: '依同骰其他貴族面提高攻擊。', prankster: '被重骰時，隨機重骰一顆鄰骰，每骰每回合一次。',
   authority: '將相鄰隨機一名普通土人冊封為貴族。', farmer: '沒有食物時變成好吃的；有食物時強化最近一份食物。',
-  imposter: '偽裝成場上最多的其他角色；最高僅一名時改看同骰，仍無多數則不發動偽裝。',
+  imposter: '偽裝成場上最多的其他角色；沒有多數時改看同骰，仍無多數則維持原身。骰面變動後重新判定，最多候選相同時保留結果。',
   glutton: `依食物份數強化自身；沒有食物時基礎攻擊 ×${b.glutton.hungryMultiplier}。`,
   bulwark: '將本回合全隊新增護盾轉成一次追加攻擊，保留護盾。',
   bully: `搶走左右相鄰土人一半攻擊並取得 ×${b.bully.multiplier}；職人改為 ×${b.bully.craftsmanMultiplier}。`,

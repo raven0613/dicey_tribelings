@@ -6,16 +6,17 @@ import type { RUN_RESULT_LABELS, SNAPSHOT_LABELS } from '../../configs/telemetry
 import type { GameState } from '../../store/gameStore.types';
 
 export type TelemetryState = Pick<GameState, 'playerHp' | 'maxHp' | 'gold' | 'control' | 'playerShield' |
-  'dicePool' | 'equipments' | 'consumableStickers' | 'mapNodes' | 'currentNodeIndex' | 'currentEnemy' |
-  'combatPhase' | 'rolledIndices' | 'creatureBattleState' | 'comboSummary' | 'combatImpact'>;
+  'dicePool' | 'equipments' | 'consumableStickers' | 'mapNodes' | 'currentNodeIndex' | 'enemies' | 'selectedEnemyId' | 'activeEnemyId' |
+  'campBuff' | 'combatPhase' | 'rolledIndices' | 'creatureBattleState' | 'comboSummary' | 'combatImpact'>;
 
 export interface CompositionItem { creatureId: CreatureId; name: string; faces: number; totalFaces: number; percent: number }
 export interface RunLocation {
   nodeId: number; title: string; region: number; regionName: string; type: MapNode['type']; route?: MapNode['route'];
 }
 export interface CombatSnapshot {
+  campBuff?: import('../../types/camp').CampBuffId | null;
   hp: number; maxHp: number; shield: number; gold: number; control: number;
-  phase: CombatPhase; rolledIndices: number[]; creatureState: CreatureBattleState; enemy: Enemy | null;
+  phase: CombatPhase; rolledIndices: number[]; creatureState: CreatureBattleState; enemies: Enemy[]; selectedEnemyId: string | null;
 }
 export interface BuildSnapshot {
   id: number; at: number; elapsedMs: number; activeMs: number; reason: keyof typeof SNAPSHOT_LABELS;
@@ -33,7 +34,7 @@ export interface RoundRecord {
   before: CombatSnapshot; after: CombatSnapshot | null;
 }
 export interface BattleRecord {
-  id: number; location: RunLocation; enemyId: string; enemyName: string;
+  id: number; location: RunLocation; enemyIds: string[]; enemyName: string;
   startedAt: number; endedAt: number | null; elapsedMs: number; activeMs: number; activeStartedMs: number;
   outcome: 'incomplete' | 'victory' | 'death' | 'round_limit';
   startSnapshotId: number; endSnapshotId: number | null; rerolls: number; rounds: RoundRecord[];

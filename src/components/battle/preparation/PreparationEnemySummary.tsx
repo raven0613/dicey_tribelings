@@ -1,10 +1,14 @@
+import type { Enemy } from '../../../types/enemy';
 import { Heart, Shield } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
 import { describeEnemyIntent } from '../../../service/battle/enemies/enemyDescription';
 import { SkillText } from '../../common/SkillText';
 
 export function PreparationEnemySummary() {
-  const enemy = useGameStore((state) => state.currentEnemy)!;
+  const enemies = useGameStore(state => state.enemies);
+  return <>{enemies.map(enemy => <EnemySummary key={enemy.id} enemy={enemy} />)}</>;
+}
+function EnemySummary({ enemy }: { enemy: Enemy }) {
   return <section className="preparation-enemy" aria-label="下一場敵人">
     <div className="preparation-enemy-heading">
       <span aria-hidden="true">{enemy.avatar}</span><strong>{enemy.name}</strong>

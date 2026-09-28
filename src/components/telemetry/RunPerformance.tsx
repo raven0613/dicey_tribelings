@@ -29,7 +29,7 @@ export function RunPerformance({ run, onInspect }: { run: RunRecord; onInspect: 
         <summary>#{battle.id + 1} {battle.enemyName}<span>{RUN_RESULT_LABELS[battle.outcome]} · {battle.rounds.length} 回合 · 重骰 {battle.rerolls} 次</span></summary>
         <p>{battle.location.regionName} · {battle.location.route === 'challenge' ? '挑戰路' : battle.location.route === 'safe' ? '穩定路' : '共同節點'}</p>
         <p className="telemetry-note">前景 {duration(battle.activeMs)} · 總經過 {duration(battle.elapsedMs)}</p>
-        {battle.death && <p className="telemetry-death">致死：{battle.death.source} · {battle.death.intent} · 受擊前 HP {number(battle.death.beforeHit.hp)}／盾 {number(battle.death.beforeHit.shield)} · 敵人剩餘 HP {number(battle.death.afterHit.enemy?.hp ?? 0)}</p>}
+        {battle.death && <p className="telemetry-death">致死：{battle.death.source} · {battle.death.intent} · 受擊前 HP {number(battle.death.beforeHit.hp)}／盾 {number(battle.death.beforeHit.shield)} · 敵人剩餘 HP {number(battle.death.afterHit.enemies?.reduce((sum, enemy) => sum + enemy.hp, 0) ?? 0)}</p>}
         <div className="telemetry-inline-actions"><button type="button" onClick={() => onInspect(battle.startSnapshotId)}>進場配置</button>
           {battle.endSnapshotId !== null && <button type="button" onClick={() => onInspect(battle.endSnapshotId!)}>結束配置</button>}</div>
         <div className="telemetry-table-scroll"><table><thead><tr><th>回合</th><th>重骰</th><th>敵 HP 損失</th><th>敵盾損失</th><th>承傷</th><th>吸收</th><th>治療</th></tr></thead>

@@ -4,7 +4,7 @@ import type { CreatureBattleState, CreatureId } from '../../../types/creatures';
 export interface RerollCandidate { diceId: string; creature: CreatureId; baseValue: number }
 
 export function findTeacherTargets(items: RerollCandidate[], state: CreatureBattleState, teacherId: string): number[] {
-  if (!state.teachersAvailable.includes(teacherId)) return [];
+  if (!state.teachersAvailable.includes(teacherId) || !items.some(item => item.diceId === teacherId && item.creature === 'teacher')) return [];
   const minimum = Math.min(...items.filter((item) => !CREATURE_CONFIG[item.creature].tags.includes('food')).map((item) => item.baseValue));
   return items.flatMap((item, index) => !CREATURE_CONFIG[item.creature].tags.includes('food') && item.baseValue === minimum
     && !state.lockedDice.includes(item.diceId) && !state.sealedDice?.includes(item.diceId) ? [index] : []);

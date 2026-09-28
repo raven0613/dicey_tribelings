@@ -1,11 +1,11 @@
 import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
 import type { Enemy } from '../../../types/enemy';
 
-export function createEnemy(id: string): Enemy {
+export function createEnemy(id: string, instanceId = id): Enemy {
   const definition = MONSTER_CONFIG.find((monster) => monster.id === id);
   if (!definition) throw new Error(`Unknown monster: ${id}`);
   return {
-    id: definition.id,
+    id: instanceId, definitionId: definition.id, rank: definition.rank,
     name: definition.name,
     region: definition.region,
     maxHp: definition.maxHp,

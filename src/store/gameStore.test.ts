@@ -1,3 +1,5 @@
+import { CAMP_CONFIG, CAMP_BUFFS } from '../configs/campConfig';
+import { computeMaxControl } from '../service/battle/nodeService';
 import { SHOP_CONFIG } from '../configs/shopConfig';
 import { getArrowTarget } from '../service/dice/directionalFaces';
 import { getEffectiveFace } from '../service/dice/diceFaces';
@@ -5,7 +7,9 @@ import { REWARD_CONFIG } from '../configs/rewardConfig';
 import { getPaidRerollCost } from '../service/battle/rerollCost';
 import { EQUIPMENT_BALANCE } from '../configs/equipment/equipmentConfig';
 import { INITIAL_MAP_NODES, CHAPTER_END_NODE } from '../configs/regions/mapConfig';
-import { PROGRESSION_DICE_REWARDS } from '../configs/diceProgressionConfig';
+import { drawDiceRecipes } from '../service/dice/diceDraft';
+import { getRefreshCost, rewardKey } from '../service/rewards/refreshService';
+import { REGION_IDS } from '../configs/regions/regionConfig';
 import { chapterPath } from '../service/regions/routeService';
 import { generateBattleRewardOptions } from '../service/rewards/rewardService';
 import assert from 'node:assert/strict';
@@ -151,32 +155,38 @@ test('reward stickers commit one at a time and advance after the final choice', 
   assert.equal(afterLast.dicePool[0].faces[1].creature, alternative.sticker.creature);
   assert.equal(afterLast.battleRewardPickCount, 0);
   assert.deepEqual(afterLast.battleRewardOptions, []);
-  assert.equal(afterLast.currentNodeIndex, 7);
-  assert.equal(afterLast.currentEnemy?.region, 2);
-  assert.equal(afterLast.combatPhase, 'PREPARATION');
+  assert.deepEqual(afterLast.routeChoices, INITIAL_MAP_NODES[afterLast.currentNodeIndex].next);
+  const combat = afterLast.mapNodes.find(node => afterLast.routeChoices.includes(node.id) && node.type === 'fight')!;
+  afterLast.chooseRoute(combat.id);
+  assert.equal(useGameStore.getState().enemies[0]?.region, combat.region);
+  assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
 });
 
-for (const route of ['safe', 'challenge'] as const) test(`${route} route grants all shared milestones once`, () => {
+for (const route of ['safe', 'challenge'] as const) test(`${route} route grants new dice only after boss choices`, () => {
   useGameStore.getState().restartGame();
   const initialCount = useGameStore.getState().dicePool.length;
   for (const node of chapterPath(INITIAL_MAP_NODES, route).slice(0, -1)) {
     assert.equal(useGameStore.getState().mapNodes[useGameStore.getState().currentNodeIndex].id, node.id);
+    if (node.type === 'boss') {
+      useGameStore.setState({ combatPhase: 'VICTORY', diceRewardOptions: drawDiceRecipes() });
+      const recipe = useGameStore.getState().diceRewardOptions[0];
+      useGameStore.getState().chooseRewardDice(recipe.id);
+    }
     if (useGameStore.getState().openedPackResult) useGameStore.getState().beginOpenedPack();
     else useGameStore.getState().advanceToNextNode();
     while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
     const choices = useGameStore.getState().routeChoices;
     if (choices.length) {
-      const selected = INITIAL_MAP_NODES.find((candidate) => choices.includes(candidate.id) && candidate.route === route)!;
+      const selected = INITIAL_MAP_NODES.find((candidate) => choices.includes(candidate.id) && (candidate.route === route || candidate.route === 'combat'))!;
       useGameStore.getState().chooseRoute(selected.id);
       const before = useGameStore.getState().currentNodeIndex;
       useGameStore.getState().chooseRoute(choices.find((id) => id !== selected.id)!);
       assert.equal(useGameStore.getState().currentNodeIndex, before);
     }
-    useGameStore.getState().dismissDiceNotification();
   }
   const state = useGameStore.getState();
   assert.equal(state.mapNodes[state.currentNodeIndex].id, CHAPTER_END_NODE);
-  assert.equal(state.dicePool.length, initialCount + Object.keys(PROGRESSION_DICE_REWARDS).length);
+  assert.equal(state.dicePool.length, initialCount + REGION_IDS.length - 1);
   assert.equal(new Set(state.dicePool.map((die) => die.id)).size, state.dicePool.length);
   assert.ok(state.princessGuaranteed);
 });
@@ -270,7 +280,7 @@ test('shop and chest nodes allow direct ordering without a battle', () => {
     const index = state.mapNodes.findIndex((node) => node.type === type);
     state.startNode(index);
     const pool = useGameStore.getState().dicePool;
-    assert.equal(useGameStore.getState().currentEnemy, null);
+    assert.deepEqual(useGameStore.getState().enemies, []);
     useGameStore.getState().moveDice(pool[0].id, pool.length - 1);
     assert.equal(useGameStore.getState().dicePool.at(-1), pool[0]);
   }
@@ -304,4 +314,162 @@ test('invalid arrow destinations never consume inventory; valid preparation comm
   assert.deepEqual(state.consumableStickers, [second]);
   assert.equal(getEffectiveFace(state.dicePool[0].faces[0]).creature, source.direction);
   assert.notEqual(state.rolledIndices[0], 0);
+});
+
+test('boss choice gates loot, duplicate recipes create independent dice and refresh is affordable and local', () => {
+  useGameStore.getState().restartGame();
+  const boss = INITIAL_MAP_NODES.find(node => node.type === 'boss')!;
+  useGameStore.getState().startNode(boss.id);
+  const drafts = drawDiceRecipes([], () => 0), loot = generateBattleRewardOptions(boss.region, 'boss', () => 0.5);
+  useGameStore.setState({ combatPhase: 'VICTORY', diceRewardOptions: drafts, battleRewardOptions: loot,
+    battleRewardPickCount: REWARD_CONFIG.advancedPickCount, gold: 0 });
+  const before = useGameStore.getState();
+  before.skipBattleReward(); before.advanceToNextNode(); before.refreshDiceReward(); before.refreshBattleRewards();
+  assert.equal(useGameStore.getState().currentNodeIndex, boss.id);
+  assert.equal(useGameStore.getState().diceRewardOptions, drafts);
+  assert.equal(useGameStore.getState().battleRewardPickCount, REWARD_CONFIG.advancedPickCount);
+  useGameStore.setState({ gold: getRefreshCost('dice', 0) });
+  useGameStore.getState().refreshDiceReward();
+  const refreshed = useGameStore.getState();
+  assert.equal(refreshed.gold, 0); assert.equal(refreshed.diceRefreshes, 1);
+  assert.equal(refreshed.lootRefreshes, 0); assert.equal(refreshed.shopRefreshes, 0);
+  assert.ok(refreshed.diceRewardOptions.every(item => !drafts.some(old => old.id === item.id)));
+  const chosen = refreshed.diceRewardOptions[0];
+  refreshed.chooseRewardDice(chosen.id);
+  const first = useGameStore.getState().dicePool.at(-1)!;
+  assert.equal(useGameStore.getState().battleRewardOptions, loot);
+  useGameStore.getState().chooseRewardDice(chosen.id);
+  assert.equal(useGameStore.getState().dicePool.length, before.dicePool.length + 1);
+  useGameStore.setState({ diceRewardOptions: [chosen] });
+  useGameStore.getState().chooseRewardDice(chosen.id);
+  const second = useGameStore.getState().dicePool.at(-1)!;
+  assert.equal(first.recipeId, second.recipeId); assert.notEqual(first.id, second.id);
+  const reward = loot.find(item => item.kind === 'sticker')!;
+  useGameStore.getState().applyBattleRewardSticker(reward.id, second.id, 0);
+  assert.equal(useGameStore.getState().battleRewardPickCount, REWARD_CONFIG.advancedPickCount - 1);
+  assert.deepEqual(useGameStore.getState().dicePool.find(die => die.id === first.id), first);
+});
+
+test('loot refresh preserves consumed picks and modified faces; only the current page is excluded', () => {
+  useGameStore.getState().restartGame();
+  const boss = INITIAL_MAP_NODES.find(node => node.type === 'boss')!;
+  useGameStore.getState().startNode(boss.id);
+  const options = generateBattleRewardOptions(boss.region, 'boss', () => 0.5);
+  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: REWARD_CONFIG.advancedPickCount,
+    gold: getRefreshCost('loot', 0) });
+  const die = useGameStore.getState().dicePool[0];
+  useGameStore.getState().applyBattleRewardSticker(options[0].id, die.id, 0);
+  const before = useGameStore.getState();
+  before.refreshBattleRewards();
+  const after = useGameStore.getState();
+  assert.equal(after.gold, 0); assert.equal(after.lootRefreshes, 1);
+  assert.equal(after.battleRewardPickCount, before.battleRewardPickCount);
+  assert.equal(after.battleRewardOptions.length, before.battleRewardOptions.length);
+  assert.equal(after.dicePool, before.dicePool);
+  assert.ok(after.battleRewardOptions.every(item => !before.battleRewardOptions.some(old => rewardKey(old) === rewardKey(item))));
+  after.refreshBattleRewards();
+  assert.equal(useGameStore.getState().battleRewardOptions, after.battleRewardOptions);
+  useGameStore.getState().startNode(INITIAL_MAP_NODES.find(node => node.region === 2 && node.type === 'fight')!.id);
+  assert.equal(useGameStore.getState().lootRefreshes, 0);
+  const a = generateBattleRewardOptions(1, 'boss', () => 0);
+  const b = generateBattleRewardOptions(1, 'boss', () => 0, a.map(rewardKey));
+  const c = generateBattleRewardOptions(1, 'boss', () => 0, b.map(rewardKey));
+  assert.deepEqual(c.map(rewardKey), a.map(rewardKey));
+});
+
+test('shop permanent purchases and refresh spend once and keep modified dice', () => {
+  useGameStore.getState().restartGame();
+  const shops = INITIAL_MAP_NODES.filter(node => node.type === 'shop');
+  useGameStore.getState().startNode(shops[0].id);
+  const sticker = useGameStore.getState().shopStickers.find(item => !item.isDisposable)!;
+  const cost = sticker.cost!, gold = cost + getRefreshCost('shop', 0);
+  useGameStore.setState({ gold });
+  assert.equal(useGameStore.getState().buyShopSticker(sticker.id), true);
+  assert.equal(useGameStore.getState().gold, gold - cost);
+  useGameStore.getState().refreshShop();
+  assert.equal(useGameStore.getState().shopRefreshes, 0, 'pending placement keeps shop locked');
+  const die = useGameStore.getState().dicePool[0];
+  useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
+  const before = useGameStore.getState();
+  before.refreshShop();
+  assert.equal(useGameStore.getState().gold, 0);
+  assert.equal(useGameStore.getState().dicePool, before.dicePool);
+  assert.equal(useGameStore.getState().shopRefreshes, 1);
+  useGameStore.getState().startNode(shops[1].id);
+  assert.equal(useGameStore.getState().shopRefreshes, 0);
+});
+
+test('target switching updates preview before settlement and rejects dead or late targets', () => {
+  useGameStore.getState().restartGame();
+  const node = INITIAL_MAP_NODES.find(node => node.enemyIds && node.enemyIds.length > 1)!;
+  useGameStore.getState().startNode(node.id);
+  useGameStore.getState().confirmBattlePreparation([]);
+  useGameStore.getState().finishRollAnimation();
+  const before = useGameStore.getState(), target = before.enemies[1].id;
+  before.selectEnemy(target);
+  assert.equal(useGameStore.getState().selectedEnemyId, target);
+  assert.notEqual(useGameStore.getState().comboSummary, before.comboSummary);
+  useGameStore.setState({ combatPhase: 'RESOLVING_CALCULATION' });
+  useGameStore.getState().selectEnemy(before.enemies[0].id);
+  assert.equal(useGameStore.getState().selectedEnemyId, target);
+  useGameStore.setState({ combatPhase: 'CONTROL_PHASE', enemies: before.enemies.map(enemy => ({ ...enemy, hp: 0 })) });
+  useGameStore.getState().selectEnemy(before.enemies[0].id);
+  assert.equal(useGameStore.getState().selectedEnemyId, target);
+});
+
+test('chapter completion waits for final die and final loot processing', () => {
+  useGameStore.getState().restartGame();
+  const final = INITIAL_MAP_NODES.find(node => node.id === CHAPTER_END_NODE)!;
+  useGameStore.getState().startNode(final.id);
+  useGameStore.setState({ combatPhase: 'VICTORY', diceRewardOptions: drawDiceRecipes([], () => 0),
+    battleRewardOptions: generateBattleRewardOptions(final.region, 'final_boss'), battleRewardPickCount: REWARD_CONFIG.advancedPickCount });
+  useGameStore.getState().skipBattleReward();
+  assert.equal(useGameStore.getState().mapNodes[final.id].completed, false);
+  const choice = useGameStore.getState().diceRewardOptions[0];
+  useGameStore.getState().chooseRewardDice(choice.id);
+  assert.equal(useGameStore.getState().mapNodes[final.id].completed, false);
+  useGameStore.getState().skipBattleReward();
+  assert.equal(useGameStore.getState().mapNodes[final.id].completed, true);
+  assert.equal(useGameStore.getState().battleRewardPickCount, 0);
+  assert.equal(useGameStore.getState().dicePool.at(-1)!.recipeId, choice.id);
+});
+
+test('camp draws on entry, refreshes the current offer, keeps full-health choices open and claims once', () => {
+  useGameStore.getState().restartGame();
+  const camp = INITIAL_MAP_NODES.find(node => node.type === 'camp')!;
+  useGameStore.getState().startNode(camp.id);
+  useGameStore.setState({ gold: CAMP_CONFIG.fullHealCost });
+  const before = useGameStore.getState();
+  assert.ok(before.campOffer);
+  before.chooseCamp('heal'); before.chooseCamp('fullHeal');
+  assert.equal(useGameStore.getState(), before);
+  before.refreshCamp();
+  const refreshed = useGameStore.getState();
+  assert.notEqual(refreshed.campOffer, before.campOffer);
+  assert.equal(refreshed.gold, before.gold - getRefreshCost('camp', before.campRefreshes));
+  assert.equal(refreshed.currentNodeIndex, camp.id);
+  refreshed.chooseCamp('buff');
+  const claimed = useGameStore.getState();
+  assert.equal(claimed.campBuff, refreshed.campOffer);
+  assert.equal(claimed.currentNodeIndex, camp.next[0]);
+  assert.equal(claimed.campOffer, null);
+  claimed.chooseCamp('buff');
+  assert.equal(useGameStore.getState(), claimed);
+});
+
+test('camp focus survives noncombat nodes, starts the next fight with extra Control and resets with a new run', () => {
+  useGameStore.getState().restartGame();
+  const camp = INITIAL_MAP_NODES.filter(node => node.type === 'camp').at(-1)!;
+  useGameStore.getState().startNode(camp.id);
+  useGameStore.setState({ campOffer: 'focus' });
+  useGameStore.getState().chooseCamp('buff');
+  assert.equal(useGameStore.getState().campBuff, 'focus');
+  assert.equal(useGameStore.getState().mapNodes[useGameStore.getState().currentNodeIndex].type, 'chest');
+  const nextFight = INITIAL_MAP_NODES.find(node => node.region === camp.region && node.enemyIds)!;
+  useGameStore.getState().startNode(nextFight.id);
+  const state = useGameStore.getState();
+  assert.equal(state.control, computeMaxControl(state.equipments, state.gold) + CAMP_BUFFS.focus.control);
+  assert.equal(state.maxControl, state.control);
+  state.restartGame();
+  assert.equal(useGameStore.getState().campBuff, null);
 });

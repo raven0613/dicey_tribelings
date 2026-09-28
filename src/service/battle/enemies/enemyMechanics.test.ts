@@ -1,251 +1,159 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
+import { INITIAL_DICE_POOL } from '../../../configs/gameConfig';
 import { createEnemy } from './enemyFactory';
+import { resolveEnemyRound } from './enemyRound';
+import { currentIntent, resolveEnemyIntent } from './enemyIntent';
 import { resolvePlayerHit, finishEnemyRound } from './enemyMechanics';
-import { resolveEnemyIntent } from './enemyIntent';
-import { INITIAL_DICE_POOL, INITIAL_PLAYER_STATS } from '../../../configs/gameConfig';
-import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
 import { calculateRollResolution } from '../battleEngine';
 import { createCreatureBattleState } from '../creatures/creatureState';
-import { performStartBattleRoll, performControlReroll, performDiceAction } from '../rollService';
-import { resolveRerollChain } from '../creatures/rerollResolution';
-import { resolveEnemyRound } from './enemyRound';
-import type { Enemy, EnemyIntent } from '../../../types/enemy';
+import { performStartBattleRoll, performControlReroll } from '../rollService';
+import type { BattleComboSummary } from '../../../types/battle';
+import type { Enemy } from '../../../types/enemy';
 
-const withRule = (rule: string) => createEnemy(MONSTER_CONFIG.find((enemy) => rule in (enemy.traits ?? {}))!.id);
-
-test('次數甲逐段消耗；破甲後同值攻擊傷害提高', () => {
-  let enemy = withRule('hitArmor');
-  const value = enemy.traits!.hitArmor!.layers;
-  const first = resolvePlayerHit(enemy, value, false);
-  enemy = first.enemy;
-  for (let hit = 1; hit < enemy.traits!.hitArmor!.layers; hit++) enemy = resolvePlayerHit(enemy, value, true).enemy;
-  const after = resolvePlayerHit(enemy, value, true);
-  assert.ok(after.value > first.value);
-  assert.equal(after.enemy.armor, 0);
-});
-
-test('狂戰士只有實際命中生命才成長，下輪保留', () => {
-  const enemy = withRule('onHpHit');
-  const blocked = finishEnemyRound(enemy, resolveEnemyIntent(enemy, 0), 0);
-  const hit = finishEnemyRound(enemy, resolveEnemyIntent(enemy, 0), 1);
-  assert.equal(blocked.strength, 0);
-  assert.equal(hit.strength, enemy.traits!.onHpHit);
-  const summary = attacks([]);
-  const wounded = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
-  const guarded = resolveEnemyRound(enemy, summary, [], { ...player, shield: enemy.maxHp }, createCreatureBattleState());
-  assert.equal(wounded.enemy.strength, enemy.traits!.onHpHit);
-  assert.equal(guarded.enemy.strength, 0);
-});
-
-test('典獄長以損失生命比例提高攻擊', () => {
-  const enemy = withRule('missingHpPower');
-  const healthy = resolveEnemyIntent(enemy, 0);
-  const wounded = resolveEnemyIntent({ ...enemy, hp: enemy.maxHp / 2 }, 0);
-  assert.ok(wounded.damage > healthy.damage);
-});
-
-
-function withIntent(predicate: (intent: EnemyIntent) => boolean): Enemy {
-  const definition = MONSTER_CONFIG.find((enemy) => enemy.intents.some(predicate))!;
-  const enemy = createEnemy(definition.id);
-  enemy.currentIntentIndex = enemy.intents.findIndex(predicate);
-  return enemy;
+function output(damages: number[] = [], shield = 0): BattleComboSummary {
+  const summary = calculateRollResolution(INITIAL_DICE_POOL, [0, 0, 0], []);
+  const item = summary.items[0];
+  return { ...summary, items: damages.map((damage, index) => ({ ...item, diceId: `die-${index}`, finalDamage: damage })),
+    bonusDice: [], repeatAttacks: [], totalShield: shield, reflection: 0, healing: 0 };
 }
-function attacks(values: number[]) {
-  const summary = calculateRollResolution(INITIAL_DICE_POOL, INITIAL_DICE_POOL.map(() => 0), []);
-  summary.items = summary.items.map((item) => ({ ...item, finalDamage: 0 }));
-  summary.bonusDice = values.map((bonusDamage, index) => ({ id: `hit-${index}`, source: { kind: 'equipment' as const, equipmentId: 'fixture' },
-    sourceName: 'fixture', label: '', description: '', bonusDamage }));
-  summary.repeatAttacks = []; summary.totalShield = 0; summary.reflection = 0;
-  return summary;
-}
-const player = { hp: INITIAL_PLAYER_STATS.maxHp, shield: 0 };
+const round = createCreatureBattleState();
+const resolve = (enemies: Enemy[], summary: BattleComboSummary, target = enemies[0].id, shield = summary.totalShield) =>
+  resolveEnemyRound(enemies, summary, [], { hp: 1000, shield }, round, target);
 
-test('反擊每輪一次，致命一擊不反擊，玩家倒下立刻停止其餘攻擊', () => {
-  const enemy = withIntent((intent) => !!intent.retaliate);
-  const counter = enemy.intents[enemy.currentIntentIndex].retaliate!;
-  const summary = attacks(Array(counter.bonusHits + 1).fill(1));
-  const result = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
-  assert.equal(result.events.filter((event) => event.kind === 'enemy').length, 2);
-  const deadPlayer = resolveEnemyRound(enemy, summary, [], { hp: counter.damage, shield: 0 }, createCreatureBattleState());
-  assert.equal(deadPlayer.events.filter((event) => event.kind === 'player').length, counter.bonusHits);
-  const lethal = resolveEnemyRound({ ...enemy, hp: 1, shield: 0, bonusHits: counter.bonusHits - 1 }, attacks([1]), [], player, createCreatureBattleState());
-  assert.ok(lethal.events.every((event) => event.kind === 'player'));
-  let ordinary = enemy;
-  for (let hit = 0; hit <= counter.bonusHits; hit++) {
-    const normal = resolvePlayerHit(ordinary, 1, false);
-    assert.equal(normal.retaliation, 0);
-    ordinary = normal.enemy;
-  }
+test('each strike targets a living enemy, with per-hit overkill and independent hit records', () => {
+  const a = createEnemy('r1_grunt', 'a'), b = createEnemy('r1_grunt', 'b'), c = createEnemy('r1_grunt', 'c');
+  a.hp = b.hp = c.hp = 5;
+  const result = resolve([a, b, c], output([50, 2, 4]), b.id);
+  assert.deepEqual(result.events.filter(e => e.kind === 'player').map(e => e.enemy.id), ['b', 'a', 'a']);
+  assert.deepEqual(result.enemies.map(e => e.hp), [0, 0, 5]);
+  assert.deepEqual(result.actionEnemies.map(e => e.hitsTaken ?? 0), [2, 1, 0]);
+  assert.equal(result.events.filter(e => e.kind === 'enemy').length, 1);
+  assert.equal(b.hp, 5, 'resolver keeps inputs immutable');
+});
+test('bonus and repeated attacks retarget and count toward hit conditions', () => {
+  const a = createEnemy('r1_grunt', 'a'), b = createEnemy('r2_first', 'b'); a.hp = 1;
+  const summary = output([10]);
+  summary.bonusDice = [{ id: 'bonus', source: { kind: 'equipment', equipmentId: 'test' }, sourceName: '', bonusDamage: 2, label: '', description: '' }];
+  summary.repeatAttacks = [{ diceId: 'die-0', sourceDiceId: 'die-0', damage: 3 }];
+  const result = resolve([a, b], summary);
+  assert.equal(result.actionEnemies[1].hitsTaken, 2);
+  assert.equal(result.actionEnemies[1].hp, b.hp - 5);
+  b.hp = summary.bonusDice[0].bonusDamage;
+  const defeated = resolve([a, b], summary);
+  assert.deepEqual(defeated.events.map(event => event.enemy.id), [a.id, b.id, b.id]);
+  assert.deepEqual(defeated.events.map(event => event.damage), [10, 2, 3]);
+  assert.deepEqual(defeated.enemies.map(enemy => enemy.hp), [0, 0]);
+  assert.deepEqual(defeated.enemies.map(enemy => enemy.hitsTaken), [1, 1]);
+});
+test('hit armor expires once and cancels exactly one next action', () => {
+  const enemy = createEnemy('r2_iron'), layers = enemy.armor!;
+  const broken = resolve([enemy], output(Array(layers).fill(1)));
+  assert.equal(broken.enemies[0].armor, 0);
+  assert.equal(broken.hp, 1000);
+  assert.equal(broken.enemies[0].armorStun, false);
+  assert.ok(resolve(broken.enemies, output([1])).hp < broken.hp);
+});
+test('hook is avoidable by full blocking, removable through source damage or rerolls, and absorbed by shield', () => {
+  const source = createEnemy('r1_harpoon');
+  const intent = currentIntent(source); assert.ok('value' in intent && intent.grapple);
+  assert.equal(resolve([source], output([0], intent.value)).enemies[0].grapple, undefined);
+  const hooked = resolve([source], output([0])).enemies[0]; assert.ok(hooked.grapple);
+  const { breakDamage, damage, diceId } = hooked.grapple;
+  const struck = resolve([hooked], output([breakDamage]));
+  assert.ok(!struck.events.some(e => e.source === 'grapple'));
+  const rerolled = resolveEnemyRound([hooked], output(), [], { hp: 1000, shield: 0 }, { ...round, rerolledDice: [diceId] });
+  assert.ok(!rerolled.events.some(e => e.source === 'grapple'));
+  const absorbed = resolve([hooked], output([], damage));
+  const event = absorbed.events.find(e => e.source === 'grapple')!;
+  assert.equal(event.hp, 1000); assert.equal(event.shield, 0);
+});
+test('only ronin exposes after fully blocked attack, for precisely one player round', () => {
+  assert.equal(MONSTER_CONFIG.filter(e => e.intents.some(i => i.exposeOnBlock)).length, 1);
+  const enemy = createEnemy('r1_ronin'), intent = currentIntent(enemy); assert.ok('value' in intent);
+  assert.equal(resolve([enemy], output()).enemies[0].exposure, undefined);
+  const exposed = resolve([enemy], output([], intent.value)).enemies[0];
+  assert.equal(exposed.exposure, intent.exposeOnBlock);
+  assert.equal(resolvePlayerHit(exposed, 10).value, Math.ceil(10 * intent.exposeOnBlock!));
+  assert.equal(resolve([exposed], output()).enemies[0].exposure, undefined);
+});
+test('dual conditions grant independent partial credit and use generated shield, not remaining shield', () => {
+  const first = createEnemy('r2_first'), second = createEnemy('r2_second');
+  const firstIntent = currentIntent(first), secondIntent = currentIntent(second);
+  assert.ok('value' in firstIntent && 'value' in secondIntent);
+  const hits = firstIntent.hitWeaken!, shield = secondIntent.shieldWeaken!;
+  const hitOnly = resolve([first, second], output(Array(hits).fill(1)));
+  assert.equal(hitOnly.resolutions[first.id].damage, Math.floor(firstIntent.value / 2));
+  assert.equal(hitOnly.resolutions[second.id].hits, secondIntent.hits);
+  const both = resolve([first, second], output(Array(hits).fill(1), shield), first.id, 0);
+  assert.equal(both.resolutions[second.id].hits, secondIntent.hits! - 1);
+  const carriedOnly = resolve([first, second], output(), first.id, shield * 2);
+  assert.equal(carriedOnly.resolutions[second.id].hits, secondIntent.hits);
+});
+test('command affects survivors next round once, can be interrupted, and never buffs the current round', () => {
+  const leader = createEnemy('r2_chief'), minion = createEnemy('r2_blades');
+  const command = currentIntent(leader); assert.ok(command.command && command.counter?.type === 'damage_taken');
+  const result = resolve([leader, minion], output());
+  assert.equal(result.resolutions[minion.id].damage, resolveEnemyIntent(minion).damage);
+  assert.equal(result.enemies[1].strength, command.command);
+  const next = resolve(result.enemies, output());
+  assert.equal(next.resolutions[minion.id].damage, resolveEnemyIntent(minion).damage + command.command);
+  assert.equal(next.enemies[1].strength, 0);
+  const interrupted = resolve([leader, minion], output([command.counter.threshold]));
+  assert.equal(interrupted.enemies[1].strength, 0);
+});
+test('contraband deadline is the enemy action: player turn three can still secure the extra reward', () => {
+  let enemy = createEnemy('r2_market');
+  for (let n = 1; n < enemy.traits!.contraband!.deadline; n++) enemy = resolve([enemy], output()).enemies[0];
+  assert.equal(enemy.prizeLost, false);
+  assert.equal(resolve([enemy], output([enemy.hp])).enemies[0].prizeLost, false);
+  assert.equal(resolve([enemy], output()).enemies[0].prizeLost, true);
+});
+test('fury queues next round, ignores pending-round rerolls and resets after its heavy attack', () => {
+  const enemy = createEnemy('r3_warden'), rule = enemy.traits!.rerollFury!;
+  const result = resolveEnemyRound([enemy], output(), [], { hp: 1000, shield: 0 }, { ...round, manualRerolls: rule.threshold });
+  assert.equal(result.resolutions[enemy.id].damage, resolveEnemyIntent(enemy).damage);
+  assert.deepEqual(currentIntent(result.enemies[0]), rule.intent);
+  const next = resolveEnemyRound(result.enemies, output(), [], { hp: 1000, shield: 0 }, { ...round, manualRerolls: rule.threshold });
+  assert.equal(next.enemies[0].fury, 0); assert.equal(next.enemies[0].furyPending, false);
+});
+test('watch suppresses only the marked normal hit and manual reroll transfers it before automatic chains', () => {
+  const enemy = createEnemy('r3_prisoner'), summary = output([10, 10]);
+  summary.repeatAttacks = [{ diceId: 'die-0', sourceDiceId: 'die-0', damage: 10 }];
+  const result = resolveEnemyRound([enemy], summary, [], { hp: 1000, shield: 0 }, { ...round, watchedDieId: 'die-0' });
+  assert.deepEqual(result.events.filter(e => e.kind === 'player').map(e => e.damage), [5, 10, 10]);
+  const rolled = performStartBattleRoll(INITIAL_DICE_POOL, [], round, { control: 3, maxControl: 3, gold: 0, enemies: [enemy] }, 0, () => 0);
+  const state = { ...rolled, dicePool: INITIAL_DICE_POOL, equipments: [], enemies: [enemy], control: 3, maxControl: 3, gold: 0, combatPhase: 'CONTROL_PHASE' as const };
+  assert.equal(state.creatureBattleState.watchedDieId, INITIAL_DICE_POOL[1].id);
+  const reroll = performControlReroll(0, state, () => 0)!;
+  assert.ok(reroll.steps.every(step => step.state.manualRerolls === 1 && step.state.watchedDieId === INITIAL_DICE_POOL[0].id));
+});
+test('boss half-health transition happens at round boundary and fatigue does not loop back to strongest hit', () => {
+  const boss = createEnemy('r3_boss');
+  const hit = resolvePlayerHit(boss, Math.ceil(boss.hp / 2));
+  assert.equal(hit.enemy.phase, 0);
+  const next = finishEnemyRound(hit.enemy, resolveEnemyIntent(hit.enemy), false, 0);
+  assert.equal(next.phase, 1);
+  let tired = createEnemy('r2_club');
+  for (let n = 0; n < tired.intents.length + 1; n++) tired = finishEnemyRound(tired, resolveEnemyIntent(tired), false, 0);
+  assert.equal(tired.currentIntentIndex, tired.intents.length - 1);
 });
 
-test('藥劑在回合交界按血量預告，使用完畢後繼續攻擊', () => {
-  const enemy = createEnemy(MONSTER_CONFIG.find((entry) => entry.intents.some((intent) => intent.heal?.belowHp))!.id);
-  assert.equal(enemy.intents[0].type, 'attack');
-  const potion = enemy.intents.find((intent) => intent.heal?.belowHp)!;
-  const healthy = finishEnemyRound(enemy, resolveEnemyIntent(enemy), 0);
-  assert.equal(healthy.intents[healthy.currentIntentIndex].type, 'attack');
-  const wounded = { ...enemy, hp: enemy.maxHp * potion.heal!.belowHp! };
-  const next = finishEnemyRound(wounded, resolveEnemyIntent(wounded), 0);
-  assert.equal(next.intents[next.currentIntentIndex].name, potion.name);
-  const spent = finishEnemyRound({ ...wounded, healsUsed: { [potion.name]: potion.heal!.uses } }, resolveEnemyIntent(wounded), 0);
-  assert.equal(spent.intents[spent.currentIntentIndex].type, 'attack');
+test('automatic prankster chains add actual rerolls without moving watch or adding fury actions', async () => {
+  const { configuredDice } = await import('../../dice/diceFactory');
+  const pool = ['a', 'b'].map(id => configuredDice(id, id, 'd6', 'emerald', Array.from({ length: 6 }, () => ['prankster', 3])));
+  const state = { dicePool: pool, rolledIndices: [0, 0], equipments: [], combatPhase: 'CONTROL_PHASE' as const,
+    control: 3, maxControl: 3, gold: 0, creatureBattleState: { ...round, watchedDieId: 'b' } };
+  const result = performControlReroll(0, state, () => 0)!;
+  assert.ok(result.steps.length > 1);
+  assert.ok(result.steps.every(step => step.state.manualRerolls === 1 && step.state.watchedDieId === 'a'));
+  assert.equal(result.steps.at(-1)!.state.rerollCount, result.steps.length);
 });
 
-test('資深吞盾怪物在受傷後架盾，下一輪可破盾阻止恢復', () => {
-  const definition = MONSTER_CONFIG.find((entry) => entry.intents[0].type === 'defend'
-    && entry.intents[1].heal?.consumeShield)!;
-  const enemy = createEnemy(definition.id);
-  const first = resolveEnemyRound(enemy, attacks([enemy.maxHp / 2]), [], player, createCreatureBattleState());
-  assert.ok(first.enemy.hp < first.enemy.maxHp && first.enemy.shield > 0);
-  assert.ok(first.enemy.intents[first.enemy.currentIntentIndex].heal?.consumeShield);
-  const healed = resolveEnemyRound(first.enemy, attacks([]), [], player, createCreatureBattleState());
-  assert.ok(healed.enemy.hp > first.enemy.hp);
-  const broken = resolveEnemyRound(first.enemy, attacks([first.enemy.shield]), [], player, createCreatureBattleState());
-  assert.equal(broken.resolution.healing, 0);
-});
-
-test('吞盾只消耗真正恢復的量，受缺血、上限及使用次數限制', () => {
-  const enemy = withIntent((intent) => !!intent.heal?.consumeShield);
-  const intent = enemy.intents[enemy.currentIntentIndex];
-  const wounded = { ...enemy, hp: enemy.maxHp - intent.heal!.amount / 2 };
-  const result = resolveEnemyRound(wounded, attacks([]), [], player, createCreatureBattleState());
-  const gain = result.enemy.hp - wounded.hp;
-  assert.equal(gain, Math.min(intent.heal!.amount / 2, wounded.shield));
-  assert.equal(wounded.shield - result.enemy.shield, gain);
-  const exhausted = { ...wounded, healsUsed: { [intent.name]: intent.heal!.uses } };
-  assert.equal(resolveEnemyIntent(exhausted).healing, 0);
-});
-
-test('完整格擋首擊削弱後手，每段獨立消耗盾', () => {
-  const enemy = withIntent((intent) => !!intent.guardedFollowup);
-  const intent = enemy.intents[enemy.currentIntentIndex];
-  assert.ok('value' in intent);
-  const result = resolveEnemyRound(enemy, attacks([]), [], { ...player, shield: intent.value }, createCreatureBattleState());
-  const events = result.events.filter((event) => event.kind === 'enemy');
-  assert.equal(events.length, intent.hits);
-  assert.equal(events[0].hp, player.hp);
-  assert.ok(events.slice(1).every((event) => event.damage === Math.floor(intent.value * intent.guardedFollowup!)));
-  assert.ok(events.every((event) => Number.isInteger(event.damage) && Number.isInteger(event.hp) && Number.isInteger(event.shield)));
-  assert.equal(result.hp, player.hp - events.slice(1).reduce((sum, event) => sum + event.damage, 0));
-});
-
-test('敵方倍率完整相乘後才捨去，生命與盾扣除守恆', () => {
-  const enemy = withIntent((intent) => !!intent.guardedFollowup);
-  const intent = enemy.intents[enemy.currentIntentIndex];
-  assert.ok('value' in intent);
-  // Fractional fixture catches premature rounding between weakness and follow-up multipliers.
-  const value = intent.value + 0.75;
-  enemy.shield = 0;
-  enemy.intents[enemy.currentIntentIndex] = { ...intent, type: 'heavy_attack', value, guardedFollowup: 2,
-    counter: { type: 'shield_depleted', effect: 'halve' } };
-  const shield = Math.floor(value / 2);
-  const result = resolveEnemyRound(enemy, attacks([]), [], { ...player, shield }, createCreatureBattleState());
-  const events = result.events.filter((event) => event.kind === 'enemy');
-  assert.equal(events[0].damage, shield);
-  assert.ok(events.slice(1).every((event) => event.damage === Math.floor(value / 2 * 2)));
-  assert.equal(player.hp + shield - result.hp - result.shield, events.reduce((sum, event) => sum + event.damage, 0));
-});
-
-test('無盾加傷與持盾倍率都依當下護盾判斷', () => {
-  const enemy = withIntent((intent) => !!intent.unshieldedBonus);
-  const intent = enemy.intents[enemy.currentIntentIndex];
-  assert.equal(resolveEnemyIntent(enemy, 0, 0).damage - resolveEnemyIntent(enemy, 0, 1).damage, intent.unshieldedBonus);
-  const armored = withIntent((intent) => !!intent.shieldMultiplier);
-  const attack = armored.intents[armored.currentIntentIndex];
-  assert.equal(resolveEnemyIntent(armored).damage, resolveEnemyIntent({ ...armored, shield: 0 }).damage * attack.shieldMultiplier!);
-});
-
-test('封骰保留初擲，主動／老師／連鎖／翻面都不能改封鎖骰，下輪解除', () => {
-  const enemy = withIntent((intent) => !!intent.seal);
-  const result = resolveEnemyRound(enemy, attacks([]), [], player, createCreatureBattleState());
-  assert.ok(result.enemy.sealedDie);
-  const rolled = performStartBattleRoll(INITIAL_DICE_POOL, [], createCreatureBattleState(),
-    { control: INITIAL_PLAYER_STATS.maxControl, maxControl: INITIAL_PLAYER_STATS.maxControl, gold: 0, currentEnemy: result.enemy }, 0, () => 0);
-  assert.equal(rolled.rolledIndices.length, INITIAL_DICE_POOL.length);
-  const index = INITIAL_DICE_POOL.findIndex((die) => die.id === result.enemy.sealedDie);
-  const state = { ...rolled, combatPhase: 'CONTROL_PHASE' as const, dicePool: INITIAL_DICE_POOL,
-    equipments: ALL_EQUIPMENT_CATALOG, control: INITIAL_PLAYER_STATS.maxControl, maxControl: INITIAL_PLAYER_STATS.maxControl, gold: 0 };
-  assert.equal(performControlReroll(index, state), null);
-  assert.equal(performDiceAction('flip', index, state), null);
-  assert.deepEqual(resolveRerollChain(INITIAL_DICE_POOL, rolled.rolledIndices, rolled.creatureBattleState, index, [], () => 0, INITIAL_DICE_POOL[0].id), []);
-  const next = resolveEnemyRound(result.enemy, attacks([]), [], player, rolled.creatureBattleState);
-  assert.equal(next.enemy.sealedDie, undefined);
-  const unsealed = performStartBattleRoll(INITIAL_DICE_POOL, [], rolled.creatureBattleState,
-    { control: state.control, maxControl: state.maxControl, gold: 0, currentEnemy: next.enemy }, 0, () => 0);
-  assert.deepEqual(unsealed.creatureBattleState.sealedDice, []);
-});
-
-test('鉤索由額外重骰解除，翻面版本改變不會解除', () => {
-  const enemy = withIntent((intent) => !!intent.grapple);
-  const first = resolveEnemyRound(enemy, attacks([]), [], player, createCreatureBattleState());
-  const grapple = first.enemy.grapple!;
-  assert.ok(grapple);
-  const round = createCreatureBattleState();
-  const caught = resolveEnemyRound(first.enemy, attacks([]), [], player, { ...round, faceVersions: { [grapple.diceId]: 1 } });
-  const freed = resolveEnemyRound(first.enemy, attacks([]), [], player, { ...round, rerolledDice: [grapple.diceId] });
-  assert.equal(freed.hp - caught.hp, grapple.damage);
-});
-
-test('鱷文追加攻擊減少門檻；轉階段只在當輪招式結束之後', () => {
-  const boss = createEnemy(MONSTER_CONFIG.find((enemy) => enemy.phases)!.id);
-  const intent = boss.intents[0];
-  assert.ok('counter' in intent && intent.counter?.type === 'damage_taken');
-  const threshold = intent.counter.threshold;
-  const damage = threshold - intent.counter.bonusReduction!;
-  assert.equal(resolveEnemyIntent(boss, damage).counterTriggered, false);
-  assert.equal(resolveEnemyIntent({ ...boss, bonusHits: 1 }, damage).counterTriggered, true);
-  const weakened = { ...boss, hp: boss.maxHp * boss.phases![0].below };
-  const result = resolveEnemyRound(weakened, attacks([]), [], player, createCreatureBattleState());
-  assert.equal(result.events.find((event) => event.kind === 'enemy')?.damage, resolveEnemyIntent(weakened).damage);
-  assert.equal(result.enemy.phase, 1);
-  assert.equal(result.enemy.intents[0].name, boss.phases![0].intents[0].name);
-});
-
-test('鱷文重壓只在該輪真正破盾時暈眩，空盾進場不算', () => {
-  const boss = createEnemy(MONSTER_CONFIG.find((enemy) => enemy.phases)!.id);
-  const phase = boss.phases![0];
-  boss.intents = structuredClone([...phase.intents]) as Enemy['intents'];
-  boss.currentIntentIndex = boss.intents.findIndex((intent) => intent.stunOnBreak);
-  const empty = resolveEnemyRound({ ...boss, shield: 0 }, attacks([]), [], player, createCreatureBattleState());
-  const broken = resolveEnemyRound(boss, attacks([boss.shield]), [], player, createCreatureBattleState());
-  assert.ok(empty.events.some((event) => event.kind === 'enemy'));
-  assert.ok(broken.events.every((event) => event.kind === 'player'));
-});
-
-test('擊殺後追擊保留演出，不累積命中與破招收益', () => {
-  const enemy = withRule('hitArmor');
-  enemy.hp = 1; enemy.shield = 0; enemy.armor = 0;
-  const summary = attacks([1, 1, 1]);
-  const result = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
-  assert.equal(result.events.length, summary.bonusDice.length);
-  assert.equal(result.enemy.hitsTaken, 1);
-  assert.equal(result.enemy.bonusHits, 1);
-  assert.equal(result.enemy.roundDamage, enemy.hp);
-});
-
-test('連擊增傷在同輪累積，回合交界歸零', () => {
-  const enemy = withRule('comboVulnerability'); enemy.armor = 0;
-  const damage = enemy.maxHp / (enemy.intents.length * INITIAL_DICE_POOL.length);
-  const first = resolvePlayerHit(enemy, damage, false);
-  const second = resolvePlayerHit(first.enemy, damage, true);
-  assert.ok(second.value > first.value);
-  const next = finishEnemyRound(second.enemy, resolveEnemyIntent(second.enemy), 0);
-  assert.equal(resolvePlayerHit(next, damage, false).value, first.value);
-});
-
-test('鱷文橫掃只計不同的土人標籤，同標籤重複及食物均不增加種類', () => {
-  const enemy = createEnemy(MONSTER_CONFIG.find((entry) => entry.phases)!.id);
-  enemy.currentIntentIndex = enemy.intents.findIndex((intent) => intent.diverseTags);
-  const intent = enemy.intents[enemy.currentIntentIndex];
-  assert.ok('value' in intent);
-  const summary = attacks([]);
-  summary.items = summary.items.map((item) => ({ ...item, tags: ['common', 'food'] }));
-  const single = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
-  assert.equal(single.events[0].damage, intent.value);
-  summary.items[0].tags = ['common', 'warrior', 'craftsman', 'food'];
-  const diverse = resolveEnemyRound(enemy, summary, [], player, createCreatureBattleState());
-  assert.equal(diverse.events[0].damage, Math.floor(intent.value / 2));
+test('lethal reflection with simultaneous deaths remains player defeat input', () => {
+  const enemy = createEnemy('r1_patrol'); enemy.hp = 1;
+  const summary = output(); summary.reflection = 1;
+  const result = resolveEnemyRound([enemy], summary, [], { hp: 1, shield: 0 }, round);
+  assert.equal(result.hp, 0); assert.equal(result.enemies[0].hp, 0);
 });

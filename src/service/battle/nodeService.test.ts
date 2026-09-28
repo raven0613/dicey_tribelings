@@ -1,21 +1,37 @@
+import { REFRESH_CONFIG } from '../../configs/refreshConfig';
+import { getRefreshCost } from '../rewards/refreshService';
+import { CAMP_CONFIG } from '../../configs/campConfig';
+import { drawCampBuff, resolveCampChoice } from '../camp/campService';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ALL_EQUIPMENT_CATALOG } from '../../configs/gameConfig';
 import { SHOP_CONFIG } from '../../configs/shopConfig';
-import { generateShopStock } from './nodeService';
+import { generateShopStock } from '../shop/shopStock';
+import { stickerKey } from '../rewards/refreshService';
+test('shops supply permanent and temporary faces, and refresh excludes only the current stock', () => {
+  const owned = [ALL_EQUIPMENT_CATALOG[0]], random = () => 0;
+  const a = generateShopStock(owned, 1, random);
+  assert.equal(a.shopStickers.filter(item => !item.isDisposable).length, SHOP_CONFIG.permanentStockCount);
+  assert.equal(a.shopStickers.filter(item => item.isDisposable).length, SHOP_CONFIG.stickerStockCount);
+  assert.ok(a.shopEquipments.every(item => item.id !== owned[0].id));
+  const b = generateShopStock(owned, 1, random, a);
+  assert.ok(b.shopStickers.every(item => !a.shopStickers.some(old => stickerKey(old) === stickerKey(item))));
+  assert.ok(b.shopEquipments.every(item => !a.shopEquipments.some(old => old.id === item.id)));
+  const c = generateShopStock(owned, 1, random, b);
+  assert.ok(c.shopStickers.some(item => a.shopStickers.some(old => stickerKey(old) === stickerKey(item))));
+});
 
-test('ordinary shops stock only disposable stickers and unowned equipment', () => {
-  const owned = [ALL_EQUIPMENT_CATALOG[0]];
-  const stock = generateShopStock(owned, () => 0);
-  assert.equal(stock.shopStickers.length, SHOP_CONFIG.stickerStockCount);
-  assert.equal(stock.shopStickers.filter((item) => item.creature === 'directional').length, 1);
-  const atBoundary = generateShopStock(owned, () => SHOP_CONFIG.directionalChance);
-  assert.equal(atBoundary.shopStickers.length, SHOP_CONFIG.stickerStockCount);
-  assert.ok(atBoundary.shopStickers.every((item) => item.creature !== 'directional'));
-  const belowBoundary = generateShopStock(owned, () => SHOP_CONFIG.directionalChance - Number.EPSILON);
-  assert.equal(belowBoundary.shopStickers.filter((item) => item.creature === 'directional').length, 1);
-
-  assert.ok(stock.shopStickers.every((sticker) => sticker.isDisposable));
-  assert.ok(stock.shopEquipments.every((equipment) => equipment.id !== owned[0].id));
-  assert.equal(new Set(stock.shopStickers.map((sticker) => sticker.id)).size, stock.shopStickers.length);
+test('camp choices cap recovery, charge full healing exactly once and refresh only excludes the current buff', () => {
+  const state = { playerHp: 1, maxHp: 60, gold: CAMP_CONFIG.fullHealCost, campOffer: 'ward' as const };
+  assert.deepEqual(resolveCampChoice('heal', state), { playerHp: state.playerHp + CAMP_CONFIG.healAmount });
+  assert.deepEqual(resolveCampChoice('heal', { ...state, playerHp: state.maxHp - 1 }), { playerHp: state.maxHp });
+  assert.deepEqual(resolveCampChoice('fullHeal', state), { playerHp: state.maxHp, gold: 0 });
+  assert.equal(resolveCampChoice('fullHeal', { ...state, gold: CAMP_CONFIG.fullHealCost - 1 }), null);
+  assert.deepEqual(resolveCampChoice('buff', state), { campBuff: state.campOffer });
+  for (const choice of ['heal', 'fullHeal'] as const)
+    assert.equal(resolveCampChoice(choice, { ...state, playerHp: state.maxHp }), null);
+  const a = drawCampBuff(null, () => 0), b = drawCampBuff(a, () => 0);
+  assert.notEqual(a, b);
+  assert.equal(drawCampBuff(b, () => 0), a);
+  assert.equal(getRefreshCost('camp', 2), REFRESH_CONFIG.camp * 3);
 });

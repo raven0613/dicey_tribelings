@@ -2,7 +2,7 @@ import type { FaceMaterial } from './materials';
 import type { AttackStage, BonusAttackDice } from './game';
 import type { CreatureId, CreatureTag } from './creatures';
 
-export type EnemyDamageSource = 'intent' | 'retaliation' | 'grapple';
+export type EnemyDamageSource = 'intent' | 'grapple';
 export interface CombatImpact {
   kind: 'player' | 'enemy' | 'reflection';
   source?: EnemyDamageSource;
@@ -51,7 +51,7 @@ export interface SkillChange {
 }
 
 export interface SkillEvent {
-  skill: CreatureId | 'storage' | 'princessReady' | 'equipment' | 'material';
+  skill: CreatureId | 'storage' | 'princessReady' | 'equipment' | 'material' | 'camp';
   activated: boolean;
   relation: 'support' | 'adjacent' | 'robbery' | 'attack';
   id: string;
@@ -70,7 +70,7 @@ export interface SkillEvent {
 }
 
 export interface RepeatAttack { diceId: string; damage: number; sourceDiceId: string; label?: string }
-export interface BattleContext { foodCapacity?: number;  control: number; maxControl: number; gold: number; currentEnemy?: import('./enemy').Enemy | { shield: number } | null }
+export interface BattleContext { campBuff?: import('./camp').CampBuffId | null; foodCapacity?: number;  control: number; maxControl: number; gold: number; enemies?: import('./enemy').Enemy[]; selectedEnemyId?: string | null; targetShield?: number }
 
 export interface BattleComboSummary {
   items: CalculatedRollItem[];

@@ -25,5 +25,5 @@ export const CREATURE_BALANCE = {
   bully: { stolenFraction: 0.5, multiplier: 1.2, craftsmanMultiplier: 2 },
   detective: { multiplier: 1.2 },
   herald: { threshold: 10, bonusPerAttack: 1, highBonus: 2, bonusDiceDamage: 1 },
-  princess: { packLimit: 2, packChance: 0.05, guaranteedNode: 2 },
+  princess: { packLimit: 2, packChance: 0.05, guaranteedNode: 15 },
 } as const;

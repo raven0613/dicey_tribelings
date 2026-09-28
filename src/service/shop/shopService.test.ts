@@ -1,3 +1,4 @@
+import { SHOP_CONFIG } from '../../configs/shopConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateHealPurchase, getEquipmentOffer, getStickerOffer } from './shopService';
@@ -34,7 +35,7 @@ test('uses the configured equipment price', () => {
 });
 
 test('healing clamps health and charges only for a valid purchase', () => {
-  assert.deepEqual(calculateHealPurchase(20, 80, 100), { gold: 0, playerHp: 100 });
-  assert.equal(calculateHealPurchase(19, 80, 100), null);
-  assert.equal(calculateHealPurchase(20, 100, 100), null);
+  assert.deepEqual(calculateHealPurchase(SHOP_CONFIG.healCost, 100 - SHOP_CONFIG.healAmount + 1, 100), { gold: 0, playerHp: 100 });
+  assert.equal(calculateHealPurchase(SHOP_CONFIG.healCost - 1, 100 - SHOP_CONFIG.healAmount, 100), null);
+  assert.equal(calculateHealPurchase(SHOP_CONFIG.healCost, 100, 100), null);
 });

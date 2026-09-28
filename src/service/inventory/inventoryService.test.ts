@@ -19,7 +19,7 @@ const permanentSticker: PermanentSticker = {
   creature: 'boss',
   description: '孩子王12',
   rarity: 'rare',
-  region: 5,
+  region: 3,
 };
 
 const disposableSticker: DisposableSticker = {

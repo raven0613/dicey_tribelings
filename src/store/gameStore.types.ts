@@ -1,3 +1,4 @@
+import type { DiceRecipe } from '../configs/creatures/diceRecipeConfig';
 import type { CombatImpact, EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
@@ -68,7 +69,10 @@ export interface GameState {
   currentNodeIndex: number;
   routeChoices: number[];
   chooseRoute: (nodeId: number) => void;
-  currentEnemy: Enemy | null;
+  enemies: Enemy[];
+  selectedEnemyId: string | null;
+  activeEnemyId: string | null;
+  selectEnemy: (enemyId: string) => void;
   combatPhase: CombatPhase;
   rolledIndices: number[];
   comboSummary: BattleComboSummary | null;
@@ -103,7 +107,16 @@ export interface GameState {
   screenShakeIntensity: number;
   soundMuted: boolean;
   selectedDiceForInspect: Dice | null;
-  unlockedDiceNotification: Dice | null;
+  diceRewardOptions: DiceRecipe[];
+  diceRefreshes: number;
+  lootRefreshes: number;
+  shopRefreshes: number;
+  extraReward: import('../types/game').PermanentSticker | null;
+  chooseRewardDice: (recipeId: string) => void;
+  refreshDiceReward: () => void;
+  refreshBattleRewards: () => void;
+  refreshShop: () => void;
+  beginExtraReward: () => void;
   openedPackResult: PackRevealState | null;
   stickerFlow: StickerFlow | null;
   pendingShopSticker: PendingShopSticker | null;
@@ -111,7 +124,11 @@ export interface GameState {
   equipmentSlotFeedback: EquipmentSlotFeedback | null;
   battleRewardOptions: BattleRewardOption[];
   battleRewardPickCount: number;
-  battleRecovery: number;
+  campBuff: import('../types/camp').CampBuffId | null;
+  campOffer: import('../types/camp').CampBuffId | null;
+  campRefreshes: number;
+  chooseCamp: (choice: import('../types/camp').CampChoice) => void;
+  refreshCamp: () => void;
   chestRewardOptions: ChestRewardOption[];
   shopStickers: StickerItem[];
   shopEquipments: Equipment[];
@@ -149,5 +166,5 @@ export interface GameState {
   restartGame: () => void;
   openDiceInspect: (dice: Dice) => void;
   closeDiceInspect: () => void;
-  dismissDiceNotification: () => void;
+
 }

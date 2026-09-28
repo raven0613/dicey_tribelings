@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { openStickerPack } from './packService';
-import { STICKER_PACKS_CATALOG, FINAL_STICKER_PACK } from '../../configs/stickerPacksConfig';
+import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
 import { REGION_IDS } from '../../configs/regions/regionConfig';
 
 test('packs fulfill their permanent allocation and theme at the current regional quality', () => {
-  for (const region of REGION_IDS) for (const pack of [...STICKER_PACKS_CATALOG, FINAL_STICKER_PACK]) {
+  for (const region of REGION_IDS) for (const pack of STICKER_PACKS_CATALOG) {
     const result = openStickerPack(pack.id, region, () => 0.5);
     assert.equal(result.stickers.length, pack.stickerCount);
     assert.equal(new Set(result.stickers.map((item) => item.id)).size, pack.stickerCount);
@@ -19,14 +19,14 @@ test('packs fulfill their permanent allocation and theme at the current regional
 });
 test('princess allocation is separate from regional quality and stops after two royal drops', () => {
   for (const count of [0, 1, 2]) {
-    const items = openStickerPack('pack_royal', 6, () => 0, count).stickers;
+    const items = openStickerPack('pack_royal', 3, () => 0, count).stickers;
     assert.equal(items.filter((item) => item.creature === 'princess').length, count < 2 ? 1 : 0);
   }
-  assert.ok(openStickerPack('pack_tribe', 6, () => 0).stickers.every((item) => item.creature !== 'princess'));
+  assert.ok(openStickerPack('pack_tribe', 3, () => 0).stickers.every((item) => item.creature !== 'princess'));
 });
 
 test('each special pack coats exactly one permanent sticker and preserves temporary stickers', () => {
-  for (const pack of [...STICKER_PACKS_CATALOG, FINAL_STICKER_PACK]) {
+  for (const pack of STICKER_PACKS_CATALOG) {
     let count = 0;
     const result = openStickerPack(pack.id, 1, () => count++ === 0 ? 0.995 : 0.5);
     assert.equal(result.stickers.filter((s) => s.isDisposable === false && s.material).length, 1);

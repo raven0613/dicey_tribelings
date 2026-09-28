@@ -1,8 +1,7 @@
 @use '../variables' as *;
 
 .pack-result-card,
-.replacement-card,
-.dice-unlock-card {
+.replacement-card {
   width: 100%;
   max-width: 60rem;
   max-height: calc(var(--game-height) - 2rem);
@@ -13,20 +12,6 @@
   background: $slate-900;
   color: $slate-100;
   box-shadow: $shadow-2xl;
-}
-
-.dice-unlock-card {
-  max-width: 28rem;
-  text-align: center;
-
-  .modal-icon-badge {
-    width: fit-content;
-    margin: 0 auto 0.75rem;
-  }
-
-  h2 { color: $amber-300; }
-  h3 { margin: 0.5rem 0; }
-  p { color: $slate-300; }
 }
 
 .btn-primary-modal,

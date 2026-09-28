@@ -19,6 +19,7 @@ export interface DiceFace {
 }
 
 export interface Dice {
+  recipeId?: string;
   id: string;
   name: string;
   dieType: 'd6' | 'd4' | 'd8' | 'd10' | 'd12';
@@ -98,9 +99,7 @@ export type BattleRewardOption =
   | { id: string; kind: 'sticker'; sticker: PermanentSticker }
   | { id: string; kind: 'stickerPack'; pack: StickerPack };
 
-export type ChestRewardOption =
-  | { id: string; kind: 'equipment'; equipment: Equipment }
-  | { id: string; kind: 'stickerPack'; pack: StickerPack };
+export type ChestRewardOption = { id: string; kind: 'equipment'; equipment: Equipment };
 
 export interface TemporaryStickerPlacement {
   consumable: ConsumableSticker;
@@ -111,18 +110,17 @@ export interface TemporaryStickerPlacement {
 
 export type { Enemy, EnemyIntent } from './enemy';
 
-export type MapNodeType = 'fight' | 'chest' | 'shop' | 'elite' | 'boss' | 'pack';
+export type MapNodeType = 'fight' | 'chest' | 'shop' | 'elite' | 'boss' | 'camp';
 
 export interface MapNode {
   next: number[];
   skipped?: boolean;
-  route?: 'safe' | 'challenge';
+  route?: 'safe' | 'challenge' | 'camp' | 'combat';
   id: number;
   region: RegionId;
   regionNode: number;
-  packId?: string;
   type: MapNodeType;
-  enemyId?: string;
+  enemyIds?: string[];
   title: string;
   description: string;
   completed: boolean;
@@ -142,6 +140,7 @@ export type CombatPhase =
 export type AttackStage = 'idle' | 'windup' | 'dash' | 'impact' | 'recoil';
 
 export interface DamagePopInput {
+  enemyId?: string;
   value: number;
   creature?: CreatureId;
 }

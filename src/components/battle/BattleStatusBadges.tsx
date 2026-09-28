@@ -13,12 +13,12 @@ export function ExposureBadge({ multiplier, before, after }: { multiplier: numbe
   </span>;
 }
 
-export function DieStatusBadge({ sealed, damage }: { sealed?: boolean; damage?: number }) {
-  const { tooltip, tooltipProps } = useSkillTooltip(sealed ? '本回合無法重骰或翻面。'
-    : `重骰此骰可解除鉤索，否則受到 ${damage} 拉扯傷害。`);
+export function DieStatusBadge({ sealed, damage, breakDamage, watched }: { sealed?: boolean; damage?: number; breakDamage?: number; watched?: boolean }) {
+  const { tooltip, tooltipProps } = useSkillTooltip(watched ? '本回合普通攻擊減半。玩家主動重骰哪顆就改盯哪顆，重骰這顆則繼續被盯防；自動連鎖維持原目標，技能、追加及再攻擊照常。' : sealed ? '本回合無法重骰或翻面。'
+    : `額外重骰此骰，或本輪對鉤索來源造成 ${breakDamage} 傷害可解除；剩餘 ${damage} 拉扯傷害可用護盾吸收。`);
   return <span className="battle-status-badge die-status-badge" tabIndex={0} {...tooltipProps}
-    aria-label={sealed ? '重骰封鎖' : '鉤索'}>
-    {sealed ? <LockKeyhole className="ui-icon" /> : <svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="16" cy="4" r="2" /><path d="M16 6v10a6 6 0 0 1-12 0v-5l4 4" /></svg>}{tooltip}
+    aria-label={watched ? '盯防' : sealed ? '重骰封鎖' : '鉤索'}>
+    {watched ? <Crosshair className="ui-icon" /> : sealed ? <LockKeyhole className="ui-icon" /> : <svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="16" cy="4" r="2" /><path d="M16 6v10a6 6 0 0 1-12 0v-5l4 4" /></svg>}{tooltip}
   </span>;
 }
 

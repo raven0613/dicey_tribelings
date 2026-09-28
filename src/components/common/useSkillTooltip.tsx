@@ -1,9 +1,10 @@
 import { useGameViewport } from '../layout/GameViewportContext';
 import { getGameRect } from '../../service/layout/gameViewport';
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { SkillText } from './SkillText';
+import { useTooltipDismissal } from './useTooltipDismissal';
 import { SKILL_TOOLTIP_PRESENTATION as config } from '../../configs/skillTooltipConfig';
 
 export function useSkillTooltip(content: ReactNode, options: { interactive?: boolean; className?: string } = {}) {
@@ -11,19 +12,9 @@ export function useSkillTooltip(content: ReactNode, options: { interactive?: boo
   const mobile = Boolean(options.interactive && viewport.mobile);
   const id = useId();
   const panel = useRef<HTMLDivElement>(null);
-  const [anchor, setAnchor] = useState<ReturnType<typeof getGameRect> | null>(null);
-  const dismiss = () => setAnchor(null);
-  useEffect(() => {
-    window.addEventListener('resize', dismiss);
-    window.addEventListener('scroll', dismiss, true);
-    return () => { window.removeEventListener('resize', dismiss); window.removeEventListener('scroll', dismiss, true); };
-  }, []);
-  useEffect(() => {
-    if (!anchor) return;
-    const escape = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') dismiss(); };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [anchor]);
+  const [anchor, setAnchor] = useState<(ReturnType<typeof getGameRect> & { source: HTMLElement }) | null>(null);
+  const dismiss = useCallback(() => setAnchor(null), []);
+  useTooltipDismissal(anchor?.source ?? null, dismiss);
   useLayoutEffect(() => {
     const element = panel.current;
     if (!element || !anchor) return;
@@ -43,7 +34,8 @@ export function useSkillTooltip(content: ReactNode, options: { interactive?: boo
     observer.observe(element);
     return () => observer.disconnect();
   }, [anchor, mobile, viewport.width, viewport.height, content]);
-  const show = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => setAnchor(getGameRect(event.currentTarget));
+  const show = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) =>
+    setAnchor({ ...getGameRect(event.currentTarget), source: event.currentTarget });
   const tooltip = anchor && viewport.overlay && createPortal(<>
     {mobile && <div className="skill-tooltip-dismiss-layer" onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); dismiss(); }} />}
     <div ref={panel} id={id} role={mobile ? 'dialog' : 'tooltip'} aria-label={mobile ? '骰面完整說明' : undefined}

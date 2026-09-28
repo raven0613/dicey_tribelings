@@ -8,7 +8,7 @@ import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanc
 import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
 import type { CreatureId } from '../../../types/creatures';
-const base = createPermanentSticker('family', 6).baseValue;
+const base = createPermanentSticker('family', 3).baseValue;
 const die = (id: string, role: CreatureId, value = base) => configuredDice(id, id, 'd6', 'amber', Array.from({ length: 6 }, () => [role, value]));
 const resolve = (pool: ReturnType<typeof die>[], state = createCreatureBattleState()) => calculateRollResolution(pool, pool.map(() => 0), [], state);
 

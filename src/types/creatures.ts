@@ -25,10 +25,13 @@ export interface AuthorityTarget { diceId: string; version: number }
 
 export interface CreatureBattleState {
   round: number;
+  manualRerolls: number;
+  watchedDieId?: string;
   rollOrigins: Record<string, number>;
   sealedDice?: string[];
   rerolledDice?: string[];
   imposterTargets: Record<string, CreatureId>;
+  imposterCandidates: Record<string, CreatureId[]>;
   echoUsed: string[];
   rerollEchoes?: { diceId: string; skill: CreatureId }[];
   gildedFaces: string[];

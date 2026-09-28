@@ -14,6 +14,7 @@ interface StoryState {
   leaveChest: () => void;
   unlockTemporary: () => void;
   beginRun: () => void;
+  returnToMenu: () => void;
   previewEnding: () => void;
   resetRecords: () => void;
 }
@@ -44,6 +45,7 @@ export const useStoryStore = create<StoryState>()(persist((set, get) => ({
     set({ screen: 'game', queue: [], preview: false });
     get().enqueue('intro');
   },
+  returnToMenu: () => set({ screen: 'menu', queue: [], preview: false }),
   previewEnding: () => set({ screen: 'menu', queue: ['ending'], preview: true }),
   resetRecords: () => {
     usePreferencesStore.getState().resetPreferences();

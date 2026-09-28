@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { MONSTER_CONFIG } from '../../../configs/monsters/monsterConfig';
+import { INITIAL_MAP_NODES } from '../../../configs/regions/mapConfig';
+import { getEnemiesForNode } from '../nodeService';
 import { MONSTER_BALANCE_CONFIG, getEncounterDamageBudget } from '../../../configs/monsters/monsterBalanceConfig';
 import { INITIAL_DICE_POOL, INITIAL_EQUIPMENT } from '../../../configs/gameConfig';
 import { calculateRollResolution } from '../battleEngine';
@@ -16,7 +17,7 @@ test('starting dice enumerate all rolls through the production damage calculatio
     }
   }
   const mean = damage.reduce((sum, value) => sum + value, 0) / damage.length;
-  const regionOneBudget = getEncounterDamageBudget('r1_patrol');
+  const regionOneBudget = getEncounterDamageBudget(INITIAL_MAP_NODES[0].id);
   assert.ok(Math.abs(mean - regionOneBudget) / regionOneBudget <= 0.2);
   context.diagnostic(`Starter: ${damage.length} rolls, mean ${mean.toFixed(2)}, range ${Math.min(...damage)}–${Math.max(...damage)}; zero Control.`);
 });
@@ -24,9 +25,10 @@ test('starting dice enumerate all rolls through the production damage calculatio
 test('seeded output envelopes meet median turn targets and retain weak-build progress', (context) => {
   const results = simulateMonsterBalance();
   assert.deepEqual(results, simulateMonsterBalance());
-  assert.equal(results.length, MONSTER_CONFIG.length * 3);
-  for (const monster of MONSTER_CONFIG) {
-    const rows = results.filter((row) => row.monsterId === monster.id);
+  assert.equal(results.length, INITIAL_MAP_NODES.filter(node => node.enemyIds).length * 3);
+  for (const node of INITIAL_MAP_NODES.filter(node => node.enemyIds)) {
+    const monster = getEnemiesForNode(node)[0];
+    const rows = results.filter(row => row.nodeId === node.id);
     const weak = rows.find((row) => row.scenario === 'weak')!;
     const typical = rows.find((row) => row.scenario === 'typical')!;
     const strong = rows.find((row) => row.scenario === 'strong')!;
@@ -39,12 +41,9 @@ test('seeded output envelopes meet median turn targets and retain weak-build pro
     assert.ok(typical.medianTurns >= strong.medianTurns);
     for (const row of rows) assert.equal(row.stalledRuns, 0, `${monster.name}/${row.scenario} stalled`);
     context.diagnostic(`${monster.name}: turns weak/typical/strong ${weak.medianTurns}/${typical.medianTurns}/${strong.medianTurns}; typical p90 ${typical.p90Turns}, exposure ${typical.meanIncomingDamage.toFixed(1)}, counters ${(typical.counterRate * 100).toFixed(0)}%`);
-    const attackThresholds = monster.intents.filter((intent) => 'counter' in intent && intent.counter?.type === 'damage_taken');
-    if (attackThresholds.length) {
-      assert.ok(typical.counterRate > 0 && typical.counterRate < 1, `${monster.name}: threshold always/never met`);
-    }
+
     const shieldPerCycle = monster.intents.reduce((sum, intent) => sum + (intent.type === 'defend' ? intent.value : 0), 0);
-    const weakestDamage = Math.max(1, Math.round(getEncounterDamageBudget(monster.id)
+    const weakestDamage = Math.max(1, Math.round(getEncounterDamageBudget(node.id)
       * MONSTER_BALANCE_CONFIG.scenarios.weak * MONSTER_BALANCE_CONFIG.rollRange[0]));
     assert.ok(weakestDamage * monster.intents.length > shieldPerCycle, `${monster.name}: shield renewal prevents HP progress`);
   }

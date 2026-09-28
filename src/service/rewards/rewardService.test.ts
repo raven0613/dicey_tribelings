@@ -6,7 +6,6 @@ import { createPermanentSticker } from '../../configs/creatures/creatureStickerC
 import { CREATURE_CONFIG, CREATURE_IDS } from '../../configs/creatures/creatureConfig';
 import { REGION_CONFIG, REGION_IDS } from '../../configs/regions/regionConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../configs/equipment/equipmentConfig';
-import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
 
 test('each region supplies distinct permanent choices and elite/boss provide two picks from five', () => {
   for (const region of REGION_IDS) for (const rank of ['normal', 'elite', 'boss'] as const) {
@@ -22,17 +21,17 @@ test('each region supplies distinct permanent choices and elite/boss provide two
       }
     }
   }
-  assert.deepEqual(generateBattleRewardOptions(6, 'final_boss'), []);
-  assert.equal(getBattleRewardCount('final_boss'), 0);
+  assert.equal(generateBattleRewardOptions(3, 'final_boss').length, 5);
+  assert.equal(getBattleRewardCount('final_boss'), 2);
 });
 
 test('regional quality changes base value while species rarity remains fixed', () => {
   for (const creature of CREATURE_IDS) {
-    const first = createPermanentSticker(creature, 1), last = createPermanentSticker(creature, 6);
+    const first = createPermanentSticker(creature, 1), last = createPermanentSticker(creature, 3);
     assert.equal(first.rarity, CREATURE_CONFIG[creature].rarity);
     assert.equal(first.rarity, last.rarity);
     assert.equal(last.baseValue - first.baseValue, creature === 'princess' ? 0
-      : REGION_CONFIG[6].stickerBonus - REGION_CONFIG[1].stickerBonus);
+      : REGION_CONFIG[3].stickerBonus - REGION_CONFIG[1].stickerBonus);
   }
 });
 
@@ -42,9 +41,9 @@ test('jackpot substitutes one normal choice and advanced rewards remain permanen
     assert.ok(generateBattleRewardOptions(1, rank, () => 0).every((item) => item.kind === 'sticker'));
 });
 
-test('chests guarantee an equipment candidate even when random draws favor packs', () => {
-  const options = generateChestRewardOptions(ALL_EQUIPMENT_CATALOG, STICKER_PACKS_CATALOG, () => 0.99);
-  assert.equal(options[0].kind, 'equipment');
+test('chests offer distinct unowned equipment choices', () => {
+  const options = generateChestRewardOptions(ALL_EQUIPMENT_CATALOG, () => 0.99);
+  assert.ok(options.every(option => option.kind === 'equipment'));
   assert.equal(options.length, 3);
   assert.equal(new Set(options.map((item) => item.id)).size, 3);
 });

@@ -1,7 +1,7 @@
 import { resolveLandingFace } from '../dice/directionalFaces';
 import { getPaidRerollCost } from './rerollCost';
 import { EQUIPMENT_ACTIONS } from '../../configs/equipment/equipmentActionConfig';
-import { lockImposterTargets, getRoundFace } from './creatures/imposterResolution';
+import { refreshImposterTargets, getRoundFace } from './creatures/imposterResolution';
 import type { Enemy, Dice, Equipment, CombatPhase } from '../../types/game';
 import { predetermineRollResults, calculateRollResolution } from './battleEngine';
 import type { CreatureBattleState } from '../../types/creatures';
@@ -14,7 +14,8 @@ import { getDiceGeometry } from '../dice/diceGeometry';
 import { soundService } from '../audio/soundService';
 
 export interface RollState {
-  currentEnemy?: Enemy | null;
+  campBuff?: import('../../types/camp').CampBuffId | null;
+  enemies?: Enemy[]; selectedEnemyId?: string | null;
   control: number; maxControl: number; gold: number; dicePool: Dice[]; rolledIndices: number[];
   equipments: Equipment[]; combatPhase: CombatPhase; creatureBattleState: CreatureBattleState;
 }
@@ -28,12 +29,15 @@ export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[]
   let round = startCreatureRound(state, Math.floor(random() * 0xffffffff));
   round.rollOrigins = Object.fromEntries(dicePool.map((die, i) => [die.id, origins[i]]));
   round.virtualFood = virtualFood;
-  round.sealedDice = battle.currentEnemy && 'sealedDie' in battle.currentEnemy && battle.currentEnemy.sealedDie ? [battle.currentEnemy.sealedDie] : [];
+  round.sealedDice = battle.enemies?.filter(enemy => enemy.hp > 0 && enemy.sealedDie).map(enemy => enemy.sealedDie!) ?? [];
+  if (battle.enemies?.some(enemy => enemy.hp > 0 && enemy.traits?.watch))
+    round.watchedDieId = dicePool.reduce((best, die, index) =>
+      getEffectiveFace(die.faces[rolledIndices[index]]).baseValue > getEffectiveFace(best.faces[rolledIndices[dicePool.indexOf(best)]]).baseValue ? die : best).id;
   if (state.round === 0) for (const die of dicePool) {
     if (die.faces.some((face) => getEffectiveFace(face).creature === 'priest')) round.altars[die.id] = 0;
   }
   round.rerolledDice = [];
-  round = lockImposterTargets(dicePool, rolledIndices, round);
+  round = refreshImposterTargets(dicePool, rolledIndices, round);
   round.teachersAvailable = dicePool.filter((die, index) => getRoundFace(die, rolledIndices[index], round).creature === 'teacher').map((die) => die.id);
   round = refreshAuthorityTargets(dicePool, rolledIndices, equipments, round);
   soundService.playDiceRoll();
@@ -65,6 +69,8 @@ export function performControlReroll(dieIndex: number, state: RollState, random 
   const cost = teacherId || paid ? 0 : 1;
   const round = { ...state.creatureBattleState, controlSpent: state.creatureBattleState.controlSpent + cost,
     paidRerolls: state.creatureBattleState.paidRerolls + Number(paid),
+    manualRerolls: state.creatureBattleState.manualRerolls + 1,
+    watchedDieId: state.creatureBattleState.watchedDieId ? state.dicePool[dieIndex].id : undefined,
     paidRerollUsed: state.creatureBattleState.paidRerollUsed || paid,
     seed: Math.floor(random() * 0xffffffff) };
   const steps = resolveRerollChain(state.dicePool, state.rolledIndices, round, dieIndex, state.equipments, random, teacherId);

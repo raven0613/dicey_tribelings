@@ -1,27 +1,28 @@
+import { useStoryStore } from '../../store/storyStore';
 import { useShallow } from 'zustand/react/shallow';
 import { CHAPTER_END_NODE, ROUTE_CONFIG } from '../../configs/regions/mapConfig';
 import { BATTLE_LIMIT } from '../../configs/battleConfig';
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { Skull, Trophy, RotateCcw } from 'lucide-react';
+import { Skull, Trophy, House } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const GameOverModal: React.FC = () => {
-  const { combatPhase, restartGame, dicePool, equipments, currentNodeIndex, currentEnemy, mapNodes, creatureBattleState, playerHp } = useGameStore(useShallow((state) => ({
+  const { combatPhase, dicePool, equipments, currentNodeIndex, leader, mapNodes, creatureBattleState, playerHp } = useGameStore(useShallow((state) => ({
     combatPhase: state.combatPhase,
-    restartGame: state.restartGame,
     dicePool: state.dicePool,
     equipments: state.equipments,
     currentNodeIndex: state.currentNodeIndex,
-    currentEnemy: state.currentEnemy,
+    leader: state.enemies[0],
     mapNodes: state.mapNodes,
     creatureBattleState: state.creatureBattleState,
     playerHp: state.playerHp,
   })));
 
+  const returnToMenu = useStoryStore(state => state.returnToMenu);
   const timedOut = creatureBattleState.round >= BATTLE_LIMIT.rounds && playerHp > 0;
   const isDefeat = combatPhase === 'DEFEAT';
-  const isFinalVictory = combatPhase === 'VICTORY' && currentEnemy?.isBoss && mapNodes[currentNodeIndex].id === CHAPTER_END_NODE;
+  const isFinalVictory = combatPhase === 'VICTORY' && leader?.isBoss && mapNodes[currentNodeIndex].id === CHAPTER_END_NODE && mapNodes[currentNodeIndex].completed;
 
   React.useEffect(() => {
     if (isFinalVictory) {
@@ -65,7 +66,7 @@ export const GameOverModal: React.FC = () => {
         <div className="stats-summary-card">
           <div className="stat-row">
             <span className="label">抵達節點：</span>
-            <span className="val">第 {mapNodes.filter((node) => node.completed).length + 1} 格</span>
+            <span className="val">第 {mapNodes.filter((node) => node.completed).length + Number(!mapNodes[currentNodeIndex].completed)} 格</span>
           </div>
           <div className="stat-row">
             <span className="label">骰池規模：</span>
@@ -78,11 +79,11 @@ export const GameOverModal: React.FC = () => {
         </div>
 
         <button
-          onClick={restartGame}
-          className="btn-restart"
+          onClick={returnToMenu}
+          className="btn-return-menu"
         >
-          <RotateCcw className="ui-icon" />
-          <span>重新開始冒險 (New Run)</span>
+          <House className="ui-icon" />
+          <span>回到主選單</span>
         </button>
       </div>
     </div>

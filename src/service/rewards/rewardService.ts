@@ -1,24 +1,21 @@
+import { sampleDistinct } from './refreshService';
 import { rollMaterialTier, assignRewardMaterial } from './materialRewards';
-import type { BattleRewardOption, ChestRewardOption, Equipment, PermanentSticker, StickerPack } from '../../types/game';
+import type { BattleRewardOption, ChestRewardOption, Equipment, PermanentSticker } from '../../types/game';
 import type { RegionId, EnemyRank } from '../../types/enemy';
 import { ALL_STICKERS_CATALOG } from '../../configs/creatures/creatureStickerConfig';
 import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
 import { REWARD_CONFIG } from '../../configs/rewardConfig';
 import { takeWeighted } from './rewardSampling';
 
-function takeRandom<T>(items: T[], random: () => number): T | undefined {
-  return items.length ? items.splice(Math.floor(random() * items.length), 1)[0] : undefined;
-}
 export function getBattleRewardCount(rank: EnemyRank): number {
-  return rank === 'final_boss' ? 0 : rank === 'normal' ? REWARD_CONFIG.normalFightPickCount : REWARD_CONFIG.advancedPickCount;
+  return rank === 'normal' ? REWARD_CONFIG.normalFightPickCount : REWARD_CONFIG.advancedPickCount;
 }
 export function generateBattleRewardOptions(region: RegionId, rank: EnemyRank,
-  random: () => number = Math.random): BattleRewardOption[] {
-  if (rank === 'final_boss') return [];
+  random: () => number = Math.random, excluded: readonly string[] = [], optionCount?: number): BattleRewardOption[] {
   const materialTier = rollMaterialTier(random);
-  const count = rank === 'normal' ? REWARD_CONFIG.normalFightOptionCount : REWARD_CONFIG.advancedOptionCount;
+  const count = optionCount ?? (rank === 'normal' ? REWARD_CONFIG.normalFightOptionCount : REWARD_CONFIG.advancedOptionCount);
   const available = ALL_STICKERS_CATALOG.filter((item): item is PermanentSticker =>
-    item.isDisposable === false && item.region === region && item.creature !== 'princess');
+    item.isDisposable === false && item.region === region && item.creature !== 'princess' && !excluded.includes(`permanent:${item.creature}`));
   const options: BattleRewardOption[] = [];
   while (options.length < count) {
     const sticker = takeWeighted(available, random);
@@ -26,25 +23,18 @@ export function generateBattleRewardOptions(region: RegionId, rank: EnemyRank,
     options.push({ id: `sticker:${sticker.id}`, kind: 'sticker', sticker });
   }
   if (rank === 'normal' && random() < REWARD_CONFIG.normalFightStickerPackChance) {
-    const pack = STICKER_PACKS_CATALOG[Math.floor(random() * STICKER_PACKS_CATALOG.length)];
-    options[Math.floor(random() * options.length)] = { id: `pack:${pack.id}`, kind: 'stickerPack', pack };
+    const pack = sampleDistinct(STICKER_PACKS_CATALOG.filter(pack => !excluded.includes(`pack:${pack.id}`)), 1, random)[0];
+    if (pack && options.length) options[Math.floor(random() * options.length)] = { id: `pack:${pack.id}`, kind: 'stickerPack', pack };
   }
   const stickers = assignRewardMaterial(options.flatMap((option) => option.kind === 'sticker' ? [option.sticker] : []), materialTier, random);
   let index = 0;
   return options.map((option) => option.kind === 'sticker' ? { ...option, sticker: stickers[index++] } : option);
 }
-export function generateChestRewardOptions(equipments: Equipment[], packs: StickerPack[],
-  random: () => number = Math.random): ChestRewardOption[] {
-  const equipmentPool = [...equipments], packPool = [...packs];
-  const options: ChestRewardOption[] = [];
-  const totalWeight = REWARD_CONFIG.chestEquipmentWeight + REWARD_CONFIG.chestStickerPackWeight;
-  while (options.length < REWARD_CONFIG.chestOptionCount && (equipmentPool.length || packPool.length)) {
-    const wantsEquipment = options.length === 0 || random() * totalWeight < REWARD_CONFIG.chestEquipmentWeight;
-    const equipment = wantsEquipment ? takeRandom(equipmentPool, random) : undefined;
-    const pack = equipment ? undefined : takeRandom(packPool, random);
-    const selectedEquipment = equipment ?? (pack ? undefined : takeRandom(equipmentPool, random));
-    if (selectedEquipment) options.push({ id: `equipment:${selectedEquipment.id}`, kind: 'equipment', equipment: selectedEquipment });
-    else if (pack) options.push({ id: `pack:${pack.id}`, kind: 'stickerPack', pack });
-  }
-  return options;
+export function generateChestRewardOptions(equipments: Equipment[], random: () => number = Math.random): ChestRewardOption[] {
+  return sampleDistinct(equipments, REWARD_CONFIG.chestOptionCount, random)
+    .map(equipment => ({ id: `equipment:${equipment.id}`, kind: 'equipment', equipment }));
+}
+export function generateContrabandPrize(region: RegionId, random = Math.random): PermanentSticker {
+  return sampleDistinct(ALL_STICKERS_CATALOG.filter((item): item is PermanentSticker =>
+    item.isDisposable === false && item.region === region && item.rarity === 'rare' && item.creature !== 'princess'), 1, random)[0];
 }

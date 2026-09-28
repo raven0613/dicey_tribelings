@@ -1,48 +1,30 @@
+import { ceilDamage } from '../damageValue';
 import type { Enemy } from '../../../types/enemy';
-import { applyEnemyDamage, type EnemyIntentResult } from './enemyIntent';
-
-/** 每筆有效攻擊消耗一次甲，追加命中與最大單擊各自記錄。 */
-export function resolvePlayerHit(source: Enemy, damage: number, bonus: boolean) {
+import { applyEnemyDamage, currentIntent, type EnemyIntentResult } from './enemyIntent';
+export function resolvePlayerHit(source: Enemy, damage: number) {
   const armor = source.armor ?? 0;
   const multiplier = (armor > 0 ? source.traits?.hitArmor?.multiplier ?? 1 : 1)
-    * (source.exposure ?? 1) * (1 + (source.hitsTaken ?? 0) * (source.traits?.comboVulnerability ?? 0));
-  const value = Math.ceil(Math.max(0, damage) * multiplier);
+    * (source.exposure ?? 1) * (currentIntent(source).mitigation ?? 1);
+  const value = ceilDamage(Math.max(0, damage) * multiplier);
   const hit = applyEnemyDamage(source, value);
-  if (hit.damageTaken <= 0) return { ...hit, value, retaliation: 0 };
-  const enemy: Enemy = { ...hit.enemy, armor: Math.max(0, armor - 1),
-    hitsTaken: (source.hitsTaken ?? 0) + 1, bonusHits: (source.bonusHits ?? 0) + Number(bonus),
-    roundDamage: (source.roundDamage ?? 0) + hit.damageTaken,
-    largestHit: Math.max(source.largestHit ?? 0, hit.damageTaken),
-    shieldBroken: source.shieldBroken || (source.shield > 0 && hit.enemy.shield === 0) };
-  const counter = enemy.intents[enemy.currentIntentIndex].retaliate;
-  const retaliation = enemy.hp > 0 && !enemy.retaliated && counter && enemy.bonusHits! >= counter.bonusHits ? counter.damage : 0;
-  if (retaliation > 0) enemy.retaliated = true;
-  return { enemy, value, damageTaken: hit.damageTaken, retaliation };
+  if (hit.damageTaken <= 0) return { ...hit, value };
+  return { enemy: { ...hit.enemy, armor: Math.max(0, armor - 1), armorStun: source.armorStun || armor === 1,
+    hitsTaken: (source.hitsTaken ?? 0) + 1, roundDamage: (source.roundDamage ?? 0) + hit.damageTaken }, value, damageTaken: hit.damageTaken };
 }
-
-/** 一輪結束才更換階段，已公開的當輪招式不會中途改變。 */
-export function finishEnemyRound(source: Enemy, result: EnemyIntentResult, hpHits: number): Enemy {
-  const intent = source.intents[source.currentIntentIndex];
-  let enemy: Enemy = { ...source, hp: Math.min(source.maxHp, source.hp + result.healing),
-    shield: source.shield - result.shieldCost + result.shieldGain,
-    strength: (source.strength ?? 0) + result.strengthGain + hpHits * (source.traits?.onHpHit ?? 0),
-    exposure: !result.cancelled ? intent.expose : undefined,
-    healsUsed: { ...source.healsUsed, ...(result.healing > 0 ? { [intent.name]: (source.healsUsed?.[intent.name] ?? 0) + 1 } : {}) },
-    currentIntentIndex: result.nextIntentIndex, hitsTaken: 0, bonusHits: 0, roundDamage: 0,
-    largestHit: 0, shieldBroken: false, retaliated: false, sealedDie: undefined, grapple: undefined };
+/** 公開的當輪招式保持不變；防守露隙、怒氣與半血階段在回合交界生效。 */
+export function finishEnemyRound(source: Enemy, result: EnemyIntentResult, blocked: boolean, manualRerolls: number): Enemy {
+  const intent = currentIntent(source), furyRule = source.traits?.rerollFury;
+  const fury = source.furyPending ? 0 : (source.fury ?? 0) + manualRerolls;
+  const actionsTaken = (source.actionsTaken ?? 0) + 1;
+  let enemy: Enemy = { ...source, shield: source.shield + result.shieldGain,
+    strength: 0, exposure: !result.cancelled && result.hits > 0 && blocked ? intent.exposeOnBlock : undefined,
+    currentIntentIndex: result.nextIntentIndex, hitsTaken: 0, roundDamage: 0, armorStun: false,
+    sealedDie: undefined, grapple: undefined, actionsTaken, fury,
+    furyPending: !!furyRule && !source.furyPending && fury >= furyRule.threshold,
+    prizeLost: source.prizeLost || (!!source.traits?.contraband && actionsTaken >= source.traits.contraband.deadline) };
   for (const [index, phase] of (source.phases ?? []).entries()) {
-    if (index + 1 > (enemy.phase ?? 0) && enemy.hp / enemy.maxHp <= phase.below) {
+    if (index + 1 > (enemy.phase ?? 0) && enemy.hp / enemy.maxHp <= phase.below)
       enemy = { ...enemy, phase: index + 1, intents: structuredClone([...phase.intents]) as Enemy['intents'], currentIntentIndex: 0 };
-    }
-  }
-  // 回合交界才選擇可執行的療傷招式，公開後保持不變。
-  for (let checked = 0; checked < enemy.intents.length; checked++) {
-    const next = enemy.intents[enemy.currentIntentIndex];
-    const heal = next.heal;
-    if (next.type !== 'rest' || !heal || ((enemy.healsUsed?.[enemy.intents[enemy.currentIntentIndex].name] ?? 0) < heal.uses
-      && enemy.hp < enemy.maxHp && enemy.hp / enemy.maxHp <= (heal.belowHp ?? 1)
-      && (!heal.consumeShield || enemy.shield > 0))) break;
-    enemy.currentIntentIndex = (enemy.currentIntentIndex + 1) % enemy.intents.length;
   }
   return enemy;
 }

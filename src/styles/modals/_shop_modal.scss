@@ -19,10 +19,22 @@
   color: $slate-100;
   backdrop-filter: blur(16px);
   user-select: none;
-  overflow-y: auto;
+  overflow: hidden;
+
+  .shop-body {
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    > * { flex-shrink: 0; }
+  }
 
   .shop-header {
     display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 0.75rem;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid $slate-800;
@@ -56,6 +68,7 @@
 
     .shop-header-right {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.75rem;
 

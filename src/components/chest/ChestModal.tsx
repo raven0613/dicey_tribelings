@@ -52,10 +52,6 @@ export const ChestModal: React.FC = () => {
     option: ChestRewardOption
   ) => {
     if (equipmentTransfer) return;
-    if (option.kind === 'stickerPack') {
-      claimChestReward(option);
-      return;
-    }
     if (equipments.length >= INITIAL_PLAYER_STATS.maxEquipmentSlots) {
       claimChestReward(option);
       return;
@@ -78,24 +74,6 @@ export const ChestModal: React.FC = () => {
   const renderOption = (option: ChestRewardOption) => {
     const isSelected = equipmentTransfer?.option.id === option.id;
     const isDimmed = equipmentTransfer !== null && !isSelected;
-
-    if (option.kind === 'stickerPack') {
-      return (
-        <button
-          type="button"
-          key={option.id}
-          disabled={equipmentTransfer !== null}
-          onClick={(event) => handleOptionClick(event, option)}
-          className={`chest-relic-card pack-option ${isDimmed ? 'dimmed' : ''}`}
-        >
-          <div className="card-top-row"><span className={`rarity-tag ${option.pack.rarity}`}>{option.pack.rarity}</span><span className="type-tag">貼紙包</span></div>
-          <div className="card-icon-center"><div className="icon-disc"><Gift size={28} /></div></div>
-          <div className="card-name">{option.pack.name}</div>
-          <div className="card-description"><SkillText text={option.pack.description} /></div>
-          <span className="btn-select-relic">選擇並開啟</span>
-        </button>
-      );
-    }
 
     const equipment = option.equipment;
     const Icon = getEquipmentIcon(equipment.iconName);
@@ -128,14 +106,14 @@ export const ChestModal: React.FC = () => {
           <div className="chest-desc">
             {isOpened
               ? '選擇一份補給，或跳過獎勵繼續救援。'
-              : '寶箱提供裝備保證候選與主題貼紙包，三選一。'}
+              : '選擇一件裝備，調整接下來的構築。'}
           </div>
         </div>
 
         {!isOpened ? (
           <>
             <div className="chest-rewards-preview">
-              <div className="reward-item equip"><Sparkles className="ui-icon" color="#818cf8" /><span>裝備或貼紙包（三選一）</span></div>
+              <div className="reward-item equip"><Sparkles className="ui-icon" color="#818cf8" /><span>裝備（三選一）</span></div>
             </div>
             <button type="button" onClick={openChest} className="btn-open-chest">
               <Gift className="ui-icon" /><span>開啟寶箱</span><ArrowRight className="ui-icon" />

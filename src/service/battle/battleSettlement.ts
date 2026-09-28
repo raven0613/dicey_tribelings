@@ -1,3 +1,5 @@
+import { attackTarget } from './attackPlan';
+import { drawDiceRecipes } from '../dice/diceDraft';
 import { commitMaterialRound } from './creatures/materialResolution';
 import { MATERIAL_BALANCE } from '../../configs/materials/materialConfig';
 import { BATTLE_LIMIT } from '../../configs/battleConfig';
@@ -8,9 +10,8 @@ import { combatNumber } from './creatures/creatureState';
 import type { DamagePopInput } from '../../types/game';
 import type { GameState } from '../../store/gameStore.types';
 import { soundService } from '../audio/soundService';
-import { REWARD_CONFIG } from '../../configs/rewardConfig';
 import { BATTLE_PRESENTATION as timing, COMBAT_GOLD } from '../../configs/battleConfig';
-import { generateBattleRewardOptions, getBattleRewardCount } from '../rewards/rewardService';
+import { generateBattleRewardOptions, getBattleRewardCount, generateContrabandPrize } from '../rewards/rewardService';
 import { restoreTemporaryStickers } from '../inventory/inventoryService';
 import { createCreatureBattleState } from './creatures/creatureState';
 import { animateAttack, animateCalculatedNumbers, waitForAnimation } from './settlementAnimation';
@@ -30,9 +31,9 @@ export interface BattleStoreMethods {
 export async function runBattleSettlement(methods: BattleStoreMethods): Promise<void> {
   const { get, set, startBattleRoll } = methods;
   const initial = get();
-  const { comboSummary: summary, currentEnemy, dicePool } = initial;
+  const { comboSummary: summary, enemies, dicePool } = initial;
   if (initial.combatPhase !== 'CONTROL_PHASE' || initial.activeRerollingIndex !== null
-    || initial.pendingPaidRerollDiceId || initial.diceAction !== 'reroll' || !summary || !currentEnemy) return;
+    || initial.pendingPaidRerollDiceId || initial.diceAction !== 'reroll' || !summary || !enemies.length) return;
   const isCurrent = () => get().comboSummary === summary;
   set({ combatPhase: 'RESOLVING_CALCULATION', visibleBonusIds: [], bonusSlotStates: {},
     creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood }, altars: { ...summary.nextAltars },
@@ -48,36 +49,36 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   if (!isCurrent()) return;
   set({ combatPhase: 'RESOLVING_ATTACK' });
 
-  const forecast = resolveEnemyRound(currentEnemy, summary, initial.equipments,
-    { hp: get().playerHp, shield: get().playerShield }, initial.creatureBattleState);
+  const forecast = resolveEnemyRound(enemies, summary, initial.equipments,
+    { hp: get().playerHp, shield: get().playerShield }, initial.creatureBattleState, initial.selectedEnemyId);
   const attacks = forecast.events.flatMap((event) => event.attack ? [event.attack] : []);
   const emphases = getAttackEmphases(attacks);
   let position = 0;
   for (const event of forecast.events) {
     if (!isCurrent()) return;
     if (event.kind === 'player' && event.attack) {
-      set({ combatPhase: 'RESOLVING_ATTACK' });
+      set({ combatPhase: 'RESOLVING_ATTACK', activeEnemyId: event.enemy.id });
       const attack = event.attack;
       const completed = await animateAttack(methods, attack.index, attack.bonus,
-        { value: event.damage, creature: attack.creature },
-        () => { if (isCurrent()) set({ currentEnemy: event.enemy, combatImpact: { kind: 'player' } }); }, isCurrent, emphases[position++]);
+        { value: event.damage, creature: attack.creature, enemyId: event.enemy.id },
+        () => { if (isCurrent()) set({ enemies: event.enemies, combatImpact: { kind: 'player' } }); }, isCurrent, emphases[position++]);
       if (!completed) return;
     } else if (event.kind === 'enemy') {
-      set({ combatPhase: 'ENEMY_TURN' });
+      set({ combatPhase: 'ENEMY_TURN', activeEnemyId: event.enemy.id });
       await waitForAnimation(timing.enemyThinkMs);
       if (!isCurrent()) return;
       await animateEnemyAttack(methods, event, Boolean(event.heavy), isCurrent);
     } else {
-      set({ currentEnemy: event.enemy, combatImpact: { kind: 'reflection' } });
-      methods.addDamagePop({ value: event.damage });
+      set({ enemies: event.enemies, combatImpact: { kind: 'reflection' } });
+      methods.addDamagePop({ value: event.damage, enemyId: event.enemy.id });
     }
     if (!isCurrent()) return;
-    set({ currentEnemy: event.enemy, playerHp: event.hp, playerShield: event.shield });
+    set({ enemies: event.enemies, playerHp: event.hp, playerShield: event.shield });
   }
-  const activeEnemy = forecast.enemy;
-  set({ currentEnemy: activeEnemy, playerHp: forecast.hp, playerShield: forecast.shield });
+  const activeEnemies = forecast.enemies;
+  set({ enemies: activeEnemies, activeEnemyId: null, selectedEnemyId: attackTarget(activeEnemies, initial.selectedEnemyId)?.id ?? null, playerHp: forecast.hp, playerShield: forecast.shield });
   if (forecast.hp <= 0) {
-    set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool),
+    set({ combatPhase: 'DEFEAT', campBuff: null, dicePool: restoreTemporaryStickers(dicePool),
       creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
     return;
   }
@@ -87,27 +88,27 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
     if (!isCurrent()) return;
     soundService.playVictory();
     const state = get();
-    const rank = currentEnemy.isBoss ? currentEnemy.region === 6 ? 'final_boss' : 'boss'
-      : currentEnemy.isElite ? 'elite' : 'normal';
-    const battleRewardOptions = generateBattleRewardOptions(currentEnemy.region, rank);
-    const earnedGold = currentEnemy.isBoss ? COMBAT_GOLD.boss : currentEnemy.isElite ? COMBAT_GOLD.elite : COMBAT_GOLD.normal;
-    set({ combatPhase: 'VICTORY', gold: state.gold + earnedGold + summary.nextGildedFaces.length * MATERIAL_BALANCE.gilded, battleRewardOptions,
+    const leader = enemies[0], rank = leader.rank;
+    const battleRewardOptions = generateBattleRewardOptions(leader.region, rank);
+    const earnedGold = leader.isBoss ? COMBAT_GOLD.boss : leader.isElite ? COMBAT_GOLD.elite : COMBAT_GOLD.normal;
+    const extraReward = activeEnemies.some(enemy => enemy.traits?.contraband && !enemy.prizeLost)
+      ? generateContrabandPrize(leader.region) : null;
+    set({ combatPhase: 'VICTORY', campBuff: null, gold: state.gold + earnedGold + summary.nextGildedFaces.length * MATERIAL_BALANCE.gilded, battleRewardOptions,
       battleRewardPickCount: getBattleRewardCount(rank),
-      battleRecovery: Math.min(state.maxHp - state.playerHp, rank === 'boss' ? REWARD_CONFIG.bossHeal : 0),
-      playerHp: Math.min(state.maxHp, state.playerHp + (rank === 'boss' ? REWARD_CONFIG.bossHeal : 0)),
+      diceRewardOptions: leader.isBoss ? drawDiceRecipes() : [], diceRefreshes: 0, lootRefreshes: 0, extraReward,
       dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round },
       storedRations: hasEquipment(initial.equipments, 'RATIONS') ? summary.leftoverFood : 0 });
     return;
   };
-  if (activeEnemy.hp <= 0) { await finishVictory(); return; }
+  if (activeEnemies.every(enemy => enemy.hp <= 0)) { await finishVictory(); return; }
 
   if (initial.creatureBattleState.round >= BATTLE_LIMIT.rounds) {
-    set({ combatPhase: 'DEFEAT', dicePool: restoreTemporaryStickers(dicePool),
+    set({ combatPhase: 'DEFEAT', campBuff: null, dicePool: restoreTemporaryStickers(dicePool),
       creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round } });
     return;
   }
   set({ dicePool: commitMaterialRound(dicePool, initial.rolledIndices) });
-  set({ currentEnemy: activeEnemy });
+  set({ enemies: activeEnemies });
   await waitForAnimation(timing.nextRoundMs);
   if (!isCurrent()) return;
   set({ control: Math.min(initial.maxControl + EQUIPMENT_BALANCE.controlHeadroom, get().control + summary.bonusControlGranted) });

@@ -1,12 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { INITIAL_MAP_NODES } from '../../configs/regions/mapConfig';
-import { REGION_IDS } from '../../configs/regions/regionConfig';
 import { completeRouteNode, selectRouteNode } from './routeService';
 
-test('每區二選一、匯合相同、不能走回另一條路', () => {
-  for (const region of REGION_IDS) {
-    const fork = INITIAL_MAP_NODES.find((node) => node.region === region && node.next.length === 2)!;
+test('所有普通／菁英與跨區營火分岔匯合相同、不能走回另一條路', () => {
+  for (const fork of INITIAL_MAP_NODES.filter(node => node.next.length === 2)) {
     assert.ok(fork);
     const [left, right] = fork.next.map((id) => INITIAL_MAP_NODES.find((node) => node.id === id)!);
     assert.deepEqual(left.next, right.next);

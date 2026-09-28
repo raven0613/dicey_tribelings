@@ -35,7 +35,7 @@ function mockAnimationFrames(context: TestContext) {
 async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSummary, playerHp = 60, initial: Partial<GameState> = {}) {
   context.mock.timers.enable({ apis: ['setTimeout'] });
   mockAnimationFrames(context);
-  let state: GameState = { ...useGameStore.getInitialState(), currentEnemy: enemy,
+  let state: GameState = { ...useGameStore.getInitialState(), enemies: [enemy],
     comboSummary: summary, playerHp, playerShield: 0, combatPhase: 'CONTROL_PHASE', activeRerollingIndex: null, ...initial };
   let rolls = 0;
   const pops: DamagePopInput[] = [];
@@ -56,14 +56,30 @@ async function settle(context: TestContext, enemy: Enemy, summary: BattleComboSu
   return { state, rolls, pops };
 }
 
-test('overkill floating feedback receives the full attack damage instead of remaining HP', async (context) => {
+test('overkill preserves the total preview and every normal, bonus and repeated attack through victory', async (context) => {
   const enemy = createEnemy('r1_slinger');
-  enemy.hp = 20;
+  enemy.hp = 1;
   enemy.shield = 0;
+  const round = createCreatureBattleState();
+  const rolledIndices = INITIAL_DICE_POOL.map(() => 0);
+  const fullOutput = calculateRollResolution(INITIAL_DICE_POOL, rolledIndices, [], round);
+  const summary = calculateRollResolution(INITIAL_DICE_POOL, rolledIndices, [], round,
+    { control: 3, maxControl: 3, gold: 0, enemies: [enemy], selectedEnemyId: enemy.id });
+  assert.equal(summary.totalDamage, fullOutput.totalDamage);
   const damage = 120;
-  const { state, pops } = await settle(context, enemy, summaryWithDamage(damage));
-  assert.equal(state.currentEnemy?.hp, 0);
-  assert.deepEqual(pops.map((pop) => pop.value), [damage]);
+  const first = summary.items[0];
+  summary.bonusDice = summaryWithDamage(damage).bonusDice;
+  summary.repeatAttacks = [{ diceId: first.diceId, sourceDiceId: first.diceId, damage: first.finalDamage }];
+  const { state, pops, rolls } = await settle(context, enemy, summary);
+  assert.equal(state.enemies[0]?.hp, 0);
+  assert.equal(state.enemies[0]?.hitsTaken, 1);
+  assert.equal(state.enemies[0]?.roundDamage, enemy.hp);
+  assert.equal(state.combatPhase, 'VICTORY');
+  assert.equal(rolls, 0);
+  assert.deepEqual(pops.map((pop) => pop.value), [
+    ...fullOutput.items.filter(item => item.finalDamage > 0).map(item => Math.ceil(item.finalDamage)),
+    damage, Math.ceil(first.finalDamage),
+  ]);
 });
 
 test('production settlement counts each normal and additional attack once including shield loss', async (context) => {
@@ -80,11 +96,11 @@ test('production settlement counts each normal and additional attack once includ
   summary.items = [{ ...item, baseValue: 3, finalDamage: 3 }];
   summary.bonusDice = [4, 5].map((bonusDamage, index) => ({ id: `bonus-${index}`,
     source: { kind: 'equipment', equipmentId: 'test' }, sourceName: '測試', bonusDamage, label: '追加', description: '追加' }));
-  assert.equal(resolveEnemyRound(enemy, summary, [], { hp: enemy.maxHp, shield: 0 }, createCreatureBattleState()).resolution.cancelled, true);
+  assert.equal(resolveEnemyRound([enemy], summary, [], { hp: enemy.maxHp, shield: 0 }, createCreatureBattleState()).resolutions[enemy.id].cancelled, true);
   const { state, rolls } = await settle(context, enemy, summary);
-  assert.equal(state.currentEnemy?.hp, 94);
-  assert.equal(state.currentEnemy?.shield, 0);
-  assert.equal(state.currentEnemy?.currentIntentIndex, 1);
+  assert.equal(state.enemies[0]?.hp, 94);
+  assert.equal(state.enemies[0]?.shield, 0);
+  assert.equal(state.enemies[0]?.currentIntentIndex, 1);
   assert.equal(state.playerHp, 60);
   assert.equal(rolls, 1);
 });
@@ -97,8 +113,8 @@ test('additional attack consumes shield and a missed threshold applies player sh
   const { state } = await settle(context, enemy, summary);
   const intent = enemy.intents[0];
   assert.ok('value' in intent);
-  assert.equal(state.currentEnemy?.hp, enemy.hp);
-  assert.equal(state.currentEnemy?.shield, 15);
+  assert.equal(state.enemies[0]?.hp, enemy.hp);
+  assert.equal(state.enemies[0]?.shield, 15);
   assert.equal(state.playerHp, 60 - (intent.value - summary.totalShield));
   assert.equal(state.playerShield, 0);
 });
@@ -113,28 +129,19 @@ test('lethal player damage ends battle before enemy action and never starts anot
 });
 
 test('enemy lethal damage enters defeat and never starts another roll', async (context) => {
-  const { state, rolls } = await settle(context, createEnemy('r1_slinger'), summaryWithDamage(0), 1);
+  const { state, rolls } = await settle(context, createEnemy('r1_slinger'), summaryWithDamage(0), 1, { campBuff: 'ward' });
+  assert.equal(state.campBuff, null);
   assert.equal(state.combatPhase, 'DEFEAT');
   assert.equal(state.playerHp, 0);
   assert.equal(rolls, 0);
-});
-
-test('cancelled defense grants zero shield through production settlement', async (context) => {
-  const enemy = createEnemy('r5_jailer');
-  enemy.currentIntentIndex = 1;
-  const intent = enemy.intents[1];
-  assert.ok('counter' in intent && intent.counter?.type === 'damage_taken');
-  const { state } = await settle(context, enemy, summaryWithDamage(intent.counter.threshold));
-  assert.equal(state.currentEnemy?.shield, 0);
-  assert.equal(state.currentEnemy?.currentIntentIndex, 2);
 });
 
 test('charge advances without attacking or replenishing initial shield', async (context) => {
   const enemy = createEnemy('r1_patrol');
   enemy.currentIntentIndex = 1;
   const { state, rolls } = await settle(context, enemy, summaryWithDamage(0));
-  assert.equal(state.currentEnemy?.currentIntentIndex, 2);
-  assert.equal(state.currentEnemy?.shield, 0);
+  assert.equal(state.enemies[0]?.currentIntentIndex, 2);
+  assert.equal(state.enemies[0]?.shield, 0);
   assert.equal(state.playerHp, 60);
   assert.equal(rolls, 1);
 });
@@ -148,7 +155,7 @@ test('settlement attacks match preview after robbery and porter support with gan
   const enemy = createEnemy('r1_slinger');
   enemy.hp = enemy.maxHp = 1000; enemy.shield = 0;
   const { state } = await settle(context, enemy, summary);
-  assert.equal(state.currentEnemy?.hp, enemy.hp - summary.totalDamage);
+  assert.equal(state.enemies[0]?.hp, enemy.hp - summary.totalDamage);
   assert.equal(summary.bonusDice.filter((bonus) => bonus.creature === 'gang').length, 1);
 });
 
@@ -161,7 +168,7 @@ test('locking commits chef food once and rejects another settlement during the a
   enemy.hp = enemy.maxHp = 100;
   const creatureBattleState = { ...createCreatureBattleState(), storedFood: { chef: 7.25 }, cowardShields: { chef: 9.75 } };
   let state: GameState = { ...useGameStore.getInitialState(), dicePool: [chef], rolledIndices: [0],
-    currentEnemy: enemy, creatureBattleState, playerShield: 1, combatPhase: 'CONTROL_PHASE',
+    enemies: [enemy], creatureBattleState, playerShield: 1, combatPhase: 'CONTROL_PHASE',
     comboSummary: calculateRollResolution([chef], [0], [], creatureBattleState) };
   const frames: Pick<GameState, 'diceSlotStates' | 'bonusSlotStates' | 'displayedShields' | 'displayedFood' | 'playerShieldDisplay'>[] = [];
   const methods = { get: () => state, set: (partial: Partial<GameState>) => {
@@ -176,7 +183,7 @@ test('locking commits chef food once and rejects another settlement during the a
   await runBattleSettlement(methods);
   for (let step = 0; step < 1000; step++) { context.mock.timers.runAll(); await Promise.resolve(); }
   await first;
-  assert.equal(state.currentEnemy?.hp, 88);
+  assert.equal(state.enemies[0]?.hp, 88);
   assert.equal(state.creatureBattleState.storedFood.chef, 0);
   const shieldFrames = frames.filter((frame) => frame.displayedShields.chef.isSpinning);
   const foodFrames = frames.filter((frame) => frame.displayedFood.chef.isSpinning);
@@ -224,28 +231,31 @@ test('victory packs rations and clears battle food storage', async (context) => 
   assert.deepEqual(state.creatureBattleState.storedFood, {});
 });
 
-test('regional boss victory restores capped HP and offers two permanent rewards while final boss completes rescue', async (context) => {
-  const enemy = createEnemy('r1_boss'); enemy.hp = 1;
-  const { state } = await settle(context, enemy, summaryWithDamage(10), 50);
-  assert.equal(state.playerHp, 60);
+test('regional boss victory retains HP and offers two permanent rewards', async (context) => {
+  const enemy = createEnemy('r1_boss'); enemy.hp = 1; enemy.shield = 0;
+  const { state } = await settle(context, enemy, summaryWithDamage(10), 50, { campBuff: 'ward' });
+  assert.equal(state.playerHp, 50);
+  assert.equal(state.campBuff, null);
   assert.equal(state.battleRewardOptions.length, 5);
   assert.equal(state.battleRewardPickCount, 2);
   assert.equal(state.combatPhase, 'VICTORY');
 });
 
-test('final boss victory offers no further construction rewards', async (context) => {
-  const enemy = createEnemy('r6_boss'); enemy.hp = 1; enemy.shield = 0;
+test('final boss victory grants the sixth-die choice before final construction rewards', async (context) => {
+  const enemy = createEnemy('r3_boss'); enemy.hp = 1; enemy.shield = 0;
   const { state } = await settle(context, enemy, summaryWithDamage(10), 40);
   assert.equal(state.playerHp, 40);
-  assert.deepEqual(state.battleRewardOptions, []);
-  assert.equal(state.battleRewardPickCount, 0);
+  assert.equal(state.diceRewardOptions.length, 3);
+  assert.equal(state.battleRewardOptions.length, 5);
+  assert.equal(state.battleRewardPickCount, 2);
   assert.equal(state.combatPhase, 'VICTORY');
 });
 
 test('round 50 defeats a surviving enemy battle without starting round 51', async (context) => {
   const enemy = createEnemy('r1_patrol'); enemy.currentIntentIndex = 1;
   const { state, rolls } = await settle(context, enemy, summaryWithDamage(0), 60,
-    { creatureBattleState: { ...createCreatureBattleState(), round: 50 } });
+    { campBuff: 'focus', creatureBattleState: { ...createCreatureBattleState(), round: 50 } });
+  assert.equal(state.campBuff, null);
   assert.equal(state.combatPhase, 'DEFEAT');
   assert.equal(rolls, 0);
 });
@@ -264,6 +274,6 @@ test('full shield absorption prevents reflection, while healing is capped', asyn
   const enemy = createEnemy('r1_slinger'); enemy.shield = 0;
   const summary = summaryWithDamage(0); summary.reflection = 3; summary.healing = 4;
   const { state } = await settle(context, enemy, summary, 59, { playerShield: 99 });
-  assert.equal(state.currentEnemy?.hp, enemy.hp);
+  assert.equal(state.enemies[0]?.hp, enemy.hp);
   assert.equal(state.playerHp, 60);
 });

@@ -41,11 +41,11 @@ interface BattleDiceSlotProps {
 export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, position, size, spacing,
   attackTarget, identity, available, selectingAction, reducedMotion, bulgeFilter, trayRef,
   rerollFeedback, onRollFinish, setHoveredId, inspectionTarget, description, lines }: BattleDiceSlotProps) {
-  const { rolledIndices, combatPhase, comboSummary, creatureBattleState, currentEnemy,
+  const { rolledIndices, combatPhase, comboSummary, creatureBattleState, hookSource,
     activeRerollingIndex, attackingDieIndex, attackingStage, attackEmphasis, skillFeedback,
     equipments, rerollAnimationId, rerollAnimationMode, useControlReroll, slotState, shield, food } = useGameStore(useShallow((state) => ({
       rolledIndices: state.rolledIndices, combatPhase: state.combatPhase, comboSummary: state.comboSummary,
-      creatureBattleState: state.creatureBattleState, currentEnemy: state.currentEnemy,
+      creatureBattleState: state.creatureBattleState, hookSource: state.enemies.find(enemy => enemy.hp > 0 && enemy.grapple?.diceId === die.id),
       activeRerollingIndex: state.activeRerollingIndex, attackingDieIndex: state.attackingDieIndex,
       attackingStage: state.attackingStage, attackEmphasis: state.attackEmphasis, skillFeedback: state.skillFeedback,
       rerollAnimationMode: state.rerollAnimationMode, equipments: state.equipments, rerollAnimationId: state.rerollAnimationId, useControlReroll: state.useControlReroll,
@@ -120,8 +120,9 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
         } as React.CSSProperties}
       >
         {!unrolled && combatPhase !== 'ROLLING' && (creatureBattleState.sealedDice?.includes(die.id)
-          ? <DieStatusBadge sealed /> : currentEnemy?.grapple?.diceId === die.id && !creatureBattleState.rerolledDice?.includes(die.id)
-            ? <DieStatusBadge damage={currentEnemy.grapple.damage} /> : null)}
+          ? <DieStatusBadge sealed /> : ['CONTROL_PHASE', 'RESOLVING_CALCULATION', 'RESOLVING_ATTACK'].includes(combatPhase) && hookSource?.grapple?.diceId === die.id && !creatureBattleState.rerolledDice?.includes(die.id)
+            ? <DieStatusBadge damage={hookSource.grapple.damage} breakDamage={hookSource.grapple.breakDamage} /> : null)}
+        {!unrolled && creatureBattleState.watchedDieId === die.id && <DieStatusBadge watched />}
         <SkillFeedback diceId={die.id} feedback={skillFeedback} />
         {combatPhase === 'CONTROL_PHASE' && rerollFeedback &&
           <SkillFeedback diceId={die.id} feedback={rerollFeedback.echoes} />}

@@ -6,21 +6,21 @@ import { BATTLE_LIMIT } from '../../configs/battleConfig';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../configs/equipment/equipmentConfig';
 import { createCreatureBattleState } from '../battle/creatures/creatureState';
-import { getEnemyForNode } from '../battle/nodeService';
+import { getEnemiesForNode } from '../battle/nodeService';
 import { RunRecorder } from './recorder';
 import { calculateRollResolution } from '../battle/battleEngine';
 import { DAMAGE_SOURCE_LABELS } from '../../configs/telemetryConfig';
 import type { TelemetryState } from './types';
 
 function initial(): TelemetryState {
-  return { playerHp: INITIAL_PLAYER_STATS.hp, maxHp: INITIAL_PLAYER_STATS.maxHp, gold: INITIAL_PLAYER_STATS.gold,
+  return { campBuff: null, playerHp: INITIAL_PLAYER_STATS.hp, maxHp: INITIAL_PLAYER_STATS.maxHp, gold: INITIAL_PLAYER_STATS.gold,
     control: INITIAL_PLAYER_STATS.maxControl, playerShield: 0, dicePool: structuredClone(INITIAL_DICE_POOL),
     equipments: structuredClone(INITIAL_EQUIPMENT), consumableStickers: [], mapNodes: structuredClone(INITIAL_MAP_NODES),
-    currentNodeIndex: 0, currentEnemy: null, combatPhase: 'PREPARATION', rolledIndices: [],
+    currentNodeIndex: 0, enemies: [], selectedEnemyId: null, activeEnemyId: null, combatPhase: 'PREPARATION', rolledIndices: [],
     creatureBattleState: createCreatureBattleState(), comboSummary: null, combatImpact: null };
 }
 function startBattle(state: TelemetryState): TelemetryState {
-  return { ...state, currentEnemy: getEnemyForNode(state.mapNodes[state.currentNodeIndex], state.currentNodeIndex) };
+  return { ...state, enemies: getEnemiesForNode(state.mapNodes[state.currentNodeIndex]) };
 }
 function roll(state: TelemetryState): TelemetryState {
   return { ...state, combatPhase: 'ROLLING', rolledIndices: state.dicePool.map(() => 0),
@@ -87,7 +87,7 @@ test('round cap is a distinct defeat and last-round victory wins over timeout', 
     const last = { ...roll(battle), creatureBattleState: { ...battle.creatureBattleState, round: BATTLE_LIMIT.rounds } };
     recorder.observe(last, battle, 2);
     recorder.observe({ ...last, combatPhase: victory ? 'VICTORY' : 'DEFEAT',
-      currentEnemy: { ...last.currentEnemy!, hp: victory ? 0 : last.currentEnemy!.hp } }, last, 3);
+      enemies: last.enemies.map(enemy => ({ ...enemy, hp: victory ? 0 : enemy.hp })) }, last, 3);
     assert.equal(recorder.record.battles[0].outcome, victory ? 'victory' : 'round_limit');
   }
 });
@@ -98,9 +98,11 @@ test('final boss produces separate region, chapter and current-content run miles
   const recorder = new RunRecorder('run', state, 0, 'test', true);
   const battle = startBattle(state);
   recorder.observe(battle, state, 1);
-  const won: TelemetryState = { ...battle, combatPhase: 'VICTORY', currentEnemy: { ...battle.currentEnemy!, hp: 0 } };
+  const won: TelemetryState = { ...battle, combatPhase: 'VICTORY', enemies: battle.enemies.map(enemy => ({ ...enemy, hp: 0 })) };
   recorder.observe(won, battle, 2);
-  recorder.observe({ ...won }, won, 3);
+  assert.equal(recorder.record.result, 'incomplete');
+  const completed = { ...won, mapNodes: won.mapNodes.map(node => node.id === CHAPTER_END_NODE ? { ...node, completed: true } : node) };
+  recorder.observe(completed, won, 3);
   assert.deepEqual(recorder.record.milestones.map((item) => item.kind), ['region', 'chapter', 'run']);
   assert.equal(recorder.record.result, 'victory');
 });
@@ -121,7 +123,7 @@ test('equipment history preserves acquisition, replacement and active holding du
   assert.equal(current.removedAt, null);
 });
 
-test('records settlement once, distinguishes impact damage from shield consumption and identifies retaliation', () => {
+test('records settlement once, distinguishes impact damage from shield consumption and identifies grapple', () => {
   let state = initial();
   const recorder = new RunRecorder('run', state, 0, 'test', true);
   const next = (value: TelemetryState, at: number) => { recorder.observe(value, state, at); state = value; };
@@ -135,16 +137,16 @@ test('records settlement once, distinguishes impact damage from shield consumpti
   next({ ...state }, 5);
   assert.equal(recorder.record.battles[0].rounds[0].output, summary.totalDamage);
   assert.equal(recorder.record.battles[0].rounds[0].skills.length, summary.events.filter((event) => event.activated).length);
-  const hp = state.currentEnemy!.hp;
-  next({ ...state, currentEnemy: { ...state.currentEnemy!, hp: hp - 2 }, combatImpact: { kind: 'player' } }, 6);
+  const hp = state.enemies[0].hp;
+  next({ ...state, enemies: [{ ...state.enemies[0], hp: hp - 2 }], combatImpact: { kind: 'player' } }, 6);
   next({ ...state }, 7);
-  next({ ...state, currentEnemy: { ...state.currentEnemy!, shield: 8 } }, 8);
-  next({ ...state, currentEnemy: { ...state.currentEnemy!, shield: 0, hp } }, 9);
+  next({ ...state, enemies: [{ ...state.enemies[0], shield: 8 }] }, 8);
+  next({ ...state, enemies: [{ ...state.enemies[0], shield: 0, hp }] }, 9);
   const round = recorder.record.battles[0].rounds[0];
   assert.equal(round.damageHp, 2);
   assert.equal(round.damageShield, 0);
-  next({ ...state, combatPhase: 'ENEMY_TURN', playerHp: 0, combatImpact: { kind: 'enemy', source: 'retaliation' } }, 10);
-  assert.equal(recorder.record.battles[0].death?.source, DAMAGE_SOURCE_LABELS.retaliation);
+  next({ ...state, combatPhase: 'ENEMY_TURN', playerHp: 0, combatImpact: { kind: 'enemy', source: 'grapple' } }, 10);
+  assert.equal(recorder.record.battles[0].death?.source, DAMAGE_SOURCE_LABELS.grapple);
 });
 
 test('equipment battle participation and snapshots remain stable after subsequent edits', () => {

@@ -1,7 +1,8 @@
+import { CampPanel } from './camp/CampPanel';
 import { BattleScreenShake } from './battle/BattleScreenShake';
 import { useShallow } from 'zustand/react/shallow';
 import { PaidRerollDialog } from './battle/PaidRerollDialog';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useStoryStore } from '../store/storyStore';
 import { Footbar } from './common/Footbar';
@@ -20,7 +21,7 @@ import { BattlePreparationPanel } from './battle/preparation/BattlePreparationPa
 import { StickerPackModal } from './stickers/StickerPackModal';
 import { ConsumableReplacementModal } from './stickers/ConsumableReplacementModal';
 import { EquipmentReplacementModal } from './equipment/EquipmentReplacementModal';
-import { DiceUnlockModal } from './dice/DiceUnlockModal';
+import { DiceDraftModal } from './rewards/DiceDraftModal';
 
 export function GameScreen() {
   const {
@@ -29,7 +30,7 @@ export function GameScreen() {
     combatPhase,
     activeRerollingIndex, pendingPaidRerollDiceId,
     executeBattleSettlement,
-    unlockedDiceNotification, stickerFlow, openedPackResult,
+    stickerFlow, openedPackResult,
   } = useGameStore(useShallow((state) => ({
     currentNodeIndex: state.currentNodeIndex,
     routeChoices: state.routeChoices,
@@ -38,7 +39,6 @@ export function GameScreen() {
     activeRerollingIndex: state.activeRerollingIndex,
     pendingPaidRerollDiceId: state.pendingPaidRerollDiceId,
     executeBattleSettlement: state.executeBattleSettlement,
-    unlockedDiceNotification: state.unlockedDiceNotification,
     stickerFlow: state.stickerFlow,
     openedPackResult: state.openedPackResult,
   })));
@@ -52,7 +52,7 @@ export function GameScreen() {
   const storyPending = useStoryStore((state) => state.queue.length > 0);
   const isCombat = routeChoices.length === 0 && isCombatNode;
   const isConfiguring = isCombat && combatPhase === 'PREPARATION' && temporaryUnlocked;
-  const showPreparation = isConfiguring && !unlockedDiceNotification && !stickerFlow && !openedPackResult && !storyPending;
+  const showPreparation = isConfiguring && !stickerFlow && !openedPackResult && !storyPending;
 
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
@@ -73,6 +73,7 @@ export function GameScreen() {
                 {isCombat && <DiceBoard />}
                 {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}
                 {routeChoices.length === 0 && currentNode?.type === 'shop' && <ShopModal />}
+                {routeChoices.length === 0 && currentNode?.type === 'camp' && <CampPanel />}
               </PlayerBoard>
             </div>
           </main>
@@ -86,7 +87,7 @@ export function GameScreen() {
       <StickerPackModal />
       <ConsumableReplacementModal />
       <EquipmentReplacementModal />
-      <DiceUnlockModal />
+      <DiceDraftModal onOpenDiceBag={() => setIsDiceBagOpen(true)} inspectingDice={isDiceBagOpen} />
       <RewardModal onOpenDiceBag={() => setIsDiceBagOpen(true)} inspectingDice={isDiceBagOpen} />
       <DiceInspectModal isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
       <GameOverModal />

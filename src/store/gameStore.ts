@@ -1,3 +1,7 @@
+import { createCampActions } from './campActions';
+import { drawCampBuff } from '../service/camp/campService';
+import type { CampBuffId } from '../types/camp';
+import { createShopActions } from './shopActions';
 import { canReorderDice, reorderDice } from '../service/dice/diceOrder';
 import { DAMAGE_POP_PRESENTATION } from '../configs/numberFeedbackConfig';
 import { appendDamagePop } from '../service/battle/presentation/damagePops';
@@ -6,7 +10,7 @@ import { useStoryStore } from './storyStore';
 import { syncStoryProgress } from '../service/story/syncStoryProgress';
 import { create } from 'zustand';
 import { createCreatureBattleState } from '../service/battle/creatures/creatureState';
-import { ConsumableSticker, Dice, DisposableSticker, StickerItem, TemporaryStickerPlacement } from '../types/game';
+import { ConsumableSticker, DisposableSticker, StickerItem, TemporaryStickerPlacement } from '../types/game';
 import {
   ALL_EQUIPMENT_CATALOG,
   INITIAL_DICE_POOL,
@@ -15,9 +19,11 @@ import {
   INITIAL_PLAYER_STATS,
 } from '../configs/gameConfig';
 import { INVENTORY_CONFIG } from '../configs/inventoryConfig';
-import { STICKER_PACKS_CATALOG } from '../configs/stickerPacksConfig';
-import { checkProgressionDiceReward, openStickerPack } from '../service/stickers/packService';
-import { computeMaxControl, generateShopStock, getEnemyForNode } from '../service/battle/nodeService';
+import { openStickerPack } from '../service/stickers/packService';
+import { computeMaxControl, getEnemiesForNode } from '../service/battle/nodeService';
+import { generateShopStock } from '../service/shop/shopStock';
+import { calculateRollResolution } from '../service/battle/battleEngine';
+import { createDraftActions } from './draftActions';
 import { createBattleActions } from './battleActions';
 import { CREATURE_BALANCE } from '../configs/creatures/creatureBalanceConfig';
 import { ALL_STICKERS_CATALOG } from '../configs/creatures/creatureStickerConfig';
@@ -31,7 +37,6 @@ import {
   replaceConsumable,
 } from '../service/inventory/inventoryService';
 import { generateChestRewardOptions } from '../service/rewards/rewardService';
-import { calculateHealPurchase, getEquipmentOffer, getStickerOffer } from '../service/shop/shopService';
 import { soundService } from '../service/audio/soundService';
 import { FlowCompletion, GameState, StickerFlow } from './gameStore.types';
 
@@ -50,6 +55,7 @@ function createConsumableInstance(sticker: DisposableSticker): ConsumableSticker
 function getInitialValues() {
   return {
     runId: null as string | null,
+    campBuff: null as CampBuffId | null,
     combatImpact: null,
     playerHp: INITIAL_PLAYER_STATS.hp,
     maxHp: INITIAL_PLAYER_STATS.maxHp,
@@ -63,7 +69,7 @@ function getInitialValues() {
     consumableStickers: [] as ConsumableSticker[],
     mapNodes: clone(INITIAL_MAP_NODES),
     currentNodeIndex: 0, routeChoices: [] as number[],
-    currentEnemy: null,
+    enemies: [], selectedEnemyId: null, activeEnemyId: null,
     combatPhase: 'PREPARATION' as const,
     rolledIndices: [] as number[],
     comboSummary: null,
@@ -85,14 +91,14 @@ function getInitialValues() {
     screenShakeIntensity: 0,
     soundMuted: false,
     selectedDiceForInspect: null,
-    unlockedDiceNotification: null,
+    diceRewardOptions: [], diceRefreshes: 0, lootRefreshes: 0, shopRefreshes: 0, extraReward: null,
     openedPackResult: null,
     stickerFlow: null,
     pendingShopSticker: null,
     pendingEquipment: null,
     equipmentSlotFeedback: null,
     battleRewardOptions: [],
-    battleRewardPickCount: 0, battleRecovery: 0,
+    battleRewardPickCount: 0, campOffer: null, campRefreshes: 0,
     chestRewardOptions: [],
     shopStickers: [],
     shopEquipments: [],
@@ -136,7 +142,7 @@ export const useGameStore = create<GameState>((set, get) => {
     ...getInitialValues(),
     moveDice: (diceId, targetIndex) => {
       const state = get();
-      if (!canReorderDice(state.combatPhase, state.currentEnemy !== null)) return;
+      if (!canReorderDice(state.combatPhase, state.enemies.length > 0)) return;
       const dicePool = reorderDice(state.dicePool, diceId, targetIndex);
       if (dicePool !== state.dicePool) set({ dicePool, comboSummary: null, rolledIndices: [], diceSlotStates: {} });
     },
@@ -169,8 +175,8 @@ export const useGameStore = create<GameState>((set, get) => {
       const common = {
         enemyAttack: null, combatImpact: null, hoveredEquipmentId: null, pendingPaidRerollDiceId: null,
         currentNodeIndex: nodeIndex, routeChoices: [],
-        battleRewardOptions: [],
-        battleRewardPickCount: 0, battleRecovery: 0,
+        battleRewardOptions: [], diceRewardOptions: [], diceRefreshes: 0, lootRefreshes: 0, shopRefreshes: 0, extraReward: null,
+        battleRewardPickCount: 0, campOffer: null, campRefreshes: 0,
         chestRewardOptions: [],
         openedPackResult: null,
         stickerFlow: null,
@@ -179,10 +185,11 @@ export const useGameStore = create<GameState>((set, get) => {
       };
 
       if (targetNode.type === 'fight' || targetNode.type === 'elite' || targetNode.type === 'boss') {
-        const maxControl = computeMaxControl(get().equipments, get().gold);
+        const maxControl = computeMaxControl(get().equipments, get().gold, get().campBuff);
+        const enemies = getEnemiesForNode(targetNode);
         set({
           ...common,
-          currentEnemy: clone(getEnemyForNode(targetNode, nodeIndex)),
+          enemies, selectedEnemyId: enemies[0].id, activeEnemyId: null,
           control: maxControl,
           maxControl,
           playerShield: 0,
@@ -205,13 +212,13 @@ export const useGameStore = create<GameState>((set, get) => {
       }
 
       if (targetNode.type === 'shop') {
-        const stock = generateShopStock(get().equipments);
-        set({ ...common, currentEnemy: null, combatPhase: 'CONTROL_PHASE', ...stock });
+        const stock = generateShopStock(get().equipments, targetNode.region);
+        set({ ...common, enemies: [], selectedEnemyId: null, activeEnemyId: null, combatPhase: 'CONTROL_PHASE', ...stock });
         return;
       }
 
-      set({ ...common, currentEnemy: null, combatPhase: 'CONTROL_PHASE' });
-      if (targetNode.type === 'pack') get().openPackAction(targetNode.packId!, 'advance');
+      set({ ...common, enemies: [], selectedEnemyId: null, activeEnemyId: null, combatPhase: 'CONTROL_PHASE',
+        campOffer: targetNode.type === 'camp' ? drawCampBuff() : null });
     },
 
     confirmBattlePreparation: (placements: TemporaryStickerPlacement[]) => {
@@ -232,6 +239,21 @@ export const useGameStore = create<GameState>((set, get) => {
 
     setHoveredEquipment: (hoveredEquipmentId) => set({ hoveredEquipmentId }),
     ...createBattleActions(set, get),
+    ...createDraftActions(set, get),
+    ...createCampActions(set, get),
+    selectEnemy: (enemyId) => {
+      const state = get();
+      if (!['PREPARATION', 'ROLLING', 'CONTROL_PHASE'].includes(state.combatPhase)
+        || !state.enemies.some(enemy => enemy.id === enemyId && enemy.hp > 0)) return;
+      set({ selectedEnemyId: enemyId, comboSummary: state.comboSummary
+        ? calculateRollResolution(state.dicePool, state.rolledIndices, state.equipments, state.creatureBattleState, { ...state, selectedEnemyId: enemyId }) : null });
+    },
+    beginExtraReward: () => {
+      const reward = get().extraReward;
+      if (!reward) return;
+      set({ extraReward: null });
+      startStickerFlow([reward], 'stay');
+    },
 
     executeBattleSettlement: async (waitForAttackMotion) => {
       await runBattleSettlement({ get, set, triggerScreenShake: get().triggerScreenShake,
@@ -281,7 +303,7 @@ export const useGameStore = create<GameState>((set, get) => {
     applyBattleRewardSticker: (optionId, diceId, faceIndex) => {
       const state = get();
       const option = state.battleRewardOptions.find((item) => item.id === optionId);
-      if (state.combatPhase !== 'VICTORY' || state.battleRewardPickCount <= 0 || option?.kind !== 'sticker'
+      if (state.diceRewardOptions.length || state.extraReward || state.stickerFlow || state.combatPhase !== 'VICTORY' || state.battleRewardPickCount <= 0 || option?.kind !== 'sticker'
         || !state.dicePool.find((die) => die.id === diceId)?.faces[faceIndex]) return;
       const remaining = state.battleRewardPickCount - 1;
       set({
@@ -296,12 +318,13 @@ export const useGameStore = create<GameState>((set, get) => {
     claimBattleRewardPack: (optionId) => {
       const state = get();
       const option = state.battleRewardOptions.find((item) => item.id === optionId);
-      if (state.combatPhase !== 'VICTORY' || state.battleRewardPickCount !== 1 || option?.kind !== 'stickerPack') return;
+      if (state.diceRewardOptions.length || state.extraReward || state.stickerFlow || state.combatPhase !== 'VICTORY' || state.battleRewardPickCount !== 1 || option?.kind !== 'stickerPack') return;
       set({ battleRewardOptions: [], battleRewardPickCount: 0 });
       get().openPackAction(option.pack.id, 'advance');
     },
 
     skipBattleReward: () => {
+      if (get().diceRewardOptions.length || get().extraReward || get().stickerFlow) return;
       set({ battleRewardOptions: [], battleRewardPickCount: 0 });
       get().advanceToNextNode();
     },
@@ -309,17 +332,11 @@ export const useGameStore = create<GameState>((set, get) => {
     openChest: () => {
       const ownedIds = new Set(get().equipments.map((equipment) => equipment.id));
       const equipmentPool = ALL_EQUIPMENT_CATALOG.filter((equipment) => !ownedIds.has(equipment.id));
-      set({ chestRewardOptions: generateChestRewardOptions(equipmentPool, STICKER_PACKS_CATALOG) });
+      set({ chestRewardOptions: generateChestRewardOptions(equipmentPool) });
       soundService.playCoin();
     },
 
     claimChestReward: (option) => {
-      if (option.kind === 'stickerPack') {
-        set({ chestRewardOptions: [] });
-        soundService.playVictory();
-        get().openPackAction(option.pack.id, 'advance');
-        return;
-      }
       if (get().equipments.length < INITIAL_PLAYER_STATS.maxEquipmentSlots) {
         const slotIndex = get().equipments.length;
         set({
@@ -343,103 +360,25 @@ export const useGameStore = create<GameState>((set, get) => {
       get().advanceToNextNode();
     },
 
-    buyShopSticker: (stickerId) => {
-      const offer = getStickerOffer(get().shopStickers, stickerId, get().gold);
-      if (!offer || !offer.item.isDisposable) return false;
-      if (get().consumableStickers.length === INVENTORY_CONFIG.consumableCapacity) {
-        set({ pendingShopSticker: { sticker: offer.item, cost: offer.cost } });
-      } else {
-        set({ gold: get().gold - offer.cost,
-          consumableStickers: [...get().consumableStickers, createConsumableInstance(offer.item)],
-          shopStickers: get().shopStickers.filter((item) => item.id !== stickerId) });
-        soundService.playCoin();
-      }
-      return true;
-    },
-
-    replaceShopSticker: (instanceId) => {
-      const pending = get().pendingShopSticker;
-      if (!pending) return;
-      set({
-        gold: get().gold - pending.cost,
-        consumableStickers: replaceConsumable(
-          get().consumableStickers,
-          instanceId,
-          createConsumableInstance(pending.sticker)
-        ),
-        shopStickers: get().shopStickers.filter((item) => item.id !== pending.sticker.id),
-        pendingShopSticker: null,
-      });
-      soundService.playCoin();
-    },
-
-    cancelShopSticker: () => set({ pendingShopSticker: null }),
-
-    buyShopEquipment: (equipmentId) => {
-      const offer = getEquipmentOffer(get().shopEquipments, equipmentId, get().gold);
-      if (!offer) return false;
-      if (get().equipments.length >= INITIAL_PLAYER_STATS.maxEquipmentSlots) {
-        set({ pendingEquipment: { equipment: offer.item, source: 'shop', cost: offer.cost } });
-        return true;
-      }
-      set({
-        gold: get().gold - offer.cost,
-        equipments: [...get().equipments, offer.item],
-        shopEquipments: get().shopEquipments.filter((item) => item.id !== equipmentId),
-      });
-      soundService.playCoin();
-      return true;
-    },
-
-    replacePendingEquipment: (equipmentId) => {
-      const pending = get().pendingEquipment;
-      if (!pending) return;
-      const slotIndex = get().equipments.findIndex((item) => item.id === equipmentId);
-      if (slotIndex < 0) return;
-      set({
-        gold: get().gold - pending.cost,
-        equipments: get().equipments.map((item) => item.id === equipmentId ? pending.equipment : item),
-        chestRewardOptions: pending.source === 'chest' ? [] : get().chestRewardOptions,
-        shopEquipments: pending.source === 'shop'
-          ? get().shopEquipments.filter((item) => item.id !== pending.equipment.id)
-          : get().shopEquipments,
-        equipmentSlotFeedback: pending.source === 'chest'
-          ? { slotIndex }
-          : get().equipmentSlotFeedback,
-      });
-      soundService.playEquip();
-      completeEquipmentChoice();
-    },
-
-    cancelPendingEquipment: () => set({ pendingEquipment: null }),
-
-    buyHeal: () => {
-      const result = calculateHealPurchase(get().gold, get().playerHp, get().maxHp);
-      if (!result) return false;
-      set(result);
-      soundService.playCoin();
-      return true;
-    },
+    ...createShopActions(set, get, createConsumableInstance, startStickerFlow, completeEquipmentChoice),
 
     advanceToNextNode: () => {
-      const { currentNodeIndex, dicePool, mapNodes } = get();
-      if (mapNodes[currentNodeIndex].completed || get().routeChoices.length) return;
+      const { currentNodeIndex, mapNodes } = get();
+      if (mapNodes[currentNodeIndex].completed || get().routeChoices.length || get().diceRewardOptions.length
+        || get().extraReward || get().stickerFlow || get().battleRewardPickCount > 0) return;
       if (currentNodeIndex === CREATURE_BALANCE.princess.guaranteedNode && !get().princessGuaranteed) {
         set({ princessGuaranteed: true });
         startStickerFlow([ALL_STICKERS_CATALOG.find((item) => item.creature === 'princess')!], 'advance');
         return;
       }
-      const rewardDie = checkProgressionDiceReward(currentNodeIndex, dicePool);
-      const nextDicePool: Dice[] = rewardDie ? [...dicePool, rewardDie] : dicePool;
       const nextNodes = completeRouteNode(mapNodes, mapNodes[currentNodeIndex].id);
       const choices = mapNodes[currentNodeIndex].next;
-      set({ dicePool: nextDicePool, mapNodes: nextNodes, unlockedDiceNotification: rewardDie });
-      if (rewardDie) soundService.playVictory();
+      set({ mapNodes: nextNodes });
       if (choices.length === 1) {
         const nodes = selectRouteNode(nextNodes, choices, choices[0])!;
         set({ mapNodes: nodes });
         get().startNode(nodes.findIndex((node) => node.id === choices[0]));
-      } else if (choices.length > 1) set({ routeChoices: choices, currentEnemy: null,
+      } else if (choices.length > 1) set({ routeChoices: choices, enemies: [], selectedEnemyId: null, activeEnemyId: null,
         combatPhase: 'CONTROL_PHASE', comboSummary: null });
       else set({ combatPhase: 'VICTORY' });
     },
@@ -461,7 +400,6 @@ export const useGameStore = create<GameState>((set, get) => {
 
     openDiceInspect: (dice) => set({ selectedDiceForInspect: dice }),
     closeDiceInspect: () => set({ selectedDiceForInspect: null }),
-    dismissDiceNotification: () => set({ unlockedDiceNotification: null }),
   };
 });
 

@@ -24,8 +24,3 @@ export const STICKER_PACKS_CATALOG: StickerPack[] = [
     creatures: CREATURE_IDS.filter((id) => id !== 'princess' && CREATURE_CONFIG[id].tags.includes('noble'))
   },
 ];
-export const FINAL_STICKER_PACK: StickerPack = {
-  id: 'pack_final', name: '深牢補給包', rarity: 'rare', stickerCount: 2, permanentCount: 2,
-  description: '兩張貼紙，完成決戰前調整。', themeName: '深牢補給',
-  creatures: CREATURE_IDS.filter((id) => id !== 'princess'),
-};

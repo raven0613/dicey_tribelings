@@ -26,7 +26,7 @@ export const DiceBoard: React.FC = () => {
     equipments: state.equipments,
     rolledIndices: state.rolledIndices,
     combatPhase: state.combatPhase,
-    currentEnemy: state.currentEnemy,
+    enemies: state.enemies, selectedEnemyId: state.selectedEnemyId, activeEnemyId: state.activeEnemyId,
     hoveredEquipmentId: state.hoveredEquipmentId,
     control: state.control,
     gold: state.gold,
@@ -52,7 +52,7 @@ export const DiceBoard: React.FC = () => {
     equipments,
     rolledIndices,
     combatPhase,
-    currentEnemy, hoveredEquipmentId, control,
+    enemies, activeEnemyId, hoveredEquipmentId, control,
     activeRerollingIndex,
     finishRollAnimation,
     finishRerollAnimation,
@@ -133,7 +133,7 @@ export const DiceBoard: React.FC = () => {
     return () => observer.disconnect();
   }, []);
   useLayoutEffect(() => {
-    if (combatPhase !== 'RESOLVING_ATTACK') return;
+    if (combatPhase !== 'RESOLVING_ATTACK' || (attackingDieIndex === null && attackingBonusIndex === null)) return;
     const measure = () => {
       const enemy = getGameRect(document.getElementById('battle-enemy-target')!);
       const tray = getGameRect(trayRef.current!);
@@ -146,7 +146,7 @@ export const DiceBoard: React.FC = () => {
       window.removeEventListener('scroll', measure, true);
       window.removeEventListener('resize', measure);
     };
-  }, [combatPhase, attackingDieIndex, attackingBonusIndex, traySize.width, traySize.height, scale]);
+  }, [combatPhase, activeEnemyId, attackingDieIndex, attackingBonusIndex, traySize.width, traySize.height, scale]);
 
   const completedRolls = useRef(new Set<number>());
   useLayoutEffect(() => { completedRolls.current.clear(); }, [combatPhase]);
@@ -189,7 +189,7 @@ export const DiceBoard: React.FC = () => {
         <div ref={trayRef} className="dice-tray-area" style={{ width: trayLayout.width, height: trayLayout.height }}>
           <DiceHoverOverlay anchors={hoverAnchors} hoveredId={canShowRelations ? hoveredId ?? hoveredEquipmentId : null}
             summary={comboSummary} width={traySize.width} viewportLeft={viewportLeft} passiveEnabled={combatPhase === 'CONTROL_PHASE'}
-            rolling={activeRerollingIndex !== null} roundKey={`${currentEnemy?.id}:${creatureBattleState.round}`}
+            rolling={activeRerollingIndex !== null} roundKey={`${enemies[0]?.id}:${creatureBattleState.round}`}
             targetIds={canShowRelations ? highlightedTargets.flatMap((index) => highlightAction === 'swap' ? [dicePool[index].id, dicePool[index + 1].id] : [dicePool[index].id]) : []} />
           {dicePool.map((die, idx) => {
             return <BattleDiceSlot key={die.id} die={die} idx={idx} position={trayLayout.positions[idx]}

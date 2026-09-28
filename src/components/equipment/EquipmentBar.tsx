@@ -25,7 +25,7 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
     comboSummary: state.comboSummary,
     skillFeedback: state.skillFeedback,
     combatPhase: state.combatPhase,
-    currentEnemy: state.currentEnemy,
+    leader: state.enemies[0],
     activeRerollingIndex: state.activeRerollingIndex,
     equipmentSlotFeedback: state.equipmentSlotFeedback,
     diceAction: state.diceAction,
@@ -43,7 +43,7 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
     comboSummary,
     skillFeedback,
     combatPhase,
-    currentEnemy,
+    leader,
     activeRerollingIndex,
     equipmentSlotFeedback, diceAction, setDiceAction, setHoveredEquipment,
   } = actionState;
@@ -78,7 +78,7 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
     return () => window.clearTimeout(timerId);
   }, [equipmentSlotFeedback]);
 
-  const triggeredEquipmentIds = new Set(currentEnemy && activeRerollingIndex === null
+  const triggeredEquipmentIds = new Set(leader && activeRerollingIndex === null
     ? combatPhase === 'CONTROL_PHASE' ? comboSummary?.triggeredEquipmentIds ?? []
       : skillFeedback.flatMap(({ event }) => event.equipmentId ? [event.equipmentId] : [])
     : []);

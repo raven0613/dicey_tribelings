@@ -1,3 +1,4 @@
+import { CampBuffBadge } from '../camp/CampBuffBadge';
 import { useShallow } from 'zustand/react/shallow';
 import { Coins, Dices, Play, RotateCcw, Shield, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
@@ -16,7 +17,7 @@ interface FootbarProps {
 }
 
 export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: FootbarProps) {
-  const { gold, dicePool, setDiceAction, control, maxControl, diceAction, creatureBattleState, equipments, comboSummary, combatPhase, activeRerollingIndex, pendingPaidRerollDiceId, currentEnemy, hoveredEquipmentId, unlockedDiceNotification, confirmBattlePreparation, stickerFlow } = useGameStore(useShallow((state) => ({
+  const { gold, dicePool, setDiceAction, control, maxControl, diceAction, creatureBattleState, equipments, comboSummary, combatPhase, activeRerollingIndex, pendingPaidRerollDiceId, selectedEnemy, enemies, selectedEnemyId, hoveredEquipmentId, confirmBattlePreparation, stickerFlow } = useGameStore(useShallow((state) => ({
     gold: state.gold,
     dicePool: state.dicePool,
     setDiceAction: state.setDiceAction,
@@ -29,9 +30,9 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
     combatPhase: state.combatPhase,
     activeRerollingIndex: state.activeRerollingIndex,
     pendingPaidRerollDiceId: state.pendingPaidRerollDiceId,
-    currentEnemy: state.currentEnemy,
+    selectedEnemy: state.enemies.find(enemy => enemy.id === state.selectedEnemyId),
+    enemies: state.enemies, selectedEnemyId: state.selectedEnemyId,
     hoveredEquipmentId: state.hoveredEquipmentId,
-    unlockedDiceNotification: state.unlockedDiceNotification,
     confirmBattlePreparation: state.confirmBattlePreparation,
     stickerFlow: state.stickerFlow,
   })));
@@ -42,7 +43,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
   const isControlPhase = combatPhase === 'CONTROL_PHASE';
   const totalForecastDamage = comboSummary?.totalDamage || 0;
   const canResolve = isControlPhase && activeRerollingIndex === null && !isResolving && !selectingAction && !pendingPaidRerollDiceId;
-  const beforeExposure = isControlPhase && activeRerollingIndex === null && currentEnemy?.exposure && comboSummary ? buildAttackPlan(comboSummary, { ...currentEnemy, exposure: undefined }, equipments).reduce((sum, attack) => sum + attack.value, 0) : undefined;
+  const beforeExposure = isControlPhase && activeRerollingIndex === null && selectedEnemy?.exposure && comboSummary ? buildAttackPlan(comboSummary, enemies.map(enemy => ({ ...enemy, exposure: undefined })), equipments, selectedEnemyId, creatureBattleState).reduce((sum, attack) => sum + attack.value, 0) : undefined;
   const highlightShield = isControlPhase && equipments.some((equipment) => equipment.id === hoveredEquipmentId && equipment.ruleId === 'BARRICADE');
   const totalForecastShield = comboSummary?.totalShield || 0;
   let resolveLabel = 'ATTACK';
@@ -83,6 +84,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
         </div>
 
         <PlayerVitals />
+        <CampBuffBadge />
         <div className="footbar-tools">
           <button type="button" id="btn-dice-bag" onClick={onOpenDiceBag}>
             <Dices className="ui-icon" /><span>{dicePool.length}</span>
@@ -93,7 +95,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
       {isCombat && <>
         {combatPhase === 'PREPARATION' ?
           <button type="button"
-            className="btn-resolve" disabled={!!unlockedDiceNotification || !!stickerFlow}
+            className="btn-resolve" disabled={!!stickerFlow}
             onClick={() => confirmBattlePreparation([])}
           >
             <Play className="ui-icon" />
@@ -109,7 +111,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
                   <Swords className="ui-icon" style={{ marginRight: '2px' }} />
                   {totalForecastDamage}
                 </span>
-                {isControlPhase && !!currentEnemy?.exposure && <ExposureBadge multiplier={currentEnemy.exposure} before={beforeExposure} after={totalForecastDamage} />}
+                {isControlPhase && !!selectedEnemy?.exposure && <ExposureBadge multiplier={selectedEnemy.exposure} before={beforeExposure} after={totalForecastDamage} />}
               </div>
 
               <div className={`forecast-shield ${highlightShield ? 'is-highlighted' : ''}`} style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>

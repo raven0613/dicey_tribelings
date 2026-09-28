@@ -48,7 +48,7 @@ export class RunRecorder {
       this.visit(state, now);
       changed = true;
     }
-    if (state.combatPhase === 'PREPARATION' && state.currentEnemy && !this.currentBattle()) {
+    if (state.combatPhase === 'PREPARATION' && state.enemies.length > 0 && !this.currentBattle()) {
       this.beginBattle(state, now);
       changed = true;
     }
@@ -68,6 +68,14 @@ export class RunRecorder {
       this.equipment(state, previous, now);
       this.snapshot(state, 'build', now);
       changed = true;
+    }
+    if (state.mapNodes.some(node => node.id === CHAPTER_END_NODE && node.completed)) {
+      const snapshot = this.snapshot(state, 'milestone', now);
+      const common = { at: now, elapsedMs: this.record.elapsedMs, activeMs: this.record.activeMs, snapshotId: snapshot.id };
+      this.record.milestones.push({ ...common, kind: 'chapter', name: this.record.content.chapterName },
+        { ...common, kind: 'run', name: this.record.content.name });
+      this.finish('victory', state, now);
+      return true;
     }
     return changed;
   }
@@ -118,10 +126,10 @@ export class RunRecorder {
   }
 
   private beginBattle(state: TelemetryState, now: number) {
-    const enemy = state.currentEnemy!;
+    const enemies = state.enemies;
     const snapshot = this.snapshot(state, 'preparation', now);
-    this.record.battles.push({ id: this.record.battles.length, location: locationOf(state), enemyId: enemy.id,
-      enemyName: enemy.name, startedAt: now, endedAt: null, elapsedMs: 0, activeMs: 0, activeStartedMs: this.record.activeMs,
+    this.record.battles.push({ id: this.record.battles.length, location: locationOf(state), enemyIds: enemies.map(enemy => enemy.id),
+      enemyName: enemies.map(enemy => enemy.name).join('＋'), startedAt: now, endedAt: null, elapsedMs: 0, activeMs: 0, activeStartedMs: this.record.activeMs,
       outcome: 'incomplete', startSnapshotId: snapshot.id, endSnapshotId: null, rerolls: 0, rounds: [], death: null });
     for (const item of this.record.equipmentHistory) if (item.removedAt === null) item.battles++;
   }
@@ -136,16 +144,11 @@ export class RunRecorder {
       this.finish(battle.outcome, previous, now);
       return;
     }
-    if (state.currentEnemy?.isBoss) {
+    if (state.enemies[0]?.isBoss) {
       const endState = { ...previous, playerHp: state.playerHp, gold: state.gold };
       const snapshot = this.snapshot(endState, 'milestone', now);
       const common = { at: now, elapsedMs: this.record.elapsedMs, activeMs: this.record.activeMs, snapshotId: snapshot.id };
       this.record.milestones.push({ ...common, kind: 'region', name: this.record.location.regionName });
-      if (this.record.location.nodeId === CHAPTER_END_NODE) {
-        this.record.milestones.push({ ...common, kind: 'chapter', name: this.record.content.chapterName },
-          { ...common, kind: 'run', name: this.record.content.name });
-        this.finish('victory', endState, now);
-      }
     }
   }
 }

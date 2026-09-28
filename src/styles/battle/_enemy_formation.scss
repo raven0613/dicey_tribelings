@@ -1,0 +1,25 @@
+.enemy-formation {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  align-items: stretch;
+  padding: 8px;
+
+  .enemy-card { flex: 1; min-width: 0; }
+  .enemy-card[data-selected='true'] { outline: 2px solid #fbbf24; }
+  .enemy-avatar-box { position: relative; cursor: pointer; }
+  .enemy-target-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 65%;
+    height: 65%;
+    color: #fbbf24;
+    filter: drop-shadow(0 0 2px #000);
+    pointer-events: none;
+  }
+  .enemy-name { font-size: 1rem; }
+  .enemy-body { flex-wrap: wrap; }
+}

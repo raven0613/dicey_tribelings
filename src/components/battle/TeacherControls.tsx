@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../store/gameStore';
+import { getRoundFace } from '../../service/battle/creatures/imposterResolution';
 import { teacherTargets } from '../../service/battle/rollService';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 
@@ -19,7 +20,8 @@ export function TeacherControls() {
   })));
   if (state.combatPhase !== 'CONTROL_PHASE') return null;
   const selecting = state.diceAction.startsWith('teacher:');
-  const teachers = state.dicePool.filter((die) => state.creatureBattleState.teachersAvailable.includes(die.id));
+  const teachers = state.dicePool.filter((die, index) => state.creatureBattleState.teachersAvailable.includes(die.id)
+    && getRoundFace(die, state.rolledIndices[index], state.creatureBattleState).creature === 'teacher');
   if (!teachers.length) return null;
 
   return <div className="teacher-controls" aria-label="土人老師免費重骰"
