@@ -1,0 +1,10 @@
+.viewport-backdrop {
+  position: absolute;
+  inset: calc(var(--backdrop-blur) * -3);
+  z-index: 0;
+  pointer-events: none;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: brightness(var(--backdrop-brightness)) blur(var(--backdrop-blur));
+}

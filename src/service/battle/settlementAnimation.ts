@@ -125,7 +125,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
 
 export async function animateAttack(methods: BattleStoreMethods, index: number, bonus: boolean,
   pop: DamagePopInput, applyDamage: () => void, isCurrent = () => true, strength = 0) {
-  const { set, triggerScreenShake, addDamagePop, waitForAttackMotion } = methods;
+  const { set, addDamagePop, waitForAttackMotion } = methods;
   if (!isCurrent()) return false;
   const heavy = strength > 0;
   set({ attackingDieIndex: bonus ? null : index, attackingBonusIndex: bonus ? index : null,
@@ -133,7 +133,7 @@ export async function animateAttack(methods: BattleStoreMethods, index: number, 
   if (!await waitForAttackMotion(index, bonus, isCurrent) || !isCurrent()) return false;
   soundService.playDiceDash(); set({ attackingStage: 'dash' });
   if (!await waitForAttackMotion(index, bonus, isCurrent) || !isCurrent()) return false;
-  soundService.playEnemyHit(heavy); triggerScreenShake(timing.lightShake + (timing.heavyShake - timing.lightShake) * strength);
+  soundService.playEnemyHit(heavy);
   applyDamage(); addDamagePop(pop); set({ attackingStage: 'impact' });
   if (!await waitForAttackMotion(index, bonus, isCurrent) || !isCurrent()) return false;
   set({ attackingStage: 'recoil' });

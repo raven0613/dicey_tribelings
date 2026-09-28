@@ -1,5 +1,5 @@
 import { CampPanel } from './camp/CampPanel';
-import { BattleScreenShake } from './battle/BattleScreenShake';
+import { GameScene } from './background/GameScene';
 import { useShallow } from 'zustand/react/shallow';
 import { PaidRerollDialog } from './battle/PaidRerollDialog';
 import { useState } from 'react';
@@ -62,7 +62,7 @@ export function GameScreen() {
   };
 
   return (
-    <BattleScreenShake>
+    <GameScene>
       <MapProgress />
       <div className="game-screen-content">
         <div className="game-screen-background" inert={isConfiguring}>
@@ -92,6 +92,6 @@ export function GameScreen() {
       <DiceInspectModal isOpen={isDiceBagOpen} onClose={() => setIsDiceBagOpen(false)} />
       <GameOverModal />
       {pendingPaidRerollDiceId && <PaidRerollDialog />}
-    </BattleScreenShake>
+    </GameScene>
   );
 }

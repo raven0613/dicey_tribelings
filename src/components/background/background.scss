@@ -1,0 +1,48 @@
+.background-plane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc((100% - var(--background-width)) / 2);
+  width: var(--background-width);
+  pointer-events: none;
+}
+
+.background-back {
+  top: auto;
+  bottom: var(--background-baseline-bottom);
+  height: 0;
+}
+
+.background-baseline {
+  position: absolute;
+  bottom: var(--background-baseline-bottom);
+  left: 0;
+  width: 100%;
+  height: 0;
+}
+
+.background-ground, .background-grass-group {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 0;
+}
+
+.background-grass-group { isolation: isolate; }
+
+.background-hanging {
+  position: absolute;
+  top: var(--background-baseline-top);
+  left: 0;
+  width: 100%;
+  height: 0;
+}
+
+.background-image {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  max-width: none;
+
+  &[data-anchor='top'] { top: 0; bottom: auto; }
+}

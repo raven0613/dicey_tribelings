@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Re
 import { getGameViewport } from '../../service/layout/gameViewport';
 import { GameViewportContext } from './GameViewportContext';
 import { VIEWPORT_PRESENTATION } from '../../configs/viewportConfig';
+import { ViewportBackdrop } from '../background/ViewportBackdrop';
 
 export function GameViewport({ children }: { children: ReactNode }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -26,9 +27,10 @@ export function GameViewport({ children }: { children: ReactNode }) {
   }, []);
 
   return <div className="game-viewport" ref={viewportRef}>
+    <ViewportBackdrop />
     <GameViewportContext.Provider value={context}>
       <div id="game-stage" className="game-stage" data-scale={viewport.scale} data-layout={viewport.mobile ? 'mobile' : 'desktop'} style={{
-        width: viewport.width, height: viewport.height, transform: `scale(${viewport.scale})`,
+        width: viewport.width, height: viewport.height, transform: `translate(-50%, -50%) scale(${viewport.scale})`,
         '--game-width': `${viewport.width}px`, '--game-height': `${viewport.height}px`,
         '--minimum-font-size': `${viewport.minimumFontSize}px`,
         '--ui-icon-size': `${VIEWPORT_PRESENTATION.inlineIconSizeEm}em`,

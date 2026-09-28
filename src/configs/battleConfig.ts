@@ -5,7 +5,6 @@ export const BATTLE_PRESENTATION = {
   nameVerticalMargin: 8,
   eventGapMs: 110, numberDurationMs: 240, numberSoundIntervalMs: 64,
   beforeAttackMs: 80,
-  heavyShake: 14, lightShake: 7,
   windupMs: 25, dashMs: 50, impactMs: 70, recoilMs: 35, betweenAttackMs: 15,
   victoryMs: 350, enemyThinkMs: 600, nextRoundMs: 600,
   enemyWindupMs: 80, enemyDashMs: 70, enemyImpactMs: 90, enemyRecoilMs: 120,

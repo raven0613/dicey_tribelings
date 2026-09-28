@@ -1,3 +1,8 @@
+import { VIEWPORT_PRESENTATION } from '../src/configs/viewportConfig';
+
+const aspectRatio = VIEWPORT_PRESENTATION.referenceWidth / VIEWPORT_PRESENTATION.referenceHeight;
+const initialContentWidth = 1280;
+
 export const desktopConfig = {
   packageName: 'dice-sticker-roguelite',
   executableName: 'DiceStickerRoguelite',
@@ -5,9 +10,11 @@ export const desktopConfig = {
   appId: 'com.dicestickerroguelite.game',
   scheme: 'dice-game',
   host: 'bundle',
+  aspectRatio,
   window: {
-    width: 1280,
-    height: 800,
+    width: initialContentWidth,
+    height: initialContentWidth / aspectRatio,
+    useContentSize: true,
     backgroundColor: '#020617',
   },
 } as const;

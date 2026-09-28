@@ -22,7 +22,6 @@ export type WaitForAttackMotion = (index: number, bonus: boolean, isCurrent: () 
 export interface BattleStoreMethods {
   get: () => GameState;
   set: (partial: Partial<GameState>) => void;
-  triggerScreenShake: (intensity?: number) => void;
   startBattleRoll: () => void;
   addDamagePop: (pop: DamagePopInput) => void;
   waitForAttackMotion: WaitForAttackMotion;

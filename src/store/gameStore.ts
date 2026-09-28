@@ -88,7 +88,6 @@ function getInitialValues() {
     storedRations: 0, princessPackCount: 0, princessGuaranteed: false,
     diceSlotStates: {},
     bonusSlotStates: {},
-    screenShakeIntensity: 0,
     soundMuted: false,
     selectedDiceForInspect: null,
     diceRewardOptions: [], diceRefreshes: 0, lootRefreshes: 0, shopRefreshes: 0, extraReward: null,
@@ -151,11 +150,6 @@ export const useGameStore = create<GameState>((set, get) => {
       const soundMuted = !get().soundMuted;
       soundService.isMuted = soundMuted;
       set({ soundMuted });
-    },
-
-    triggerScreenShake: (intensity = 8) => {
-      set({ screenShakeIntensity: intensity });
-      setTimeout(() => set({ screenShakeIntensity: 0 }), 280);
     },
 
     addDamagePop: (pop) => {
@@ -256,7 +250,7 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     executeBattleSettlement: async (waitForAttackMotion) => {
-      await runBattleSettlement({ get, set, triggerScreenShake: get().triggerScreenShake,
+      await runBattleSettlement({ get, set,
         startBattleRoll: get().startBattleRoll, addDamagePop: get().addDamagePop, waitForAttackMotion });
     },
 

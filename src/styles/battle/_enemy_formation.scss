@@ -1,4 +1,6 @@
 .enemy-formation {
+  position: relative;
+  z-index: var(--scene-enemy-layer);
   display: flex;
   flex: 1;
   gap: 12px;

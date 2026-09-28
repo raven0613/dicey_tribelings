@@ -7,12 +7,13 @@
   width: 100%;
   max-width: 40rem;
   margin: 0 auto;
-  background-color: rgba($slate-900, 0.9);
+  // background-color: rgba($slate-900, 0.9);
+  background: transparent;
   border: 2px solid rgba($slate-700, 0.8);
   border-radius: $radius-xl;
   padding: 0.375rem 0.75rem;
   box-shadow: $shadow-lg;
-  backdrop-filter: blur(12px);
+  // backdrop-filter: blur(12px);
   transition: filter 0.1s ease;
   display: grid;
   grid-template-rows: minmax(0, 1fr);

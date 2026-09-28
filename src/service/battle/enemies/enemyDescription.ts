@@ -22,7 +22,7 @@ export function describeEnemyIntent(enemy: Enemy, manualRerolls = 0): string {
   if (intent.shieldGain) rules.push(`出手後獲得 ${intent.shieldGain} 護盾`);
   if (intent.exposeOnBlock) rules.push(`整輪招式完全被盾擋住，下一輪受到傷害 ×${intent.exposeOnBlock}`);
   if (intent.seal) rules.push('封鎖下輪一骰的額外重骰與翻面');
-  if (intent.grapple) rules.push(`未被完整格擋則上鉤；下輪額外重骰或對來源造成 ${intent.grapple.breakDamage} 傷害解除，否則拉扯 ${intent.grapple.damage}`);
+  if (intent.grapple) rules.push(`造成鉤索狀態，本回合格擋成功則解除。鉤索：造成 ${intent.grapple.damage}點傷害，重骰或對施放者造成 ${intent.grapple.breakDamage} 傷害可強制解除。`);
   if (intent.command) rules.push(`其他同伴下一回合傷害 +${intent.command}`);
   if (enemy.armor) rules.push(`次數甲 ${enemy.armor} 層，受傷 ×${enemy.traits!.hitArmor!.multiplier}；打光暈眩一次`);
   if (enemy.armorStun) rules.push('已破甲，本次行動跳過');

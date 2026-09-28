@@ -104,7 +104,6 @@ export interface GameState {
   princessGuaranteed: boolean;
   diceSlotStates: Record<number, NumberDisplay>;
   bonusSlotStates: Record<string, NumberDisplay>;
-  screenShakeIntensity: number;
   soundMuted: boolean;
   selectedDiceForInspect: Dice | null;
   diceRewardOptions: DiceRecipe[];
@@ -133,7 +132,6 @@ export interface GameState {
   shopStickers: StickerItem[];
   shopEquipments: Equipment[];
   toggleSound: () => void;
-  triggerScreenShake: (intensity?: number) => void;
   startNode: (nodeIndex: number) => void;
   confirmBattlePreparation: (placements: TemporaryStickerPlacement[]) => void;
   startBattleRoll: () => void;

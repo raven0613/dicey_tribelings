@@ -2,8 +2,8 @@ import { VIEWPORT_PRESENTATION as config } from '../../configs/viewportConfig';
 
 export function getGameViewport(width: number, height: number, coarsePointer: boolean) {
   const mobile = coarsePointer && Math.min(width, height) <= config.mobileShortSide;
-  const scale = mobile ? 1 : Math.min(width / config.referenceWidth, height / config.referenceHeight);
-  return { scale, mobile, width: width / scale, height: height / scale,
+  const scale = Math.min(width / config.referenceWidth, height / config.referenceHeight);
+  return { scale, mobile, width: config.referenceWidth, height: config.referenceHeight,
     minimumFontSize: config.minimumFontSize / scale };
 }
 

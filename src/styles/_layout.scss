@@ -3,7 +3,6 @@
 .app-wrapper {
   width: 100%;
   height: 100%;
-  background-color: $slate-950;
   color: $slate-100;
   display: flex;
   flex-direction: column;
@@ -47,6 +46,9 @@
 }
 
 .region-progress {
+  position: relative;
+  z-index: var(--scene-interface-layer);
+  background: #222417;
   flex-shrink: 0;
   min-width: 0;
   width: 100%;

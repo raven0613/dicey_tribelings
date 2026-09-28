@@ -4,12 +4,13 @@
 .dice-board {
   --board-padding-y: 0.5rem;
   position: relative;
+  z-index: var(--scene-interface-layer);
   width: 100%;
   height: calc(var(--board-body-height) + var(--board-padding-y) * 2);
   flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
-  background: radial-gradient(circle at center, rgba($slate-900, 0.95), rgba($slate-950, 0.98));
+  // background: radial-gradient(circle at center, rgba($slate-900, 0.95), rgba($slate-950, 0.98));
   border-radius: $radius-2xl;
   padding: var(--board-padding-y) 0.75rem;
   display: grid;
@@ -158,7 +159,7 @@
   line-height: var(--result-line-height);
   padding: var(--result-padding-y) var(--result-padding-x);
   border-radius: 0.3rem;
-  background: #0f172ae6;
+  background: #222417;
   color: #e2e8f0;
   font-size: max(var(--result-font-size), var(--minimum-font-size));
 }

@@ -1,12 +1,15 @@
 @use 'variables' as *;
 
 .footbar {
+  position: relative;
+  z-index: var(--scene-interface-layer);
   flex-shrink: 0;
   min-height: 0;
   max-height: 40%;
   overflow: auto;
   border-top: 1px solid $slate-700;
-  background: $slate-900;
+  background: #222417;
+  // background: $slate-900;
   padding: 0.5rem max(0.75rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
 }
 .footbar-content {

@@ -1,6 +1,7 @@
-.game-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.game-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; isolation: isolate; }
 .game-stage {
-  position: absolute; left: 0; top: 0; transform-origin: top left;
+  position: absolute; left: 50%; top: 50%; transform-origin: center;
+  z-index: 1; overflow: clip;
   container: game-stage / size;
   font-size: max(1rem, var(--minimum-font-size));
 }
