@@ -1,4 +1,5 @@
 import type { EnemyRank } from '../../types/enemy';
+export const MONSTER_COLLECTIVE_NAMES: readonly string[] = ['水寨雙煞'];
 export const MONSTER_RANK_COLORS = { normal: '#e2e8f0', elite: '#c084fc', boss: '#fbbf24', final_boss: '#fb7185' } satisfies Record<EnemyRank, string>;
 export const MONSTER_FEATURE_NAMES = {
   chargedStrike: '蓄力重擊', interruptible: '可打斷', exposed: '格擋露隙', seal: '封骰', grapple: '鉤索',

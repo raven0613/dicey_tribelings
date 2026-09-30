@@ -5,7 +5,6 @@ import type { CreatureBattleState, CreatureId } from '../../../types/creatures';
 import type { BattleContext, CalculatedRollItem, SkillEvent, RepeatAttack } from '../../../types/battle';
 import { CREATURE_CONFIG } from '../../../configs/creatures/creatureConfig';
 import { getEffectiveFace, getFaceTags } from '../../dice/diceFaces';
-import { getDiceGeometry } from '../../dice/diceGeometry';
 import { ceilDamage } from '../damageValue';
 import { combatNumber } from './creatureState';
 import { findPranksterTargets, findTeacherTargets } from './rerollTargets';
@@ -108,9 +107,8 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
   const tagCount = (tag: CalculatedRollItem['tags'][number]) => items.filter((item) => item.tags.includes(tag)).length;
   const neighbors = (index: number) => items.filter((_, other) => Math.abs(index - other) === 1);
   const faceCount = (index: number, creature: CreatureId) => faces[index].filter((face) => face.creature === creature).length;
-  const adjacentFaces = (index: number) => getDiceGeometry(dice[index].dieType)[items[index].faceIndex].neighbors.map((neighbor) => faces[index][neighbor]);
   return { teamShield, foodValues, dice, items, faces, equipment, state, battle, events, bonusDice, repeatAttacks, repeatFactors, tailMultipliers, pendingCheers, nextAltars, nextStoredFood, echoUsed, echoMultiplier, echoEvent, materials, virtualFood: state.virtualFood,
     countParticipants, triggeredEquipmentIds, event, equipmentEvent, attack, shield, bonus,
-    identify, speciesCount, tagCount, neighbors, faceCount, adjacentFaces };
+    identify, speciesCount, tagCount, neighbors, faceCount };
 }
 export type ResolutionContext = ReturnType<typeof createResolutionContext>;

@@ -63,8 +63,10 @@ test('net preview preserves temporary materials and shows incoming permanent coa
   const { getDiceNet } = await import('../../service/dice/diceNet');
   const { createPermanentSticker, DISPOSABLE_STICKERS } = await import('../../configs/creatures/creatureStickerConfig');
   const face = { id: 'face', baseValue: 4, creature: 'food' as const, material: 'negative' as const };
+  const dice = configuredDice('net', '測試', 'd6', 'amber', Array.from({ length: 6 }, () => ['food', 4]));
+  dice.faces = dice.faces.map((_, index) => ({ ...face, id: `face-${index}` }));
   const props = {
-    face, index: 0, geometry: getDiceNet('d6').faces[0], scale: 180, relation: 'current' as const,
+    face, dice, index: 0, geometry: getDiceNet('d6').faces[0], scale: 180, relation: 'current' as const,
     neighbors: [1, 2, 3, 4], onHover: () => { }, onFocus: () => { }, previewing: true
   };
   const { resolveTemporarySticker } = await import('../../service/inventory/inventoryService');

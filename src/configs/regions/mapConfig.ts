@@ -3,6 +3,7 @@ import type { MapNode } from '../../types/game';
 import type { RegionId } from '../../types/enemy';
 import { MONSTER_CONFIG } from '../monsters/monsterConfig';
 import { REGION_CONFIG } from './regionConfig';
+import { describeEncounter } from '../../service/regions/encounterDescription';
 
 type Stop = 'chest' | 'shop' | readonly string[];
 const routes: Record<RegionId, readonly Stop[]> = {
@@ -18,7 +19,7 @@ function makeNode(id: number, region: RegionId, regionNode: number, stop: Stop):
   }
   const enemies = stop.map(key => MONSTER_CONFIG.find(enemy => enemy.id === `r${region}_${key}`)!);
   const rank = enemies[0].rank;
-  const title = enemies.map(enemy => enemy.name).join('＋');
+  const { title } = describeEncounter(enemies);
   return {
     ...common, type: rank === 'normal' ? 'fight' : rank === 'elite' ? 'elite' : 'boss',
     enemyIds: enemies.map(enemy => enemy.id), title, description: `${REGION_CONFIG[region].name}・${title}`

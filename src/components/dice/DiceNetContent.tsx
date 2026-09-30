@@ -8,16 +8,12 @@ import { SkillText } from '../common/SkillText';
 import { DiceIdentityHeader } from './DiceIdentityHeader';
 import { DiceCharacter } from './DiceCharacter';
 import { MaterialBadge } from './MaterialBadge';
-
-export function getPreviewFace(face: DiceFace, sticker?: FaceSticker) {
-  if (!sticker) return getEffectiveFace(face);
-  return getEffectiveFace(sticker.isDisposable === true
-    ? { ...face, temporarySticker: { name: sticker.name, creature: sticker.creature, description: sticker.description } }
-    : { id: face.id, creature: sticker.creature, baseValue: sticker.baseValue, material: sticker.material });
-}
+import { getPreviewFace } from '../../service/dice/facePreview';
+import type { BattleSkillLine } from '../../service/battle/battleSkillDescription';
+import { SkillLines } from '../common/SkillLines';
 
 /** The face and its popover share the same structured description and preview values. */
-export function DiceNetContent({ face, sticker, full = false }: { face: DiceFace; sticker?: FaceSticker; full?: boolean }) {
+export function DiceNetContent({ face, sticker, full = false, lines }: { face: DiceFace; sticker?: FaceSticker; full?: boolean; lines?: BattleSkillLine[] }) {
   const root = useRef<HTMLSpanElement>(null);
   const measure = useRef<HTMLSpanElement>(null);
   const [summaryLines, setSummaryLines] = useState<number | null>(null);
@@ -44,9 +40,11 @@ export function DiceNetContent({ face, sticker, full = false }: { face: DiceFace
   const attack = sticker ? sticker.isDisposable === true ? `${effective.baseValue}（沿用）`
     : `${original.baseValue} → ${effective.baseValue}` : effective.baseValue;
   const description = <>
-    <strong className="dice-net-ability-title"><SkillText text={creature.ability} /></strong>
-    {creature.description.split('\n').map((line, index) => <span key={index} className="dice-net-ability"><SkillText text={line} /></span>)}
-    <MaterialBadge material={effective.material} description />
+    {lines ? <SkillLines lines={lines} /> : <>
+      <strong className="dice-net-ability-title"><SkillText text={creature.ability} /></strong>
+      {creature.description.split('\n').map((line, index) => <span key={index} className="dice-net-ability"><SkillText text={line} /></span>)}
+      <MaterialBadge material={effective.material} description />
+    </>}
     {!sticker && face.temporarySticker && <span className="dice-net-sticker">
       本場覆蓋・原面 {CREATURE_CONFIG[face.creature].name} {face.baseValue}
     </span>}

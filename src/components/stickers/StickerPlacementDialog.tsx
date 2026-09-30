@@ -60,7 +60,7 @@ export function StickerPlacementDialog({ sticker, dicePool, subtitle, exitLabel,
         <p className="sticker-match-summary">{CREATURE_CONFIG[sticker.creature].name}：共 {Object.values(matchCounts).reduce((sum, count) => sum + count, 0)} 面・{Object.values(matchCounts).filter(Boolean).length} 顆骰子</p>
         <DiceTabs matchCounts={matchCounts} dicePool={dicePool} selectedDiceId={currentDie?.id} onSelect={setSelectedDiceId} />
         {currentDie && <div className="dice-net-body">
-          <DiceNet key={currentDie.id} dice={currentDie} sticker={sticker} highlightCreature={sticker.creature}
+          <DiceNet key={currentDie.id} dice={currentDie} dicePool={dicePool} sticker={sticker} highlightCreature={sticker.creature}
             onApplyFace={(faceIndex) => onApply(currentDie.id, faceIndex)} />
         </div>}
       </div>

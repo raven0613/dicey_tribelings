@@ -8,7 +8,7 @@ export function describeEnemyIntentDetails(enemy: Enemy, manualRerolls = 0) {
   const intent = currentIntent(enemy), rules: string[] = [];
   const value = 'value' in intent ? intent.value : 0;
   rules.push(intent.type === 'rest' ? '休息' : intent.type === 'charge' ? intent.command ? '發出號令' : '蓄力'
-    : intent.type === 'defend' ? `獲得 ${value} 護盾` : `攻擊 ${value + (enemy.strength ?? 0)} × ${intent.hits ?? 1}`);
+    : intent.type === 'defend' ? `獲得 ${value} 護盾` : `攻擊 ${value + (enemy.strength ?? 0)} × ${intent.hits ?? 1} hit`);
   if (intent.type === 'charge' && !intent.command) {
     const next = enemy.intents[(enemy.currentIntentIndex + 1) % enemy.intents.length];
     if ('value' in next) rules.push(`下回合 ${next.value} 傷害`);

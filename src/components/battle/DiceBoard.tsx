@@ -238,7 +238,7 @@ export const DiceBoard: React.FC = () => {
       {/* Dice inspection beside the tray. */}
       <div className="board-info">
         <div className="board-right" id="dice-hover-information" aria-live="polite" ref={setInspectionTarget}>
-          {!inspecting && <span className="hover-info-placeholder">移到骰子上，查看能力與連動關係</span>}
+          {!inspecting && <span className="hover-info-placeholder">移到骰子上，查看土人資訊</span>}
         </div>
       </div>
     </div>

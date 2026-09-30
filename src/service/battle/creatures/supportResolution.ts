@@ -1,5 +1,5 @@
+import { getConfigurationInputs } from './configurationInputs';
 import { storeRoundFood } from './foodResolution';
-import { getFaceTags } from '../../dice/diceFaces';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
 import { CREATURE_CONFIG } from '../../../configs/creatures/creatureConfig';
 import { EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentConfig';
@@ -27,7 +27,7 @@ export function resolveSupport(c: ResolutionContext) {
     const participants = (ids: string[]) => { e.participantDiceIds = [...new Set([item.diceId, ...ids])]; };
     switch (item.creature) {
       case 'family':
-        item.skillInputs = { count: c.faceCount(index, 'family') };
+        item.skillInputs = getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces)!;
         add(item.baseValue * (b.family.multipliers[Math.min(item.skillInputs.count!, b.family.multipliers.length) - 1] - 1)); break;
       case 'sisters':
         item.skillInputs = { count: c.speciesCount('sisters'), minimum: b.sisters.minimum };
@@ -38,14 +38,11 @@ export function resolveSupport(c: ResolutionContext) {
         }
         break;
       case 'loner':
-        item.skillInputs = { count: c.faceCount(index, 'loner'), secondaryCount: c.items.filter((other) => other.diceId !== item.diceId && other.tags.includes('warrior')).length };
+        item.skillInputs = { ...getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces), secondaryCount: c.items.filter((other) => other.diceId !== item.diceId && other.tags.includes('warrior')).length };
         if (item.skillInputs.count === 1) add(item.baseValue * ((item.skillInputs.secondaryCount === 0 ? b.loner.soloMultiplier : b.loner.multiplier) - 1)); break;
       case 'follower': {
-        const neighboringFaces = c.faces.flatMap((faces, other) => Math.abs(other - index) === b.follower.range ? faces : []);
-        const values = neighboringFaces.filter((face) => face.creature === 'warrior').map((face) => face.baseValue);
-        const highest = Math.max(0, ...values);
-        const sides = c.faces.filter((faces, other) => Math.abs(other - index) === b.follower.range && faces.some((face) => face.creature === 'warrior')).length;
-        item.skillInputs = { count: values.length, value: highest, secondaryCount: sides };
+        item.skillInputs = getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces)!;
+        const highest = item.skillInputs.value!, sides = item.skillInputs.secondaryCount!;
         if (sides === 2) c.repeatFactors.set(item.diceId, [b.follower.repeatMultiplier]);
         participants(c.items.filter((_, other) => Math.abs(other - index) === b.follower.range
           && c.faces[other].some((face) => face.creature === 'warrior' && face.baseValue === highest)).map((entry) => entry.diceId));
@@ -54,7 +51,7 @@ export function resolveSupport(c: ResolutionContext) {
       case 'warrior': {
         const neighbors = c.items.filter((_, other) => Math.abs(other - index) === 1);
         participants(neighbors.filter((entry) => c.faceCount(c.items.indexOf(entry), 'follower') > 0).map((entry) => entry.diceId));
-        const count = neighbors.reduce((sum, entry) => sum + c.faceCount(c.items.indexOf(entry), 'follower'), 0);
+        const count = getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces)!.count!;
         item.skillInputs = { count };
         add(count * b.warrior.bonusPerFollower + item.baseValue * ((count >= b.warrior.high ? b.warrior.highMultiplier : count >= b.warrior.middle ? b.warrior.multiplier : 1) - 1)); break;
       }
@@ -63,9 +60,9 @@ export function resolveSupport(c: ResolutionContext) {
         item.skillInputs = { count: new Set(c.items.filter((entry) => !CREATURE_CONFIG[entry.creature].tags.includes('food')).map((entry) => entry.creature)).size };
         add(item.skillInputs.count! * (item.skillInputs.count! >= b.elder.high ? b.elder.highBonus : item.skillInputs.count! >= b.elder.middle ? b.elder.middleBonus : b.elder.bonusPerSpecies)); break;
       case 'royalGuard': {
-        const nobles = c.faces[index].filter((face, faceIndex) => faceIndex !== item.faceIndex && getFaceTags(face).includes('noble'));
-        item.skillInputs = { count: nobles.length };
-        add(nobles.length * (nobles.length >= b.royalGuard.threshold ? b.royalGuard.highBonus : b.royalGuard.bonusPerNoble)); break;
+        const count = getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces)!.count!;
+        item.skillInputs = { count };
+        add(count * (count >= b.royalGuard.threshold ? b.royalGuard.highBonus : b.royalGuard.bonusPerNoble)); break;
       }
       case 'glutton': {
         const food = c.items.filter((entry) => entry.tags.includes('food'));
@@ -85,7 +82,7 @@ export function resolveSupport(c: ResolutionContext) {
         c.shield(e, item, count * (count >= b.guard.threshold ? b.guard.highShield : b.guard.shield)); break;
       }
       case 'artisan': {
-        const count = c.adjacentFaces(index).filter((face) => getFaceTags(face).includes('craftsman')).length;
+        const count = getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces)!.count!;
         item.skillInputs = { count };
         c.shield(e, item, count * (count >= b.artisan.threshold ? b.artisan.highShield : b.artisan.shield)); break;
       }
@@ -137,7 +134,7 @@ export function resolveFoodAndBonuses(c: ResolutionContext) {
       }
     }
     if (item.creature === 'gang') {
-      const count = c.adjacentFaces(index).filter((face) => face.creature === 'gang').length;
+      const count = getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces)!.count!;
       const damage = count >= b.gang.middle ? b.gang.highDamage : b.gang.damagePerNeighbor;
       const copies = count * (count >= b.gang.doubleAt ? b.gang.copies : 1);
       item.skillInputs = { count, value: damage, secondaryCount: copies };

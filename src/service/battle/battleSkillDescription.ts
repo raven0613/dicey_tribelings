@@ -2,7 +2,7 @@ import { MATERIAL_CONFIG, MATERIAL_BALANCE, FOOD_CAPACITY } from '../../configs/
 import { CREATURE_CONFIG as roles } from '../../configs/creatures/creatureConfig';
 import { CREATURE_SKILL_INTRO, CREATURE_SKILL_STAGES } from '../../configs/creatures/creatureSkillConfig';
 import type { CreatureBattleState, CreatureId } from '../../types/creatures';
-import type { BattleComboSummary } from '../../types/battle';
+import type { BattleComboSummary, SkillInputs } from '../../types/battle';
 import type { Dice } from '../../types/game';
 import { getEffectiveFace } from '../dice/diceFaces';
 import { ceilDamage } from './damageValue';
@@ -11,18 +11,19 @@ export interface BattleSkillLine { text: string; achieved?: boolean }
 interface DescriptionInput {
   die: Dice; faceIndex: number; creature: CreatureId;
   summary: BattleComboSummary | null; state: CreatureBattleState;
+  configurationInputs?: SkillInputs;
 }
 
 /** Player copy is independent of internal settlement rules; status uses captured skill inputs. */
-export function describeBattleSkills({ die, faceIndex, creature, summary, state }: DescriptionInput) {
+export function describeBattleSkills({ die, faceIndex, creature, summary, state, configurationInputs }: DescriptionInput) {
   const face = getEffectiveFace(die.faces[faceIndex]);
   const item = summary?.items.find((entry) => entry.diceId === die.id);
   const roleId = item?.rolledCreature === 'imposter' ? state.imposterTargets[die.id] ?? item.creature : item?.rolledCreature ?? creature;
   const role = roles[roleId];
   const events = summary?.events.filter((event) => event.sourceDiceId === die.id && !event.equipmentId) ?? [];
-  const inputs = item?.skillInputs ?? {};
+  const inputs = item?.skillInputs ?? configurationInputs;
   const lines: BattleSkillLine[] = [{ text: `${role.ability}：${CREATURE_SKILL_INTRO[roleId]}` }];
-  for (const stage of CREATURE_SKILL_STAGES[roleId] ?? []) lines.push({ text: stage.text, achieved: summary && item ? stage.achieved(inputs) : undefined });
+  for (const stage of CREATURE_SKILL_STAGES[roleId] ?? []) lines.push({ text: stage.text, achieved: inputs ? stage.achieved(inputs) : undefined });
   if (item?.rolledCreature === 'imposter' && roleId !== 'imposter') lines.unshift({ text: `本回合偽裝成：${role.name}` });
   if (item && summary) {
     const metric = roleId === 'chef' ? `釋放前存糧 ${inputs.value ?? 0}`
@@ -39,7 +40,7 @@ export function describeBattleSkills({ die, faceIndex, creature, summary, state 
     if (face.material === 'negative') lines.push({ text: `目前基礎攻擊力 ${face.baseValue}，結算後 ${Math.max(0, face.baseValue - MATERIAL_BALANCE.decay)}。` });
   }
   if (item?.tags.includes('food') || roleId === 'chef') lines.push({ text: `全隊存糧 ${Object.values(state.storedFood).reduce((sum, value) => sum + value, 0)}／${FOOD_CAPACITY.crocodile}` });
-  if (state.altars[die.id] !== undefined) lines.push({ text: `本骰祭壇 ${state.altars[die.id]} 次；擲出祭司時釋放。` });
+  if (roleId === 'priest' || state.altars[die.id] !== undefined) lines.push({ text: `本骰祭壇 ${state.altars[die.id] ?? 0} 次；擲出祭司時釋放。` });
   if (state.cowardShields[die.id]) lines.push({ text: `膽小土人已留下 ${state.cowardShields[die.id]} 護盾` });
   if (state.teacherBonuses[die.id]) lines.push({ text: `老師加成 +${state.teacherBonuses[die.id]}` });
   if (state.lockedDice.includes(die.id)) lines.push({ text: '免疫強制重骰。' });

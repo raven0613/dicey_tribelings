@@ -1,17 +1,21 @@
 import { isArrowFace } from '../../configs/directionalStickerConfig';
-import { DiceNetContent, getPreviewFace } from './DiceNetContent';
+import { DiceNetContent } from './DiceNetContent';
+import { getPreviewFace } from '../../service/dice/facePreview';
+import { DiceNetTooltip } from './DiceNetTooltip';
 import { useSkillTooltip } from '../common/useSkillTooltip';
 import { useGameViewport } from '../layout/GameViewportContext';
 import { DICE_NET_PRESENTATION as presentation } from '../../configs/diceNetPresentationConfig';
 import { materialStyle } from './MaterialBadge';
 import { MATERIAL_CONFIG } from '../../configs/materials/materialConfig';
 import React from 'react';
-import type { DiceFace, FaceSticker } from '../../types/game';
+import type { Dice, DiceFace, FaceSticker } from '../../types/game';
 import type { DiceNetFace as NetFace } from '../../service/dice/diceNet';
 import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 
 interface DiceNetFaceProps {
   face: DiceFace;
+  dice: Dice;
+  dicePool?: Dice[];
   matched?: boolean;
   blockedReason?: string | null;
   arrowTarget?: boolean;
@@ -29,14 +33,14 @@ interface DiceNetFaceProps {
   onPreviewSelect?: () => void;
 }
 
-export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, index, geometry, scale, relation, neighbors,
+export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, dice, dicePool, index, geometry, scale, relation, neighbors,
   onHover, onFocus, sticker, previewing, onApply, onPreviewSelect, matched, blockedReason, arrowTarget, invalidArrowTarget }) => {
   const { mobile, minimumFontSize } = useGameViewport();
   const showPreview = !!sticker && previewing;
   const effective = getPreviewFace(face, showPreview ? sticker : undefined);
   const creature = CREATURE_CONFIG[effective.creature];
   const { tooltip, tooltipProps, show } = useSkillTooltip(
-    <DiceNetContent face={face} sticker={showPreview ? sticker : undefined} full />,
+    <DiceNetTooltip dice={dice} dicePool={dicePool} faceIndex={index} sticker={showPreview ? sticker : undefined} />,
     { interactive: true, className: 'dice-net-tooltip' });
   const { bounds, contentBounds } = geometry;
   const polygon = geometry.points.map(([x, y]) =>

@@ -31,7 +31,7 @@ export function PreparationEditor({ preparation: p }: { preparation: ReturnType<
         disabled={p.faceIndex === null || Boolean(p.placementError(p.faceIndex))}>貼到此面</button>}
     </div>
     <DiceTabs dicePool={p.previewPool} selectedDiceId={p.die.id} onSelect={p.chooseDie} />
-    <DiceNet key={p.die.id} dice={p.die} sticker={p.sticker} placementError={p.placementError}
+    <DiceNet key={p.die.id} dice={p.die} dicePool={p.previewPool} sticker={p.sticker} placementError={p.placementError}
       onApplyFace={p.selected ? p.apply : undefined} previewFaceIndex={p.faceIndex}
       onPreviewFaceChange={p.setFaceIndex} previewOnly={touchInput} />
   </div>;

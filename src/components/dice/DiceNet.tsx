@@ -14,6 +14,7 @@ import { DiceNetArrowLink } from './DiceNetArrowLink';
 
 interface DiceNetProps {
   dice: Dice;
+  dicePool?: Dice[];
   highlightCreature?: CreatureId;
   sticker?: FaceSticker;
   placementError?: (faceIndex: number) => string | null;
@@ -23,7 +24,7 @@ interface DiceNetProps {
   previewOnly?: boolean;
 }
 
-export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, highlightCreature, placementError,
+export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApplyFace, highlightCreature, placementError,
   previewFaceIndex, onPreviewFaceChange, previewOnly }) => {
   const { minimumFontSize } = useGameViewport();
   const net = getDiceNet(dice.dieType);
@@ -89,7 +90,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, sticker, onApplyFace, hi
           {net.faces.map((face, index) => <DiceNetFace key={dice.faces[index].id}
             matched={highlightCreature ? getEffectiveFace(dice.faces[index]).creature === highlightCreature : undefined}
             blockedReason={placementError?.(index)} arrowTarget={index === arrowTarget} invalidArrowTarget={invalidArrowTarget}
-            face={dice.faces[index]} index={index} geometry={face} scale={scale}
+            dice={dice} dicePool={dicePool} face={dice.faces[index]} index={index} geometry={face} scale={scale}
             relation={index === activeFace ? 'current' : neighbors.includes(index) ? 'neighbor' : 'none'}
             neighbors={geometry[index].neighbors} onHover={preview} onFocus={(index) => preview(index, true)}
             sticker={sticker} previewing={activeFace === index}

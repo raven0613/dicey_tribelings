@@ -2,6 +2,10 @@ import { COMBAT_GOLD } from '../battleConfig';
 
 const advancedStickers = `貼紙`;
 export const MAP_PRESENTATION = {
+  iconSize: 24,
+  minimumIconSizeEm: 1.2,
+  locationColors: { chest: '#86efac', shop: '#67e8f9', camp: '#fdba74' },
+  detailColor: '#94a3b8',
   labels: { reward: '獎勵', features: '特點', completed: '已完成', skipped: '已放棄', choose: '選擇' },
   rewards: {
     fight: `貼紙、${COMBAT_GOLD.normal} 金幣`,

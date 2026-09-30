@@ -1,3 +1,4 @@
+import { getConfigurationInputs } from './configurationInputs';
 import { getFaceTags } from '../../dice/diceFaces';
 import { CREATURE_CONFIG } from '../../../configs/creatures/creatureConfig';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
@@ -76,7 +77,7 @@ export function resolveIdentities(c: ResolutionContext) {
     if (item.creature === 'twins') {
       const value = Math.max(...c.faces[index].filter((face) => face.creature === 'twins').map((face) => face.baseValue));
       const e = c.event(3, item);
-      item.skillInputs = { count: c.faceCount(index, 'twins'), before: item.baseValue, after: value };
+      item.skillInputs = { ...getConfigurationInputs(c.dice, index, item.faceIndex, item.creature, c.faces), before: item.baseValue, after: value };
       const count = item.skillInputs.count!;
       c.repeatFactors.set(item.diceId, count >= b.twins.doubleAt ? [1, 1] : count >= b.twins.fullAt ? [1] : count >= b.twins.halfAt ? [b.twins.half] : []);
       const before = item.baseValue;
