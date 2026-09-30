@@ -1,6 +1,6 @@
 import { useGameViewport } from '../layout/GameViewportContext';
 import type { CSSProperties, ReactNode } from 'react';
-import { BATTLE_PRESENTATION } from '../../configs/battleConfig';
+import { ENEMY_STRIKE } from '../../configs/monsters/enemyStrikeConfig';
 import { useGameStore } from '../../store/gameStore';
 import { EquipmentBar } from '../equipment/EquipmentBar';
 import { PlayerImpact } from './PlayerImpact';
@@ -19,9 +19,9 @@ export function PlayerBoard({ children, isCombat }: { children: ReactNode; isCom
     + (INITIAL_PLAYER_STATS.maxEquipmentSlots - 1) * board.equipmentSlotGap;
 
   return <section id="battle-player-target"
-    className={`dice-board ${isCombat ? '' : 'is-event'} ${isHit ? 'is-hit' : ''} ${enemyAttack?.heavy ? 'heavy-hit' : ''} ${enemyAttack?.healthDamage === 0 ? 'shield-hit' : ''}`}
+    className={`dice-board ${isCombat ? '' : 'is-event'} ${isHit ? 'is-hit' : ''} ${enemyAttack?.heavy ? 'heavy-hit' : ''}`}
     style={{
-      '--player-impact-duration': `${BATTLE_PRESENTATION.enemyImpactMs + BATTLE_PRESENTATION.enemyRecoilMs}ms`,
+      '--player-impact-duration': `${ENEMY_STRIKE.timing.impact + ENEMY_STRIKE.timing.recoil}ms`,
       '--board-body-height': `${Math.max(trayHeight + board.scrollbarSpace, equipmentHeight)}px`,
       '--equipment-slot-size': `${board.equipmentSlotSize}px`,
       '--equipment-slot-gap': `${board.equipmentSlotGap}px`,

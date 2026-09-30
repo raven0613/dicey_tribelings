@@ -1,3 +1,4 @@
+import { getEnemyAppearance } from '../../../configs/monsters/enemyAppearanceConfig';
 import type { Enemy } from '../../../types/enemy';
 import { Heart, Shield } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
@@ -11,7 +12,7 @@ export function PreparationEnemySummary() {
 function EnemySummary({ enemy }: { enemy: Enemy }) {
   return <section className="preparation-enemy" aria-label="下一場敵人">
     <div className="preparation-enemy-heading">
-      <span aria-hidden="true">{enemy.avatar}</span><strong>{enemy.name}</strong>
+      <img className="preparation-enemy-image" src={getEnemyAppearance(enemy.definitionId).src} alt="" /><strong>{enemy.name}</strong>
       <span><Heart className="ui-icon" /> {enemy.hp}／{enemy.maxHp}</span>
       <span><Shield className="ui-icon" /> {enemy.shield}</span>
       {enemy.isBoss && <span>BOSS</span>}{enemy.isElite && <span>菁英</span>}

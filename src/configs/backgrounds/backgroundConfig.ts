@@ -9,7 +9,8 @@ export const BACKGROUND_PRESENTATION = {
     back: { 7: 1, 6: 2, 5: 3, 4: 4, 3: 5, 2: 7, 1: 8 },
     enemies: 6,
     front: 9,
-    interface: 10,
+    attackingEnemies: 10,
+    interface: 11,
   },
   frontLayers: { props: 1, hanging: 2, grass: 3, ground: 4 },
 } as const;

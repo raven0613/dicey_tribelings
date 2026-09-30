@@ -11,6 +11,7 @@ export interface CombatImpact {
 export interface EnemyAttackFeedback {
   stage: Exclude<AttackStage, 'idle'>;
   heavy: boolean;
+  strength: number;
   healthDamage: number;
   shieldDamage: number;
 }

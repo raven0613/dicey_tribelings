@@ -1,10 +1,15 @@
 import { Heart, Shield } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { PLAYER_IMPACT_PRESENTATION } from '../../configs/playerImpactConfig';
 import { useGameStore } from '../../store/gameStore';
 
 export function PlayerImpact() {
   const enemyAttack = useGameStore((state) => state.enemyAttack);
   if (!enemyAttack || (enemyAttack.stage !== 'impact' && enemyAttack.stage !== 'recoil')) return null;
-  return <div className="player-impact" aria-live="polite">
+  return <div className="player-impact" aria-live="polite" style={{
+    '--impact-ring-color': enemyAttack.healthDamage > 0
+      ? PLAYER_IMPACT_PRESENTATION.colors.health : PLAYER_IMPACT_PRESENTATION.colors.shield,
+  } as CSSProperties}>
     <div className="player-impact-ring" />
     <div className="player-impact-values">
       {enemyAttack.shieldDamage > 0 && <span className="shield-loss"><Shield className="ui-icon" />護盾 −{enemyAttack.shieldDamage}</span>}

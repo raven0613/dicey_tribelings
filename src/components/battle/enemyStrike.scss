@@ -1,0 +1,166 @@
+.enemy-strike {
+  &[data-stage='dash'],
+  &[data-stage='impact'],
+  &[data-stage='recoil'] {
+    z-index: var(--scene-attacking-enemy-layer);
+  }
+
+  &[data-stage='windup'] {
+    animation: enemyStrikeWindup var(--windup-duration) cubic-bezier(.2, .65, .3, 1) both;
+  }
+
+  &[data-stage='dash'] {
+    animation: enemyStrikeDash var(--dash-duration) cubic-bezier(.65, 0, 1, .45) both;
+  }
+
+  &[data-stage='impact'] {
+    animation: enemyStrikeContact var(--impact-duration) linear both;
+  }
+
+  &[data-stage='recoil'] {
+    animation: enemyStrikeReturn var(--recoil-duration) cubic-bezier(.3, 0, .25, 1) both;
+  }
+}
+
+@keyframes enemyStrikeWindup {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateY(var(--windup-y)) scale(var(--windup-x-scale), var(--windup-y-scale));
+  }
+}
+
+@keyframes enemyStrikeDash {
+  from {
+    transform: translateY(var(--windup-y)) scale(var(--windup-x-scale), var(--windup-y-scale));
+  }
+  to {
+    transform: translateY(var(--strike-y)) scale(var(--dash-x-scale), var(--dash-y-scale));
+  }
+}
+
+@keyframes enemyStrikeContact {
+  0% {
+    transform: translateY(var(--strike-y)) scale(var(--dash-x-scale), var(--dash-y-scale));
+    animation-timing-function: ease-out;
+  }
+  20% {
+    transform: translateY(var(--strike-y)) scale(var(--contact-x-scale), var(--contact-y-scale));
+    animation-timing-function: cubic-bezier(.1, .8, .25, 1);
+  }
+  100% {
+    transform: translateY(var(--rebound-y)) scale(1, var(--rebound-y-scale));
+  }
+}
+
+@keyframes enemyStrikeReturn {
+  from {
+    transform: translateY(var(--rebound-y)) scale(1, var(--rebound-y-scale));
+  }
+  to {
+    transform: none;
+  }
+}
+
+.enemy-strike-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.enemy-strike-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform-origin: center bottom;
+  transform: translateY(var(--trail-distance)) scaleY(var(--trail-stretch));
+}
+
+.enemy-speed-lines {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform-origin: center bottom;
+
+  span {
+    position: absolute;
+    top: 0;
+    background: linear-gradient(to bottom, transparent, var(--speed-color));
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+}
+
+.enemy-strike[data-stage='dash'] {
+  .enemy-strike-trail {
+    animation: enemyTrailAppear var(--dash-duration) ease-out both;
+  }
+
+  .enemy-speed-lines {
+    animation: enemySpeedAppear var(--dash-duration) ease-in both;
+  }
+}
+
+.enemy-strike[data-stage='impact'] {
+  .enemy-strike-trail {
+    animation: enemyTrailFade var(--impact-duration) ease-out both;
+  }
+
+  .enemy-speed-lines {
+    animation: enemySpeedFade var(--impact-duration) ease-out both;
+  }
+}
+
+@keyframes enemyTrailAppear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: var(--trail-opacity);
+  }
+}
+
+@keyframes enemyTrailFade {
+  from {
+    opacity: var(--trail-opacity);
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes enemySpeedAppear {
+  from {
+    opacity: 0;
+    transform: scaleY(.3);
+  }
+  to {
+    opacity: var(--speed-opacity);
+    transform: scaleY(1);
+  }
+}
+
+@keyframes enemySpeedFade {
+  from {
+    opacity: var(--speed-opacity);
+    transform: scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enemy-strike[data-stage] {
+    animation: none;
+  }
+
+  .enemy-strike-effects {
+    display: none;
+  }
+}

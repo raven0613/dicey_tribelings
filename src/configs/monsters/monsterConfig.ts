@@ -5,7 +5,7 @@ const heavy = (value: number, name = '重擊'): EnemyIntent => ({ type: 'heavy_a
 const rest: EnemyIntent = { type: 'rest', name: '喘息' };
 const monster = (region: RegionId, key: string, name: string, rank: EnemyDefinition['rank'], mapFeatures: readonly MonsterFeatureId[],
   maxHp: number, initialShield: number, intents: [EnemyIntent, ...EnemyIntent[]], traits?: EnemyTraits, phases?: EnemyDefinition['phases']): EnemyDefinition =>
-  ({ id: `r${region}_${key}`, region, name, rank, mapFeatures, maxHp, initialShield, intents, traits, phases, avatar: '🐊' });
+  ({ id: `r${region}_${key}`, region, name, rank, mapFeatures, maxHp, initialShield, intents, traits, phases });
 const seal = (value: number, threshold: number): EnemyIntent => ({ ...heavy(value, '封骰投石'), seal: true,
   counter: { type: 'damage_taken', threshold, effect: 'cancel' } });
 const hook = (value: number, damage: number, breakDamage: number): EnemyIntent =>

@@ -1,4 +1,5 @@
 import type { BackgroundScene } from '../../types/background';
+import { SWAMP_GRASS_MOTION as grassMotion, SWAMP_HANGING_MOTION as hangingMotion } from './swampMotionConfig';
 
 export const SWAMP_BACKGROUND = {
   assetDirectory: 'swamp',
@@ -59,7 +60,7 @@ export const SWAMP_BACKGROUND = {
   ],
   grass: [
     {
-      id: 1, x: 70, leaves: [
+      id: 1, x: 70, motion: grassMotion[1], leaves: [
         { file: 'front_grass_2_1', width: 279, height: 466, localX: 0 },
         { file: 'front_grass_2_2', width: 132, height: 585, localX: 80 },
         { file: 'front_grass_2_3', width: 97, height: 605, localX: 140 },
@@ -68,34 +69,34 @@ export const SWAMP_BACKGROUND = {
       ]
     },
     {
-      id: 2, x: 0, leaves: [
+      id: 2, x: 0, motion: grassMotion[2], leaves: [
         { file: 'front_grass_1_1', width: 141, height: 644, localX: 0 },
         { file: 'front_grass_1_3', width: 229, height: 822, localX: 50 },
         { file: 'front_grass_1_2', width: 141, height: 666, localX: 55 },
       ]
     },
     {
-      id: 3, x: 370, leaves: [
+      id: 3, x: 370, motion: grassMotion[3], leaves: [
         { file: 'front_grass_3_1', width: 161, height: 286, localX: 0 },
       ]
     },
     {
-      id: 4, x: 460, leaves: [
+      id: 4, x: 460, motion: grassMotion[4], leaves: [
         { file: 'front_grass_4_1', width: 269, height: 315, localX: 0 },
       ]
     },
     {
-      id: 5, x: 1330, leaves: [
+      id: 5, x: 1330, motion: grassMotion[5], leaves: [
         { file: 'front_grass_5_1', width: 153, height: 257, localX: 0 },
       ]
     },
     {
-      id: 6, x: 1350, leaves: [
+      id: 6, x: 1350, motion: grassMotion[6], leaves: [
         { file: 'front_grass_6_1', width: 290, height: 314, localX: 0 },
       ]
     },
     {
-      id: 7, x: 1620, leaves: [
+      id: 7, x: 1620, motion: grassMotion[7], leaves: [
         { file: 'front_grass_7_1', width: 317, height: 556, localX: 0 },
         { file: 'front_grass_7_2', width: 157, height: 710, localX: 120 },
         { file: 'front_grass_7_3', width: 160, height: 635, localX: 120 },
@@ -105,15 +106,15 @@ export const SWAMP_BACKGROUND = {
     },
   ],
   props: [
-    { file: 'front_stone_1', width: 310, height: 203, x: 0 },
+    { file: 'front_stone_1', width: 310, height: 203, x: 0, motion: 'stone' },
     { file: 'front_wood_1', width: 142, height: 1050, x: 1848 },
   ],
   ground: { file: 'front_ground', width: 3810, height: 896 },
   hanging: [
-    { file: 'front_vine_1', width: 297, height: 812, x: 0 },
-    { file: 'front_vine_2', width: 216, height: 464, x: 0 },
-    { file: 'front_vine_3', width: 475, height: 778, x: 1680 },
-    { file: 'front_beard_1', width: 38, height: 401, x: 1660 },
-    { file: 'front_beard_2', width: 120, height: 673, x: 1760 },
+    { file: 'front_vine_1', width: 297, height: 812, x: 0, motion: hangingMotion.vine1 },
+    { file: 'front_vine_2', width: 216, height: 464, x: 0, motion: hangingMotion.vine2 },
+    { file: 'front_vine_3', width: 475, height: 778, x: 1680, motion: hangingMotion.vine3 },
+    { file: 'front_beard_1', width: 38, height: 401, x: 1660, motion: hangingMotion.beard1 },
+    { file: 'front_beard_2', width: 120, height: 673, x: 1760, motion: hangingMotion.beard2 },
   ],
 } as const satisfies BackgroundScene;

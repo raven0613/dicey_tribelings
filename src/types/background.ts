@@ -1,3 +1,5 @@
+import type { GrassMotion, HangingMotion } from './foregroundMotion';
+
 export type BackgroundDepth = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface BackgroundImageAsset {
@@ -32,9 +34,10 @@ export interface BackgroundScene {
   grass: readonly {
     id: number;
     x: number;
+    motion: GrassMotion;
     leaves: readonly BackgroundGrassLeaf[];
   }[];
-  props: readonly BackgroundSprite[];
-  hanging: readonly BackgroundSprite[];
+  props: readonly (BackgroundSprite & { motion?: 'stone' })[];
+  hanging: readonly (BackgroundSprite & { motion: HangingMotion })[];
   ground: BackgroundImageAsset;
 }

@@ -7,10 +7,12 @@ import { useGameStore } from '../store/gameStore';
 import { useStoryStore } from '../store/storyStore';
 import { Footbar } from './common/Footbar';
 import { MapProgress } from './map/MapProgress';
-import { EnemyCard } from './battle/EnemyCard';
+import { EnemyFormation } from './battle/EnemyFormation';
 import { DiceBoard } from './battle/DiceBoard';
+import { waitForEnemyAttackMotion } from './battle/waitForEnemyAttackMotion';
 import { waitForDiceAttackMotion } from './battle/waitForDiceAttackMotion';
 import { PlayerBoard } from './battle/PlayerBoard';
+import { GameImpactFrame } from './battle/GameImpactFrame';
 import { StickerApplierModal } from './stickers/StickerApplierModal';
 import { DiceInspectModal } from './dice/DiceInspectModal';
 import { RewardModal } from './rewards/RewardModal';
@@ -57,18 +59,19 @@ export function GameScreen() {
   const handleResolveBattle = async () => {
     if (isResolving || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null) return;
     setIsResolving(true);
-    await executeBattleSettlement(waitForDiceAttackMotion);
+    await executeBattleSettlement(waitForDiceAttackMotion, waitForEnemyAttackMotion);
     setIsResolving(false);
   };
 
   return (
     <GameScene>
+      {isCombat && <GameImpactFrame />}
       <MapProgress />
       <div className="game-screen-content">
         <div className="game-screen-background" inert={isConfiguring}>
           <main className="app-main">
             <div className="combat-arena">
-              {isCombat && <EnemyCard />}
+              {isCombat && <EnemyFormation />}
               <PlayerBoard isCombat={isCombat}>
                 {isCombat && <DiceBoard />}
                 {routeChoices.length === 0 && currentNode?.type === 'chest' && <ChestModal />}

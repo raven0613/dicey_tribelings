@@ -7,7 +7,7 @@ import { SkillText } from './SkillText';
 import { useTooltipDismissal } from './useTooltipDismissal';
 import { SKILL_TOOLTIP_PRESENTATION as config } from '../../configs/skillTooltipConfig';
 
-export function useSkillTooltip(content: ReactNode, options: { interactive?: boolean; className?: string } = {}) {
+export function useSkillTooltip(content: ReactNode, options: { interactive?: boolean; className?: string; label?: string } = {}) {
   const viewport = useGameViewport();
   const mobile = Boolean(options.interactive && viewport.mobile);
   const id = useId();
@@ -38,7 +38,7 @@ export function useSkillTooltip(content: ReactNode, options: { interactive?: boo
     setAnchor({ ...getGameRect(event.currentTarget), source: event.currentTarget });
   const tooltip = anchor && viewport.overlay && createPortal(<>
     {mobile && <div className="skill-tooltip-dismiss-layer" onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); dismiss(); }} />}
-    <div ref={panel} id={id} role={mobile ? 'dialog' : 'tooltip'} aria-label={mobile ? '骰面完整說明' : undefined}
+    <div ref={panel} id={id} role={mobile ? 'dialog' : 'tooltip'} aria-label={mobile ? options.label ?? '骰面完整說明' : undefined}
       className={`skill-tooltip ${options.className ?? ''} ${mobile ? 'is-interactive' : ''}`}
       style={{ visibility: 'hidden', padding: config.padding }} onClick={event => event.stopPropagation()}>
       {mobile && <button type="button" className="skill-tooltip-close" aria-label="關閉說明" onClick={dismiss}>×</button>}

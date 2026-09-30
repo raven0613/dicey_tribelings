@@ -11,7 +11,6 @@ export function createEnemy(id: string, instanceId = id): Enemy {
     maxHp: definition.maxHp,
     hp: definition.maxHp,
     shield: definition.initialShield,
-    avatar: definition.avatar,
     isElite: definition.rank === 'elite',
     isBoss: definition.rank === 'boss' || definition.rank === 'final_boss',
     intents: structuredClone([...definition.intents]) as Enemy['intents'],

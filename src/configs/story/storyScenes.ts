@@ -34,7 +34,7 @@ export const STORY_SCENES: Record<StoryId, StoryScene> = {
     ],
   },
   chest: {
-    title: '補給寶箱', automatic: true,
+    title: '寶箱', automatic: true,
     lines: [
       { speaker: 'tribeling', text: '是寶箱！快看看！' },
       { speaker: 'tribeling', text: '快看看！', retainPrevious: true },

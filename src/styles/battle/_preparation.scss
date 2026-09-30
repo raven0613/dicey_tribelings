@@ -66,3 +66,5 @@
   .preparation-panel-footer { gap: .35rem; font-size: max(.8rem, var(--minimum-font-size)); }
   .preparation-panel-footer > .player-vitals { max-height: 4.5rem; overflow: auto; }
 }
+
+.preparation-enemy-image { width: 4rem; height: 3rem; object-fit: contain; flex-shrink: 0; }

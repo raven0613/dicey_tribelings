@@ -3,7 +3,7 @@ export const TELEMETRY_CONFIG = {
   schemaVersion: 2,
   gameVersion: '2026-09-27',
   balanceVersion: '2026-09-27-dynamic-imposter',
-  maxRuns: 10,
+  maxRuns: 20,
   checkpointMs: 5000,
   hotspotSizePx: 20,
   shortcutCode: 'KeyS',

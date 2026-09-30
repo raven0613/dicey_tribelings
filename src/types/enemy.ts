@@ -28,14 +28,14 @@ export interface EnemyTraits {
 }
 export interface EnemyDefinition {
   readonly id: string; readonly name: string; readonly region: RegionId; readonly rank: EnemyRank;
-  readonly maxHp: number; readonly initialShield: number; readonly avatar: string;
+  readonly maxHp: number; readonly initialShield: number;
   readonly mapFeatures: readonly MonsterFeatureId[]; readonly traits?: EnemyTraits;
   readonly phases?: readonly { below: number; intents: readonly [EnemyIntent, ...EnemyIntent[]] }[];
   readonly intents: readonly [EnemyIntent, ...EnemyIntent[]];
 }
 export interface Enemy {
   id: string; definitionId: string; name: string; region: RegionId; rank: EnemyRank;
-  maxHp: number; hp: number; shield: number; avatar: string;
+  maxHp: number; hp: number; shield: number;
   isElite: boolean; isBoss: boolean;
   intents: [EnemyIntent, ...EnemyIntent[]]; currentIntentIndex: number;
   traits?: EnemyTraits; phases?: EnemyDefinition['phases']; phase?: number;

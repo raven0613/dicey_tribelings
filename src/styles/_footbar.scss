@@ -14,7 +14,7 @@
 }
 .footbar-content {
   max-width: 100%; margin: 0 auto;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 0.75rem;
   justify-content: space-between;
 
   .controls-left {
@@ -23,8 +23,11 @@
       align-items: center;
       gap: 0.75rem;
       flex: 1;
-      flex-wrap: wrap;
+      overflow-x: auto;
+      flex-wrap: nowrap;
       justify-content: flex-start;
+      > * { flex-shrink: 0; }
+      .tactics-tip { flex-shrink: 1; }
   
       .control-meter-group {
         display: flex;
@@ -112,7 +115,7 @@
     min-width: 0;
     max-width: 100%;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 0.75rem;
     width: auto;
@@ -157,12 +160,25 @@
   }
 }
 .footbar-tools {
-  display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+  flex-shrink: 0;
+  
   button {
-    display: flex; align-items: center; justify-content: center; gap: 0.375rem;
-    min-height: 48px; min-width: 48px; padding: 0.5rem;
-    background: $slate-800; border: 1px solid $slate-600; border-radius: $radius-lg;
-    color: $slate-100; font-size: max(0.875rem, var(--minimum-font-size)); font-weight: 700; cursor: pointer;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 0.375rem;
+    min-height: 48px; 
+    min-width: 48px; 
+    padding: 0.5rem;
+    background: transparent;
+    border: 1px solid $slate-600; 
+    border-radius: $radius-lg;
+    color: $slate-100; 
+    font-size: max(0.875rem, var(--minimum-font-size)); font-weight: 700; 
+    cursor: pointer;
     &:hover { border-color: $amber-300; }
     &:focus-visible { outline: 3px solid $amber-300; outline-offset: 2px; }
   }
@@ -171,7 +187,7 @@
 @container game-stage (max-width: 800px) {
   .footbar-content {
     gap: 0.375rem;
-    .controls-left { flex-basis: 100%; gap: 0.375rem; }
+    .controls-left { gap: 0.375rem; }
     .controls-right { margin-left: auto; gap: 0.375rem; }
     .player-vitals { flex: 1; min-width: 0; }
     > .btn-resolve { margin-left: auto; }

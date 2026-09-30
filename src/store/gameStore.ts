@@ -249,9 +249,9 @@ export const useGameStore = create<GameState>((set, get) => {
       startStickerFlow([reward], 'stay');
     },
 
-    executeBattleSettlement: async (waitForAttackMotion) => {
+    executeBattleSettlement: async (waitForAttackMotion, waitForEnemyMotion) => {
       await runBattleSettlement({ get, set,
-        startBattleRoll: get().startBattleRoll, addDamagePop: get().addDamagePop, waitForAttackMotion });
+        startBattleRoll: get().startBattleRoll, addDamagePop: get().addDamagePop, waitForAttackMotion, waitForEnemyMotion });
     },
 
     openPackAction: (packId, completion) => {

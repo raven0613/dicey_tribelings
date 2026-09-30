@@ -92,6 +92,8 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
         </div>
       </div>
 
+      {isCombat && <TeacherControls />}
+
       {isCombat && <>
         {combatPhase === 'PREPARATION' ?
           <button type="button"
@@ -132,7 +134,6 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
             </button>
           </div>}
 
-        <TeacherControls />
       </>}
 
     </div>

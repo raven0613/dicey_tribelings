@@ -11,6 +11,7 @@ export function GameScene({ children }: { children: ReactNode }) {
     '--background-baseline-bottom': `${scene.baselineBottom}px`,
     '--background-baseline-top': `${scene.baselineTop}px`,
     '--scene-enemy-layer': config.layers.enemies,
+    '--scene-attacking-enemy-layer': config.layers.attackingEnemies,
     '--scene-interface-layer': config.layers.interface,
   } as CSSProperties}>
     <BackgroundScenery scene={scene} />

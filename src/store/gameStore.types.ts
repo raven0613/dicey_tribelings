@@ -2,7 +2,7 @@ import type { DiceRecipe } from '../configs/creatures/diceRecipeConfig';
 import type { CombatImpact, EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
-import type { WaitForAttackMotion } from '../service/battle/battleSettlement';
+import type { WaitForAttackMotion, WaitForEnemyAttackMotion } from '../service/battle/battleSettlement';
 import type { CreatureId, CreatureTag } from '../types/creatures';
 import type { CreatureBattleState } from '../types/creatures';
 import {
@@ -139,7 +139,7 @@ export interface GameState {
   useControlReroll: (dieIndex: number) => void;
   setDiceAction: (action: DiceAction) => void;
   finishRerollAnimation: (dieIndex: number) => void;
-  executeBattleSettlement: (waitForAttackMotion: WaitForAttackMotion) => Promise<void>;
+  executeBattleSettlement: (waitForAttackMotion: WaitForAttackMotion, waitForEnemyMotion?: WaitForEnemyAttackMotion) => Promise<void>;
   addDamagePop: (pop: DamagePopInput) => void;
   removeDamagePop: (id: number) => void;
   openPackAction: (packId: string, completion: FlowCompletion) => void;

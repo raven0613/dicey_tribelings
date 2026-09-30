@@ -7,7 +7,6 @@ export const BATTLE_PRESENTATION = {
   beforeAttackMs: 80,
   windupMs: 25, dashMs: 50, impactMs: 70, recoilMs: 35, betweenAttackMs: 15,
   victoryMs: 350, enemyThinkMs: 600, nextRoundMs: 600,
-  enemyWindupMs: 80, enemyDashMs: 70, enemyImpactMs: 90, enemyRecoilMs: 120,
 } as const;
 export const COMBAT_GOLD = { normal: 15, elite: 20, boss: 15 } as const;
 

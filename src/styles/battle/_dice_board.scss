@@ -159,7 +159,7 @@
   line-height: var(--result-line-height);
   padding: var(--result-padding-y) var(--result-padding-x);
   border-radius: 0.3rem;
-  background: #222417;
+  background: transparent;
   color: #e2e8f0;
   font-size: max(var(--result-font-size), var(--minimum-font-size));
 }

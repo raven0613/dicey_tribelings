@@ -1,31 +1,61 @@
 import type { BattleStoreMethods } from './battleSettlement';
-import { BATTLE_PRESENTATION as timing } from '../../configs/battleConfig';
+import { ENEMY_STRIKE } from '../../configs/monsters/enemyStrikeConfig';
 import { combatNumber } from './creatures/creatureState';
 import { soundService } from '../audio/soundService';
 import { waitForAnimation } from './settlementAnimation';
-import type { EnemyDamageSource } from '../../types/battle';
+import { getEnemyStrikeStrength } from './presentation/enemyStrike';
+import type { EnemyAttackFeedback, EnemyDamageSource } from '../../types/battle';
 
-/** 命中節拍同時提交受傷與視覺回饋，返回完成後交還回合流程。 */
-export async function animateEnemyAttack({ get, set }: BattleStoreMethods, result: { hp: number; shield: number; source?: EnemyDamageSource },
-  heavy: boolean, isCurrent: () => boolean): Promise<void> {
-  const feedback = { heavy, healthDamage: 0, shieldDamage: 0 };
+interface EnemyAttackResult {
+  hp: number;
+  shield: number;
+  damage: number;
+  source?: EnemyDamageSource;
+}
+
+/** Each completed visual phase advances the attack; contact commits damage and feedback together. */
+export async function animateEnemyAttack(
+  { get, set, waitForEnemyMotion }: BattleStoreMethods,
+  result: EnemyAttackResult,
+  heavy: boolean,
+  isCurrent: () => boolean,
+): Promise<boolean> {
+  const initial = get();
+  const enemy = initial.enemies.find(item => item.id === initial.activeEnemyId)!;
+  const feedback = {
+    heavy,
+    strength: getEnemyStrikeStrength(enemy.definitionId, result.damage, heavy),
+    healthDamage: 0,
+    shieldDamage: 0,
+  };
+  const wait = async (stage: EnemyAttackFeedback['stage']) => {
+    if (waitForEnemyMotion) return waitForEnemyMotion(isCurrent);
+    await waitForAnimation(ENEMY_STRIKE.timing[stage]);
+    return isCurrent();
+  };
+
   set({ enemyAttack: { ...feedback, stage: 'windup' } });
-  await waitForAnimation(timing.enemyWindupMs);
-  if (!isCurrent()) return;
+  if (!await wait('windup') || !isCurrent()) return false;
   set({ enemyAttack: { ...feedback, stage: 'dash' } });
-  await waitForAnimation(timing.enemyDashMs);
-  if (!isCurrent()) return;
+  if (!await wait('dash') || !isCurrent()) return false;
+
   const state = get();
-  const shieldDamage = combatNumber(state.playerShield - result.shield);
-  const playerHp = result.hp;
-  const impact = { heavy, shieldDamage, healthDamage: combatNumber(state.playerHp - playerHp) };
+  const impact = {
+    ...feedback,
+    shieldDamage: combatNumber(state.playerShield - result.shield),
+    healthDamage: combatNumber(state.playerHp - result.hp),
+  };
   soundService.playEnemyHit(heavy);
-  set({ playerHp, playerShield: result.shield, playerShieldDisplay: null, combatImpact: { kind: 'enemy', source: result.source },
-    enemyAttack: { ...impact, stage: 'impact' } });
-  await waitForAnimation(timing.enemyImpactMs);
-  if (!isCurrent()) return;
+  set({
+    playerHp: result.hp,
+    playerShield: result.shield,
+    playerShieldDisplay: null,
+    combatImpact: { kind: 'enemy', source: result.source },
+    enemyAttack: { ...impact, stage: 'impact' },
+  });
+  if (!await wait('impact') || !isCurrent()) return false;
   set({ enemyAttack: { ...impact, stage: 'recoil' } });
-  await waitForAnimation(timing.enemyRecoilMs);
-  if (!isCurrent()) return;
+  if (!await wait('recoil') || !isCurrent()) return false;
   set({ enemyAttack: null });
+  return true;
 }

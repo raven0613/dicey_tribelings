@@ -19,12 +19,15 @@ import { animateEnemyAttack } from './enemyAttackAnimation';
 
 export type WaitForAttackMotion = (index: number, bonus: boolean, isCurrent: () => boolean) => Promise<boolean>;
 
+export type WaitForEnemyAttackMotion = (isCurrent: () => boolean) => Promise<boolean>;
+
 export interface BattleStoreMethods {
   get: () => GameState;
   set: (partial: Partial<GameState>) => void;
   startBattleRoll: () => void;
   addDamagePop: (pop: DamagePopInput) => void;
   waitForAttackMotion: WaitForAttackMotion;
+  waitForEnemyMotion?: WaitForEnemyAttackMotion;
 }
 
 export async function runBattleSettlement(methods: BattleStoreMethods): Promise<void> {
@@ -66,7 +69,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
       set({ combatPhase: 'ENEMY_TURN', activeEnemyId: event.enemy.id });
       await waitForAnimation(timing.enemyThinkMs);
       if (!isCurrent()) return;
-      await animateEnemyAttack(methods, event, Boolean(event.heavy), isCurrent);
+      if (!await animateEnemyAttack(methods, event, Boolean(event.heavy), isCurrent)) return;
     } else {
       set({ enemies: event.enemies, combatImpact: { kind: 'reflection' } });
       methods.addDamagePop({ value: event.damage, enemyId: event.enemy.id });
