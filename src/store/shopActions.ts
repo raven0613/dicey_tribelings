@@ -1,5 +1,6 @@
+import { SHOP_CONFIG } from '../configs/shopConfig';
 import type { GameState, FlowCompletion } from './gameStore.types';
-import type { ConsumableSticker, DisposableSticker, StickerItem } from '../types/game';
+import type { ConsumableSticker, DisposableSticker, PermanentSticker } from '../types/game';
 import { INITIAL_PLAYER_STATS } from '../configs/gameConfig';
 import { INVENTORY_CONFIG } from '../configs/inventoryConfig';
 import { replaceConsumable } from '../service/inventory/inventoryService';
@@ -7,12 +8,19 @@ import { calculateHealPurchase, getEquipmentOffer, getStickerOffer } from '../se
 import { soundService } from '../service/audio/soundService';
 export function createShopActions(set: (value: Partial<GameState>) => void, get: () => GameState,
   createConsumableInstance: (sticker: DisposableSticker) => ConsumableSticker,
-  startStickerFlow: (items: StickerItem[], completion: FlowCompletion) => void, completeEquipmentChoice: () => void) {
+  startStickerFlow: (items: PermanentSticker[], completion: FlowCompletion) => void, completeEquipmentChoice: () => void) {
   return {
+    buyShopPack: (id) => {
+      const state = get(), node = state.mapNodes[state.currentNodeIndex];
+      if (node.type !== 'shop' || node.completed || state.stickerFlow || state.openedPackResult || state.pendingEquipment || state.pendingShopSticker || state.gold < SHOP_CONFIG.packCost || !state.shopPacks.some(pack => pack.id === id)) return false;
+      set({ gold: state.gold - SHOP_CONFIG.packCost, shopPacks: state.shopPacks.filter(pack => pack.id !== id) });
+      get().openPackAction(id, 'stay');
+      return true;
+    },
     buyShopSticker: (stickerId) => {
       const offer = getStickerOffer(get().shopStickers, stickerId, get().gold);
-      if (!offer || get().stickerFlow) return false;
-      if (!offer.item.isDisposable) {
+      if (!offer || get().stickerFlow || get().openedPackResult || get().pendingShopSticker || get().pendingEquipment) return false;
+      if (offer.item.isDisposable === false) {
         set({ gold: get().gold - offer.cost, shopStickers: get().shopStickers.filter(item => item.id !== stickerId) });
         startStickerFlow([offer.item], 'stay');
         return true;
@@ -48,7 +56,7 @@ export function createShopActions(set: (value: Partial<GameState>) => void, get:
 
     buyShopEquipment: (equipmentId) => {
       const offer = getEquipmentOffer(get().shopEquipments, equipmentId, get().gold);
-      if (!offer) return false;
+      if (!offer || get().stickerFlow || get().openedPackResult || get().pendingShopSticker || get().pendingEquipment) return false;
       if (get().equipments.length >= INITIAL_PLAYER_STATS.maxEquipmentSlots) {
         set({ pendingEquipment: { equipment: offer.item, source: 'shop', cost: offer.cost } });
         return true;
@@ -92,6 +100,6 @@ export function createShopActions(set: (value: Partial<GameState>) => void, get:
       return true;
     },
 
-  } satisfies Pick<GameState, 'buyShopSticker' | 'replaceShopSticker' | 'cancelShopSticker' | 'buyShopEquipment'
+  } satisfies Pick<GameState, 'buyShopPack' | 'buyShopSticker' | 'replaceShopSticker' | 'cancelShopSticker' | 'buyShopEquipment'
     | 'replacePendingEquipment' | 'cancelPendingEquipment' | 'buyHeal'>;
 }

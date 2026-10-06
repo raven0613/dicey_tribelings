@@ -8,7 +8,7 @@ export function stickerKey(sticker: StickerItem): string {
   return `${sticker.isDisposable ? 'temporary' : 'permanent'}:${sticker.creature}`;
 }
 export function rewardKey(option: BattleRewardOption): string {
-  return option.kind === 'sticker' ? stickerKey(option.sticker) : `pack:${option.pack.id}`;
+  return option.kind === 'bundle' ? stickerKey(option.sticker) : `pack:${option.pack.id}`;
 }
 export function sampleDistinct<T>(pool: readonly T[], count: number, random = Math.random): T[] {
   const available = [...pool], result: T[] = [];

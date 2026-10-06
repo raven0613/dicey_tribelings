@@ -1,63 +1,45 @@
-import { CREATURE_BALANCE } from '../../configs/creatures/creatureBalanceConfig';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROAD_DICE_RECIPES } from '../../configs/creatures/diceRecipeConfig';
+import { ROAD_DICE_RECIPES, DICE_DRAFT_CONFIG } from '../../configs/creatures/diceRecipeConfig';
+import { INITIAL_DICE_POOL } from '../../configs/creatures/initialDiceConfig';
+import { D6_FACE_VALUES } from '../../configs/creatures/diceValueConfig';
 import { drawDiceRecipes, instantiateRecipe } from './diceDraft';
+import { createBossRewardDice } from './diceFactory';
+import { getOppositeFace } from '../battle/rollService';
 import { getRefreshCost } from '../rewards/refreshService';
 
-test('recipe drafts exclude only the current offer and allow repeated acquisitions', () => {
+test('drafts exclude current offers, guarantee an independent recipe and allow repeated acquisitions', () => {
   const a = drawDiceRecipes([], () => 0);
   const b = drawDiceRecipes(a.map(x => x.id), () => 0);
-  assert.equal(a.length, 3);
-  assert.equal(b.length, 3);
+  assert.equal(a.length, DICE_DRAFT_CONFIG.optionCount);
+  assert.equal(b.length, DICE_DRAFT_CONFIG.optionCount);
   assert.ok(b.every(x => !a.some(y => y.id === x.id)));
-  const c = drawDiceRecipes(b.map(x => x.id), () => 0);
-  assert.deepEqual(c, a);
-  const first = instantiateRecipe(a[0], 1), second = instantiateRecipe(a[0], 1);
+  assert.ok(a.some(x => x.selfStarting));
+  assert.ok(b.some(x => x.selfStarting));
+  const first = instantiateRecipe(a[0]), second = instantiateRecipe(a[0]);
   assert.notEqual(first.id, second.id);
   assert.ok(first.faces.every(f => !second.faces.some(s => s.id === f.id)));
-  first.faces[0].baseValue++;
-  assert.notEqual(first.faces[0].baseValue, second.faces[0].baseValue);
 });
-test('road recipes cover every permanent role except the special princess source', () => {
-  assert.equal(ROAD_DICE_RECIPES.length, 18);
-  assert.ok(ROAD_DICE_RECIPES.every(x => x.faces.length === 6));
-  const roles = new Set(ROAD_DICE_RECIPES.flatMap(x => x.faces.map(f => f[0])));
-  assert.equal(roles.size, 31);
-  assert.ok(!roles.has('princess'));
-  assert.ok(ROAD_DICE_RECIPES.filter(x => x.faces.some(f => f[0] === 'porter')).length >= 6);
+
+test('starter, blank boss rewards and recipe dice preserve six unique pips and opposite pairs in every region', () => {
+  for (const region of [1, 2, 3] as const) {
+    const road = ROAD_DICE_RECIPES.map(recipe => instantiateRecipe(recipe, `r${region}-${recipe.id}`));
+    const blank = createBossRewardDice(`r${region}-blank`);
+    assert.ok(blank.faces.every(face => face.creature === 'blank' && !face.material));
+    assert.notEqual(createBossRewardDice().id, createBossRewardDice().id);
+    for (const die of [...INITIAL_DICE_POOL, ...road, blank]) {
+      assert.deepEqual(die.faces.map(face => face.baseValue), [...D6_FACE_VALUES]);
+      die.faces.forEach((face, i) => assert.equal(face.baseValue + die.faces[getOppositeFace(die, i)!].baseValue, 7));
+      assert.ok(die.faces.every(face => face.creature !== 'princess'));
+    }
+    assert.ok(road.every(die => die.faces.filter(face => face.creature === 'blank').length === 3));
+  }
+  assert.ok(INITIAL_DICE_POOL.every(die => die.faces.filter(face => face.creature === 'blank').length === 4));
 });
+
 test('refresh prices rise independently by category', () => {
   for (const kind of ['dice', 'loot', 'shop', 'camp'] as const) {
     assert.ok(getRefreshCost(kind, 1) > getRefreshCost(kind, 0));
     assert.equal(getRefreshCost(kind, 2), getRefreshCost(kind, 0) * 3);
-  }
-});
-
-test('starter artisans keep partial shield synergy and regional grants keep road recipe geometry', async () => {
-  const { INITIAL_DICE_POOL } = await import('../../configs/creatures/initialDiceConfig');
-  const { CREATURE_CONFIG } = await import('../../configs/creatures/creatureConfig');
-  const { DICE_DRAFT_CONFIG } = await import('../../configs/creatures/diceRecipeConfig');
-  const { getDiceGeometry } = await import('./diceGeometry');
-  const geometry = getDiceGeometry('d6');
-  const support = INITIAL_DICE_POOL[2];
-  const craftCounts = support.faces.flatMap((face, index) => face.creature === 'artisan'
-    ? [geometry[index].neighbors.filter(n => CREATURE_CONFIG[support.faces[n].creature].tags.includes('craftsman')).length] : []);
-  assert.ok(craftCounts.length > 0);
-  assert.ok(craftCounts.every(count => count > 0 && count < CREATURE_BALANCE.artisan.threshold));
-  for (const [index, face] of support.faces.entries()) {
-    const same = support.faces.findIndex((other, otherIndex) => otherIndex !== index && other.creature === face.creature);
-    assert.ok(same >= 0 && !geometry[index].neighbors.includes(same));
-  }
-  const gang = ROAD_DICE_RECIPES.find(recipe => recipe.id === 'gang')!;
-  const gangFaces = gang.faces.flatMap(([creature], index) => creature === 'gang' ? [index] : []);
-  assert.ok(gangFaces.every(index => gangFaces.every(other => other === index || geometry[index].neighbors.includes(other))));
-  for (const recipe of ROAD_DICE_RECIPES) {
-    assert.ok(!INITIAL_DICE_POOL.some(die => JSON.stringify(die.faces.map(face => [face.creature, face.baseValue])) === JSON.stringify(recipe.faces)));
-    const die = instantiateRecipe(recipe, 3);
-    die.faces.forEach((face, index) => {
-      assert.equal(face.creature, recipe.faces[index][0]);
-      assert.equal(face.baseValue, recipe.faces[index][1] + DICE_DRAFT_CONFIG.regionBonus[3]);
-    });
   }
 });

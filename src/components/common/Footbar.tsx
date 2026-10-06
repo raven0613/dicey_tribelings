@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { Coins, Dices, Play, RotateCcw, Shield, Swords } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 import { PlayerVitals } from '../battle/PlayerVitals';
+import { RerollShieldFeedback } from '../battle/RerollShieldFeedback';
 import { getPaidRerollCost } from '@/src/service/battle/rerollCost';
 import { EQUIPMENT_ACTIONS } from '@/src/configs/equipment/equipmentActionConfig';
 import { TeacherControls } from '../battle/TeacherControls';
@@ -119,6 +120,7 @@ export function Footbar({ onOpenDiceBag, onResolve, isResolving, isCombat }: Foo
               <div className={`forecast-shield ${highlightShield ? 'is-highlighted' : ''}`} style={{ visibility: totalForecastShield > 0 ? 'visible' : 'hidden' }}>
                 <Shield className="ui-icon" style={{ marginRight: '2px' }} />
                 {totalForecastShield}
+                <RerollShieldFeedback />
               </div>
             </div>
 

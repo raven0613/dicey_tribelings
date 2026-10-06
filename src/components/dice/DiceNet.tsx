@@ -65,6 +65,9 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApp
 
   const width = net.width * scale;
   const height = net.height * scale;
+  const stickerHint = previewOnly
+    ? onApplyFace ? '點骰面預覽，再按「貼到此面」' : '移到或點擊骰面預覽覆蓋'
+    : '移到骰面預覽覆蓋・點擊套用貼紙';
 
   return <section className="dice-net" aria-label={`${dice.name}展開圖`} style={{
     '--net-padding': `${presentation.canvasPadding}px`,
@@ -73,7 +76,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApp
   } as CSSProperties}>
     <div className="dice-net-status" aria-live="polite" aria-atomic="true">
       {activeFace === null
-        ? sticker ? previewOnly ? '點骰面預覽，再按「貼到此面」' : '移到骰面預覽覆蓋・點擊套用貼紙' : '移到骰面查看相鄰面・虛線為摺線'
+        ? sticker ? stickerHint : '移到骰面查看相鄰面・虛線為摺線'
         : error ?? `第 ${activeFace + 1} 面・${destination || `相鄰面 ${neighbors.map((index) => index + 1).join('、')}`}`}
     </div>
     <div ref={viewportRef} className="dice-net-viewport">
@@ -94,7 +97,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApp
             relation={index === activeFace ? 'current' : neighbors.includes(index) ? 'neighbor' : 'none'}
             neighbors={geometry[index].neighbors} onHover={preview} onFocus={(index) => preview(index, true)}
             sticker={sticker} previewing={activeFace === index}
-            onPreviewSelect={previewOnly ? () => onPreviewFaceChange?.(index) : undefined}
+            onPreviewSelect={previewOnly ? () => preview(index, true) : undefined}
             onApply={onApplyFace ? () => onApplyFace(index) : undefined} />)}
           {activeFace !== null && arrowTarget !== null && activeRole && isArrowFace(activeRole) &&
             <DiceNetArrowLink dice={dice} source={activeFace} target={arrowTarget} arrow={activeRole}

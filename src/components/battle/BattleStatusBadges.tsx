@@ -4,7 +4,6 @@ import { getEquipmentIcon } from '../equipment/equipmentIcons';
 import { Crosshair, LockKeyhole } from 'lucide-react';
 import { useSkillTooltip } from '../common/useSkillTooltip';
 import { useGameStore } from '../../store/gameStore';
-import { CREATURE_CONFIG } from '../../configs/creatures/creatureConfig';
 
 export function ExposureBadge({ multiplier, before, after }: { multiplier: number; before?: number; after?: number }) {
   const { tooltip, tooltipProps } = useSkillTooltip(`暴露弱點：受到傷害 ×${multiplier}。${before !== undefined ? `本輪傷害 ${before} → ${after}，已計入逐段修正。` : ''}`);
@@ -23,23 +22,17 @@ export function DieStatusBadge({ sealed, damage, breakDamage, watched }: { seale
 }
 
 export function RationsBadge() {
-  const { comboSummary, creatureBattleState, combatPhase, equipments, setHoveredEquipment, virtualFood } = useGameStore(useShallow((state) => ({
-    comboSummary: state.comboSummary,
-    creatureBattleState: state.creatureBattleState,
-    combatPhase: state.combatPhase,
+  const { initialRations, dicePool, equipments, setHoveredEquipment } = useGameStore(useShallow((state) => ({
+    initialRations: state.creatureBattleState.initialRations,
+    dicePool: state.dicePool,
     equipments: state.equipments,
     setHoveredEquipment: state.setHoveredEquipment,
-    virtualFood: state.displayedFood['virtual-food']?.displayValue,
   })));
-  const equipment = equipments.find((item) => item.ruleId === 'RATIONS');
-  const amount = combatPhase === 'CONTROL_PHASE' ? comboSummary?.virtualFood ?? 0
-    : combatPhase === 'RESOLVING_CALCULATION' ? virtualFood ?? creatureBattleState.virtualFood : 0;
-  const allocations = comboSummary?.events.filter((event) => equipment && event.equipmentId === equipment.id)
-    .flatMap((event) => event.changes.filter((change) => change.kind === 'food').map((change) => {
-      const index = comboSummary.items.findIndex((item) => item.diceId === change.targetId);
-      return `第 ${index + 1} 骰・${CREATURE_CONFIG[comboSummary.items[index].creature].name}：存糧 +${change.after - change.before}`;
-    })) ?? [];
-  const { tooltip, tooltipProps } = useSkillTooltip(`${equipment?.name ?? ''}：${amount} 點，視為一份食物，本回合有效。\n含廚師面的骰子平均分配：\n${allocations.length ? allocations.join('\n') : '本輪沒有可入庫對象或容量。'}`);
+  const equipment = equipments.find(item => item.ruleId === 'RATIONS');
+  const amount = Object.values(initialRations).reduce((sum, value) => sum + value, 0);
+  const allocations = dicePool.flatMap((die, index) => initialRations[die.id]
+    ? [`第 ${index + 1} 骰・${die.name}：初始存糧 +${initialRations[die.id]}`] : []);
+  const { tooltip, tooltipProps } = useSkillTooltip(`${equipment?.name ?? ''}：本場已分配 ${amount} 初始存糧。\n${allocations.join('\n')}`);
   if (!equipment || amount <= 0) return null;
   const Icon = getEquipmentIcon(equipment.iconName);
   return <span className="battle-status-badge rations-badge" tabIndex={0} {...tooltipProps}
@@ -52,7 +45,7 @@ export function RationsBadge() {
 }
 
 export function RationsAllocation({ equipment, amount }: { equipment: Equipment; amount: number }) {
-  const { tooltip, tooltipProps } = useSkillTooltip(`${equipment.name}：本骰存糧 +${amount}`);
+  const { tooltip, tooltipProps } = useSkillTooltip(`${equipment.name}：本骰初始存糧 +${amount}`);
   const Icon = getEquipmentIcon(equipment.iconName);
   return <span className="rations-allocation" tabIndex={0} {...tooltipProps}>
     <Icon className="ui-icon" /> + {amount}{tooltip}

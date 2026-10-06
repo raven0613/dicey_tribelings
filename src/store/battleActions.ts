@@ -8,7 +8,7 @@ import { calculateRollResolution } from '../service/battle/battleEngine';
 import { hasEquipment } from '../configs/equipment/equipmentConfig';
 
 export function createBattleActions(set: (state: Partial<GameState>) => void, get: () => GameState):
-  Pick<GameState, 'startBattleRoll' | 'finishRollAnimation' | 'useControlReroll' | 'finishRerollAnimation' | 'setDiceAction' | 'confirmPaidReroll' | 'cancelPaidReroll'> {
+  Pick<GameState, 'startBattleRoll' | 'finishRollAnimation' | 'useControlReroll' | 'finishRerollAnimation' | 'setDiceAction' | 'confirmPaidReroll' | 'cancelPaidReroll' | 'toggleSplit'> {
   const startNextReroll = () => {
     const state = get();
     const [next, ...pendingRerolls] = state.pendingRerolls;
@@ -28,10 +28,16 @@ export function createBattleActions(set: (state: Partial<GameState>) => void, ge
     return true;
   };
   return {
+    toggleSplit: () => {
+      const state = get();
+      if (!state.enemies.length || state.combatPhase !== 'CONTROL_PHASE' || state.activeRerollingIndex !== null || state.pendingPaidRerollDiceId || !hasEquipment(state.equipments, 'SPLIT')) return;
+      const creatureBattleState = { ...state.creatureBattleState, splitEnabled: !state.creatureBattleState.splitEnabled };
+      set({ creatureBattleState, comboSummary: calculateRollResolution(state.dicePool, state.rolledIndices, state.equipments, creatureBattleState, state) });
+    },
     startBattleRoll: () => {
       const state = get();
-      const virtualFood = hasEquipment(state.equipments, 'RATIONS') ? state.storedRations : 0;
-      const result = performStartBattleRoll(state.dicePool, state.equipments, state.creatureBattleState, state, virtualFood);
+      const storedRations = hasEquipment(state.equipments, 'RATIONS') ? state.storedRations : 0;
+      const result = performStartBattleRoll(state.dicePool, state.equipments, state.creatureBattleState, state, storedRations);
       set({ ...result, playerShield: retainPlayerShield(state.playerShield, state.equipments), storedRations: 0, activeRerollingIndex: null, pendingRerolls: [], diceAction: 'reroll', hoveredEquipmentId: null,
         attackingDieIndex: null, attackingBonusIndex: null, attackingStage: 'idle', attackEmphasis: 0, enemyAttack: null, visibleBonusIds: [],
         diceSlotStates: {}, bonusSlotStates: {}, skillFeedback: [], displayedIdentities: {},

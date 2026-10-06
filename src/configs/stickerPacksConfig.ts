@@ -1,26 +1,19 @@
+import { REWARD_CONFIG } from './rewardConfig';
 import type { StickerPack } from '../types/game';
+import type { PermanentCreatureId } from '../types/creatures';
 import { CREATURE_CONFIG, CREATURE_IDS } from './creatures/creatureConfig';
-import { CREATURE_BALANCE } from './creatures/creatureBalanceConfig';
-
+const crafts = CREATURE_IDS.filter(id => CREATURE_CONFIG[id].tags.includes('craftsman'));
+function pack(id: string, name: string, slots: PermanentCreatureId[][]): StickerPack {
+  return { id, name, themeName: name, rarity: 'rare', stickerCount: REWARD_CONFIG.packStickerCount, permanentCount: REWARD_CONFIG.packStickerCount,
+    description: '三張永久貼紙，較容易出現相關土人貼紙。', slots, creatures: [...new Set(slots.flat())] };
+}
 export const STICKER_PACKS_CATALOG: StickerPack[] = [
-  {
-    id: 'pack_tribe', name: '家族貼紙包', rarity: 'rare', stickerCount: 3, permanentCount: 2,
-    description: '兩張永久、一張本場貼紙，補齊家族與群體組合。', themeName: '家族',
-    creatures: ['family', 'sisters', 'twins', 'gang', 'boss', 'thief', 'cheerleader', 'imposter', 'detective']
-  },
-  {
-    id: 'pack_food', name: '食物貼紙包', rarity: 'rare', stickerCount: 3, permanentCount: 2,
-    description: '兩張永久、一張本場貼紙，搭配食物、存糧與職人。', themeName: '食物',
-    creatures: ['food', 'fruit', 'farmer', 'chef', 'glutton', 'porter', 'artisan']
-  },
-  {
-    id: 'pack_tactical', name: '戰術貼紙包', rarity: 'rare', stickerCount: 3, permanentCount: 2,
-    description: '兩張永久、一張本場貼紙，搭配重骰、戰士與護盾。', themeName: '戰術',
-    creatures: ['warrior', 'follower', 'guard', 'coward', 'priest', 'bulwark', 'teacher', 'prankster', 'herald']
-  },
-  {
-    id: 'pack_royal', name: '貴族貼紙包', rarity: 'legendary', stickerCount: 4, permanentCount: 4,
-    description: `四張永久貴族貼紙，${CREATURE_BALANCE.princess.packChance * 100}% 機會取得小公主，包中每趟最多兩張。`, themeName: '貴族',
-    creatures: CREATURE_IDS.filter((id) => id !== 'princess' && CREATURE_CONFIG[id].tags.includes('noble'))
-  },
+  pack('pack_family', '家族包', [['family'], ['family'], ['family', 'fruit', 'knight', 'bulwark', 'imposter']]),
+  pack('pack_twins', '雙子包', [['twins'], ['twins'], ['twins', 'fruit', 'coward', 'imposter']]),
+  pack('pack_gang', '混混包', [['gang'], ['gang'], ['gang', 'boss', 'prankster', 'herald']]),
+  pack('pack_valor', '勇武包', [['warrior'], ['follower'], ['warrior', 'follower', 'cheerleader', 'loner', 'guard']]),
+  pack('pack_crafts', '職人包', [crafts, crafts, crafts]),
+  pack('pack_kitchen', '廚房包', [['chef'], ['food'], ['chef', 'food', 'farmer', 'glutton', 'fruit']]),
+  pack('pack_bad', '壞壞包', [['boss'], ['thief'], ['family', 'sisters', 'coward', 'bully', 'detective']]),
+  pack('pack_royal', '貴族包', [['authority'], ['knight'], ['family', 'sisters', 'cheerleader', 'priest', 'bully', 'elder', 'royalGuard']]),
 ];

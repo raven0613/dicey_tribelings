@@ -1,5 +1,6 @@
 import { ALL_EQUIPMENT_CATALOG, EQUIPMENT_BALANCE } from '../../../configs/equipment/equipmentConfig';
 import { createCreatureBattleState } from '../creatures/creatureState';
+import { REWARD_CONFIG } from '../../../configs/rewardConfig';
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import type { Enemy } from '../../../types/enemy';
@@ -13,7 +14,7 @@ import { resolveEnemyRound } from './enemyRound';
 import type { DamagePopInput, Dice } from '../../../types/game';
 
 function summaryWithDamage(damage: number): BattleComboSummary {
-  return { healing: 0, reflection: 0, nextEchoUsed: [], nextGildedFaces: [], items: [], repeatAttacks: [], events: [], goldGranted: 0, leftoverFood: 0, virtualFood: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
+  return { nextFirstBonusUsed: false, nextChargeLayers: {}, healing: 0, reflection: 0, nextEchoUsed: [], nextGildedFaces: [], items: [], repeatAttacks: [], events: [], goldGranted: 0, bonusDice: damage > 0 ? [{ id: 'attack', source: { kind: 'equipment', equipmentId: 'test' },
     sourceName: '測試', bonusDamage: damage, label: '追加', description: '追加' }] : [], triggeredEquipmentIds: [], totalDamage: damage,
     totalShield: 0, bonusControlGranted: 0, nextStoredFood: {}, nextAltars: {} };
 }
@@ -223,30 +224,37 @@ test('remaining shields carry fully into the next round and abacus refills only 
 
 test('victory packs rations and clears battle food storage', async (context) => {
   const enemy = createEnemy('r1_patrol'); enemy.hp = 1;
-  const summary = summaryWithDamage(9); summary.leftoverFood = 17; summary.nextStoredFood = { chef: 12 };
+  const summary = summaryWithDamage(9); summary.nextStoredFood = { chef: 12, other: 5 };
   const { state } = await settle(context, enemy, summary, 60,
     { equipments: ALL_EQUIPMENT_CATALOG.filter((item) => item.ruleId === 'RATIONS') });
   assert.equal(state.storedRations, 17);
   assert.deepEqual(state.creatureBattleState.storedFood, {});
 });
 
-test('regional boss victory retains HP and offers two permanent rewards', async (context) => {
+test('regional boss victory grants a blank die and themed packs while retaining HP', async (context) => {
   const enemy = createEnemy('r1_boss'); enemy.hp = 1; enemy.shield = 0;
   const { state } = await settle(context, enemy, summaryWithDamage(10), 50, { campBuff: 'ward' });
   assert.equal(state.playerHp, 50);
   assert.equal(state.campBuff, null);
-  assert.equal(state.battleRewardOptions.length, 5);
-  assert.equal(state.battleRewardPickCount, 2);
+  assert.equal(state.battleRewardOptions.length, REWARD_CONFIG.normalFightOptionCount);
+  assert.equal(state.battleRewardPickCount, REWARD_CONFIG.advancedPickCount);
+  assert.ok(state.battleRewardOptions.every(option => option.kind === 'pack' && option.stickers.length === REWARD_CONFIG.packStickerCount));
+  assert.equal(state.dicePool.at(-1), state.receivedRewardDice);
   assert.equal(state.combatPhase, 'VICTORY');
 });
 
-test('final boss victory grants the sixth-die choice before final construction rewards', async (context) => {
+test('final boss victory grants a blank die for presentation before final packs', async (context) => {
   const enemy = createEnemy('r3_boss'); enemy.hp = 1; enemy.shield = 0;
   const { state } = await settle(context, enemy, summaryWithDamage(10), 40);
   assert.equal(state.playerHp, 40);
-  assert.equal(state.diceRewardOptions.length, 3);
-  assert.equal(state.battleRewardOptions.length, 5);
-  assert.equal(state.battleRewardPickCount, 2);
+  assert.deepEqual(state.diceRewardOptions, []);
+  assert.ok(state.receivedRewardDice);
+  assert.equal(state.dicePool.at(-1), state.receivedRewardDice);
+  assert.ok(state.receivedRewardDice.faces.every(face => face.creature === 'blank' && !face.material));
+  assert.equal(state.battleRewardOptions.length, REWARD_CONFIG.normalFightOptionCount);
+  assert.equal(state.battleRewardPickCount, REWARD_CONFIG.advancedPickCount);
+  assert.ok(state.battleRewardOptions.every(option => option.kind === 'pack' && option.stickers.length === REWARD_CONFIG.packStickerCount));
+  assert.equal(state.dicePool.at(-1), state.receivedRewardDice);
   assert.equal(state.combatPhase, 'VICTORY');
 });
 

@@ -2,34 +2,31 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { openStickerPack } from './packService';
 import { STICKER_PACKS_CATALOG } from '../../configs/stickerPacksConfig';
-import { REGION_IDS } from '../../configs/regions/regionConfig';
+import { CREATURE_BALANCE } from '../../configs/creatures/creatureBalanceConfig';
 
-test('packs fulfill their permanent allocation and theme at the current regional quality', () => {
-  for (const region of REGION_IDS) for (const pack of STICKER_PACKS_CATALOG) {
-    const result = openStickerPack(pack.id, region, () => 0.5);
-    assert.equal(result.stickers.length, pack.stickerCount);
-    assert.equal(new Set(result.stickers.map((item) => item.id)).size, pack.stickerCount);
-    assert.equal(result.stickers.filter((item) => !item.isDisposable).length, pack.permanentCount);
-    for (const item of result.stickers) {
-      assert.ok(pack.creatures.some((creature) => creature === item.creature));
-      if (item.isDisposable === false) assert.equal(item.region, region);
-      else assert.equal('baseValue' in item, false);
-    }
-  }
-});
-test('princess allocation is separate from regional quality and stops after two royal drops', () => {
-  for (const count of [0, 1, 2]) {
-    const items = openStickerPack('pack_royal', 3, () => 0, count).stickers;
-    assert.equal(items.filter((item) => item.creature === 'princess').length, count < 2 ? 1 : 0);
-  }
-  assert.ok(openStickerPack('pack_tribe', 3, () => 0).stickers.every((item) => item.creature !== 'princess'));
-});
-
-test('each special pack coats exactly one permanent sticker and preserves temporary stickers', () => {
+test('theme packs grant three permanent stickers and allow promised duplicates', () => {
   for (const pack of STICKER_PACKS_CATALOG) {
-    let count = 0;
-    const result = openStickerPack(pack.id, 1, () => count++ === 0 ? 0.995 : 0.5);
-    assert.equal(result.stickers.filter((s) => s.isDisposable === false && s.material).length, 1);
-    assert.ok(result.stickers.filter((s) => s.isDisposable).every((s) => !('material' in s)));
+    const result = openStickerPack(pack.id, () => 0.5);
+    assert.equal(result.stickers.length, pack.stickerCount);
+    assert.ok(result.stickers.every(item => !item.isDisposable && pack.creatures.includes(item.creature)));
+    assert.ok(result.stickers.every(item => !('baseValue' in item) && !('region' in item)));
+    if (pack.id === 'pack_family') assert.ok(result.stickers.filter(item => item.creature === 'family').length >= 2);
+    if (pack.id === 'pack_twins') assert.ok(result.stickers.filter(item => item.creature === 'twins').length >= 2);
+  }
+});
+
+test('royal princess replacement obeys the run allocation limit', () => {
+  for (const count of [0, 1, CREATURE_BALANCE.princess.packLimit]) {
+    const items = openStickerPack('pack_royal', () => 0, count).stickers;
+    assert.equal(items.filter(item => item.creature === 'princess').length, count < CREATURE_BALANCE.princess.packLimit ? 1 : 0);
+  }
+  for (const pack of STICKER_PACKS_CATALOG.filter(pack => pack.id !== 'pack_royal'))
+    assert.ok(openStickerPack(pack.id, () => 0).stickers.every(item => item.creature !== 'princess'));
+});
+
+test('a special material tier coats one sticker per pack including duplicate-role packs', () => {
+  for (const pack of STICKER_PACKS_CATALOG) {
+    const result = openStickerPack(pack.id, () => 0.995);
+    assert.equal(result.stickers.filter(sticker => sticker.material).length, 1);
   }
 });

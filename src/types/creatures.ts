@@ -1,13 +1,13 @@
 export type ArrowId = 'arrowUp' | 'arrowDown' | 'arrowLeft' | 'arrowRight';
 
-export type CreatureId = ArrowId
+export type CreatureId = ArrowId | 'blank'
   | 'family' | 'sisters' | 'twins' | 'gang' | 'boss' | 'loner' | 'chef'
   | 'porter' | 'follower' | 'cheerleader' | 'thief' | 'coward' | 'guard'
   | 'warrior' | 'elder' | 'artisan' | 'priest' | 'knight' | 'teacher'
   | 'royalGuard' | 'prankster' | 'authority' | 'farmer' | 'imposter'
   | 'detective' | 'fruit' | 'glutton' | 'bulwark' | 'bully' | 'herald' | 'princess' | 'food';
 
-export type PermanentCreatureId = Exclude<CreatureId, ArrowId>;
+export type PermanentCreatureId = Exclude<CreatureId, ArrowId | 'blank'>;
 
 export type CreatureTag = 'common' | 'warrior' | 'craftsman' | 'noble' | 'mystery' | 'food';
 
@@ -21,10 +21,19 @@ export interface CreatureDefinition {
   description: string;
 }
 
-export interface AuthorityTarget { diceId: string; version: number }
-
 export interface CreatureBattleState {
   round: number;
+  inheritance: Record<string, number>;
+  firstRerollUsed: boolean;
+  firstRerollMemory: Record<string, number>;
+  rerollBonuses: { diceId: string; damage: number }[];
+  controlPayments: number[];
+  chargeLayers: Record<string, number>;
+  absorbTarget: string | null;
+  splitEnabled: boolean;
+  firstBonusUsed: boolean;
+  identityChanges: number;
+  identitySnapshot: Record<string, string>;
   manualRerolls: number;
   watchedDieId?: string;
   rollOrigins: Record<string, number>;
@@ -42,7 +51,6 @@ export interface CreatureBattleState {
   teachersAvailable: string[];
   prankstersUsed: string[];
   faceVersions: Record<string, number>;
-  authorityTargets: Record<string, AuthorityTarget>;
   lockedDice: string[];
   rerollCount: number;
   controlSpent: number;
@@ -53,5 +61,5 @@ export interface CreatureBattleState {
   pipeUsed: boolean;
   roundSeed: number;
   seed: number;
-  virtualFood: number;
+  initialRations: Record<string, number>;
 }

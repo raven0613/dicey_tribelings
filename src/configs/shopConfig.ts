@@ -1,5 +1,6 @@
 export const SHOP_CONFIG = {
   disposableCost: 12,
+  packCost: 40, packStockCount: 2,
   permanentCost: 20,
   permanentStockCount: 3,
   equipmentStockCount: 3,

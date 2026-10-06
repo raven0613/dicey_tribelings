@@ -8,6 +8,8 @@ export const DICE_NUMBER_FEEDBACK = {
   resourcePulse: { small: 1.05, large: 1.1, threshold: 20, peakFraction: 0.3 },
 } as const;
 
+export const SHIELD_GAIN_PRESENTATION = { lifetimeMs: 650 } as const;
+
 export const DAMAGE_POP_PRESENTATION = {
   font: { min: 48, max: 128, reference: 80 },
   peak: { min: 1.2, max: 1.45 },

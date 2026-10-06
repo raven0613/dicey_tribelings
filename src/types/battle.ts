@@ -25,6 +25,9 @@ export interface CalculatedRollItem {
   rolledCreature: CreatureId;
   rolledBaseValue: number;
   readonly baseValue: number;
+  pipValue: number;
+  attackTransferred?: boolean;
+  externalGain?: boolean;
   creature: CreatureId;
   tags: CreatureTag[];
   finalDamage: number;
@@ -40,7 +43,6 @@ export interface SkillInputs {
   value?: number;
   before?: number;
   after?: number;
-  virtualFood?: boolean;
   secondaryCount?: number;
 }
 
@@ -61,6 +63,7 @@ export interface SkillEvent {
   equipmentId?: string;
   sourceFaceId?: string;
   echoed?: boolean;
+  bonusMotion?: { kind: 'absorb' | 'split'; diceId: string };
   healing?: number;
   ability: string;
   participantDiceIds: string[];
@@ -88,9 +91,9 @@ export interface BattleComboSummary {
   bonusControlGranted: number;
   goldGranted: number;
   nextAltars: Record<string, number>;
+  nextFirstBonusUsed: boolean;
+  nextChargeLayers: Record<string, number>;
   nextStoredFood: Record<string, number>;
-  leftoverFood: number;
-  virtualFood: number;
 }
 
 export interface NumberDisplay {

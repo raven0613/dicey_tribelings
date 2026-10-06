@@ -208,6 +208,9 @@ export const DiceBoard: React.FC = () => {
             const sourceLabel = source.kind === 'creature'
               ? dicePool.find((die) => die.id === source.diceId)!.name : bDie.sourceName;
             const isAttacking = attackingBonusIndex === bIdx;
+            const conversion = skillFeedback.find(({ event }) => event.bonusMotion &&
+              (event.bonusIds.includes(bDie.id) || event.changes.some(change => change.kind === 'bonus' && change.targetId === bDie.id)))?.event.bonusMotion;
+            const anchor = conversion ? trayLayout.positions[dicePool.findIndex(die => die.id === conversion.diceId)] : undefined;
 
             return (
               <DiceAttackPortal key={bDie.id} active={isAttacking} trayRef={trayRef}>
@@ -216,6 +219,7 @@ export const DiceBoard: React.FC = () => {
                   dice={bDie}
                   attackIndex={bIdx}
                   sourceLabel={sourceLabel}
+                  conversion={conversion && anchor ? { kind: conversion.kind, x: anchor.x - position.x, y: anchor.y - position.y } : undefined}
                   feedback={skillFeedback}
                   isAttacking={isAttacking}
                   attackingStage={attackingStage}

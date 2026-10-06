@@ -17,11 +17,20 @@
   h1 { font-size: 1.3em; font-weight: 800; }
 }
 .preparation-panel-title { justify-content: space-between; margin-bottom: .5rem; }
-.preparation-enemy { padding: .6rem .8rem; background: $slate-900; border: 1px solid $slate-700; border-radius: $radius-lg;
-  p { margin: .35rem 0; }
-  summary { cursor: pointer; color: $amber-300; }
+.preparation-enemies { display: flex; gap: .5rem; overflow-x: auto; padding: .2rem; }
+.preparation-enemy { min-width: 0; width: 33%; background: $slate-900; border: 1px solid $slate-700; border-radius: $radius-lg; }
+.preparation-enemy-heading {
+  width: 100%; height: 100%; padding: .6rem .8rem; gap: .5rem;
+  background: transparent; color: $slate-100; text-align: left; cursor: help;
+  border-radius: inherit;
+  &:hover, &:focus-visible { background: $slate-800; }
+  span { display: inline-flex; align-items: center; gap: .25rem; }
+}
+.skill-tooltip.preparation-enemy-tooltip {
+  white-space: normal; pointer-events: auto;
   ol { list-style: decimal; padding-left: 1.5rem; }
-  li { margin: .3rem 0; }
+  li { margin: .4rem 0; }
+  section { margin-top: .75rem; }
 }
 .preparation-panel-body { flex: 1; min-height: 0; display: flex; gap: .75rem; }
 .preparation-panel-body > .equipment-bar { flex-shrink: 0; }

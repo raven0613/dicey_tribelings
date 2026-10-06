@@ -1,5 +1,5 @@
 import { attackTarget } from './attackPlan';
-import { drawDiceRecipes } from '../dice/diceDraft';
+import { createBossRewardDice } from '../dice/diceFactory';
 import { commitMaterialRound } from './creatures/materialResolution';
 import { MATERIAL_BALANCE } from '../../configs/materials/materialConfig';
 import { BATTLE_LIMIT } from '../../configs/battleConfig';
@@ -39,6 +39,7 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
   const isCurrent = () => get().comboSummary === summary;
   set({ combatPhase: 'RESOLVING_CALCULATION', visibleBonusIds: [], bonusSlotStates: {},
     creatureBattleState: { ...initial.creatureBattleState, storedFood: { ...summary.nextStoredFood }, altars: { ...summary.nextAltars },
+      firstBonusUsed: summary.nextFirstBonusUsed, chargeLayers: summary.nextChargeLayers,
       echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces },
     playerHpDisplay: initial.playerHp,
     playerHp: Math.min(initial.maxHp, initial.playerHp + summary.healing),
@@ -91,15 +92,18 @@ export async function runBattleSettlement(methods: BattleStoreMethods): Promise<
     soundService.playVictory();
     const state = get();
     const leader = enemies[0], rank = leader.rank;
-    const battleRewardOptions = generateBattleRewardOptions(leader.region, rank);
+    const battleRewardOptions = generateBattleRewardOptions(rank, Math.random, [], undefined, state.princessPackCount);
     const earnedGold = leader.isBoss ? COMBAT_GOLD.boss : leader.isElite ? COMBAT_GOLD.elite : COMBAT_GOLD.normal;
     const extraReward = activeEnemies.some(enemy => enemy.traits?.contraband && !enemy.prizeLost)
-      ? generateContrabandPrize(leader.region) : null;
+      ? generateContrabandPrize() : null;
+    const receivedRewardDice = leader.isBoss ? createBossRewardDice() : null;
+    const permanentDice = restoreTemporaryStickers(dicePool);
     set({ combatPhase: 'VICTORY', campBuff: null, gold: state.gold + earnedGold + summary.nextGildedFaces.length * MATERIAL_BALANCE.gilded, battleRewardOptions,
       battleRewardPickCount: getBattleRewardCount(rank),
-      diceRewardOptions: leader.isBoss ? drawDiceRecipes() : [], diceRefreshes: 0, lootRefreshes: 0, extraReward,
-      dicePool: restoreTemporaryStickers(dicePool), creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round },
-      storedRations: hasEquipment(initial.equipments, 'RATIONS') ? summary.leftoverFood : 0 });
+      receivedRewardDice, diceRewardOptions: [], diceRefreshes: 0, lootRefreshes: 0, extraReward,
+      dicePool: receivedRewardDice ? [...permanentDice, receivedRewardDice] : permanentDice,
+      creatureBattleState: { ...createCreatureBattleState(), round: initial.creatureBattleState.round },
+      storedRations: hasEquipment(initial.equipments, 'RATIONS') ? Object.values(summary.nextStoredFood).reduce((sum, amount) => sum + amount, 0) : 0 });
     return;
   };
   if (activeEnemies.every(enemy => enemy.hp <= 0)) { await finishVictory(); return; }

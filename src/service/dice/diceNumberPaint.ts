@@ -16,5 +16,5 @@ export function getNumberPaint(tags: readonly CreatureTag[]) {
   }
   const colors = [...new Set(tags)].map((tag) => config.tagColors[tag])
     .sort((a, b) => luminance(b) - luminance(a) || a.localeCompare(b));
-  return { colors, angle: config.splitAngle + 90, hardSplit: true };
+  return { colors: colors.length ? colors : [config.blankColor], angle: config.splitAngle + 90, hardSplit: true };
 }

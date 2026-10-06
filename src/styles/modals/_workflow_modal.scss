@@ -14,40 +14,6 @@
   box-shadow: $shadow-2xl;
 }
 
-.btn-primary-modal,
-.btn-secondary-modal {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  width: 100%;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: $radius-lg;
-  font-size: max(0.8rem, var(--minimum-font-size));
-  font-weight: 900;
-}
-
-.modal-header .btn-skip-reward {
-  padding: 0.45rem 0.7rem;
-  border: 1px solid $slate-700;
-  border-radius: $radius-lg;
-  background: $slate-800;
-  color: $slate-300;
-  font-size: max(0.72rem, var(--minimum-font-size));
-}
-
-.btn-primary-modal {
-  background: linear-gradient(to right, $amber-500, $amber-600);
-  color: $slate-950;
-}
-
-.btn-secondary-modal {
-  background: $slate-800;
-  color: $slate-300;
-  border: 1px solid $slate-700;
-}
-
 .pack-sticker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
@@ -122,7 +88,22 @@
   }
 }
 
-.btn-secondary-modal:disabled {
-  opacity: 0.45;
-  cursor: wait;
+.sticker-selection-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .card-tag-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 }
+
+.sticker-selection-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: auto;
+  padding-top: 1rem;
+
+  > button { margin-top: 0; }
+}
+
+.sticker-selection-footer { margin-top: 1rem; }

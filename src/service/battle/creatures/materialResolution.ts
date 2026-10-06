@@ -12,7 +12,6 @@ export function resolveMaterials(c: ResolutionContext) {
       case 'resonance':
         e.participantDiceIds.push(...c.neighbors(index).map((target) => target.diceId));
         for (const target of c.neighbors(index)) {
-          c.foodValues[target.diceId] += b.resonance;
           c.attack(e, target, target.finalDamage + b.resonance);
         }
         break;
@@ -23,11 +22,11 @@ export function resolveMaterials(c: ResolutionContext) {
       case 'ripple': c.shield(e, item, b.ripple); break;
       case 'vial':
         e.healing = Math.ceil(combatNumber(b.vial));
-        c.materials.healing += e.healing; e.activated = true; break;
+        c.materials.healing += e.healing; c.log.activate(e); break;
       case 'mirror': c.materials.reflection += b.mirror; break;
       case 'gilded':
         if (!c.materials.gildedFaces.has(item.faceId)) {
-          c.materials.gildedFaces.add(item.faceId); e.activated = true; e.ability += `・勝利 +${b.gilded} 金幣`;
+          c.materials.gildedFaces.add(item.faceId); e.ability += `・勝利 +${b.gilded} 金幣`; c.log.activate(e);
         }
         break;
     }

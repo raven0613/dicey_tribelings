@@ -1,3 +1,5 @@
+import { evaluateBuild } from './buildPolicy';
+import { fixedDice } from '../../dice/diceFactory';
 import { chapterPath } from '../../regions/routeService';
 import { REGION_IDS } from '../../../configs/regions/regionConfig';
 import { INITIAL_DICE_POOL } from '../../../configs/gameConfig';
@@ -8,7 +10,8 @@ import { simulateRun } from './runSimulation';
 import { RUN_SIMULATION_CONFIG as config } from '../../../configs/regions/runSimulationConfig';
 import { INITIAL_MAP_NODES, CHAPTER_END_NODE } from '../../../configs/regions/mapConfig';
 import { INITIAL_PLAYER_STATS } from '../../../configs/gameConfig';
-import { getBattleRewardCount } from '../../rewards/rewardService';
+import { REWARD_CONFIG } from '../../../configs/rewardConfig';
+import { generateBattleRewardOptions, getBattleRewardStickers } from '../../rewards/rewardService';
 
 // 策略門檻是「存在可通關的合法成長路線」，玩家通關率由實機驗證。
 for (const entry of ['combat', 'camp'] as const) test(`${entry} entry routes with real rewards and finite resources can complete the chapter`, (context) => {
@@ -28,10 +31,10 @@ for (const entry of ['combat', 'camp'] as const) test(`${entry} entry routes wit
   }
   const ordinary = Array.from({ length: config.runs }, (_, index) => simulateRun(config.seed + index, true, true, 'safe', entry));
   assert.ok(ordinary.some((run) => run.chapterCompleted), 'common reward choices must retain a viable route');
-  context.diagnostic(`${entry}: ${runs.length + ordinary.length} seeded runs: all rewards/challenge ${runs.filter((run) => run.chapterCompleted).length}/${runs.length}, common rewards/safe ${ordinary.filter((run) => run.chapterCompleted).length}/${ordinary.length}; Boss draft dice and equipment remain available in both policies.`);
+  context.diagnostic(`${entry}: ${runs.length + ordinary.length} seeded runs: all rewards/challenge ${runs.filter((run) => run.chapterCompleted).length}/${runs.length}, common rewards/safe ${ordinary.filter((run) => run.chapterCompleted).length}/${ordinary.length}; Boss blank dice and equipment remain available in both policies.`);
 });
 
-test('each route has equal length and shared growth while elites offer greater rewards', () => {
+test('each route has equal length and shared growth while elites offer themed packs', () => {
   const safe = chapterPath(INITIAL_MAP_NODES, 'safe');
   const challenge = chapterPath(INITIAL_MAP_NODES, 'challenge');
   assert.equal(safe.length, challenge.length);
@@ -43,5 +46,20 @@ test('each route has equal length and shared growth while elites offer greater r
     assert.ok(safe.some((node) => node.id === id));
     assert.ok(challenge.some((node) => node.id === id));
   }
-  assert.ok(getBattleRewardCount('elite') > getBattleRewardCount('normal'));
+  const elite = generateBattleRewardOptions('elite', () => 0.5)[0];
+  const normal = generateBattleRewardOptions('normal', () => 0.5)[0];
+  assert.equal(elite.kind, 'pack');
+  assert.equal(normal.kind, 'bundle');
+  assert.equal(getBattleRewardStickers(elite).length, REWARD_CONFIG.packStickerCount);
+  assert.equal(getBattleRewardStickers(normal).length, 1 + REWARD_CONFIG.normalHiddenStickerCount);
+  assert.ok(getBattleRewardStickers(elite).length > getBattleRewardStickers(normal).length);
+});
+
+test('build evaluation values stored food released in later rounds and preserves its inputs', () => {
+  const cook = fixedDice('cook', 'cook', 'amber', { 1: 'chef', 2: 'chef', 3: 'chef', 4: 'food', 5: 'food', 6: 'food' });
+  const plain = { ...cook, faces: cook.faces.map(face => ({ ...face, creature: 'blank' as const })) };
+  const before = structuredClone(cook);
+  assert.ok(evaluateBuild([cook], [], config.seed).damage > evaluateBuild([plain], [], config.seed).damage);
+  assert.deepEqual(cook, before);
+  assert.deepEqual(evaluateBuild([cook], [], config.seed), evaluateBuild([cook], [], config.seed));
 });

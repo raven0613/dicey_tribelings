@@ -1,3 +1,4 @@
+import { REWARD_CONFIG } from '../../configs/rewardConfig';
 import { useShallow } from 'zustand/react/shallow';
 import { ChestStory } from '../story/ChestStory';
 import { SkillText } from '../common/SkillText';
@@ -129,7 +130,7 @@ export const ChestModal: React.FC = () => {
               disabled={equipmentTransfer !== null}
               onClick={skipChestReward}
             >
-              跳過獎勵，繼續前進<ArrowRight className="ui-icon" />
+              放棄裝備，獲得 {REWARD_CONFIG.skipGold.equipment} 金幣<ArrowRight className="ui-icon" />
             </button>
           </div>
         )}

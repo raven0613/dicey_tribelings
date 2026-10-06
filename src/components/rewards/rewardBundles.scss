@@ -1,0 +1,107 @@
+@use '../../styles/variables' as *;
+
+.reward-bundles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  padding: 1rem 0;
+
+  @container game-stage (min-width: 768px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.reward-bundle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid rgba($amber-300, 0.6);
+  border-radius: $radius-2xl;
+  color: $slate-100;
+  background: $slate-800;
+  text-align: center;
+
+  > p { color: $slate-300; }
+  > .btn-primary-modal { margin-top: auto; }
+}
+
+.reward-bundle-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: $radius-lg;
+  color: inherit;
+  text-align: center;
+  transition: background $transition-fast;
+
+  &:hover { background: $slate-700; }
+  &:focus-visible { outline: 3px solid $amber-300; outline-offset: 2px; }
+  > p { line-height: 1.5; }
+}
+
+.reward-preview-label { margin-top: auto; color: $amber-300; font-weight: 700; }
+
+.reward-fan {
+  position: relative;
+  isolation: isolate;
+  flex-shrink: 0;
+  margin: 0.75rem auto 1rem;
+  width: 100%;
+  max-width: 16rem;
+  aspect-ratio: 1;
+}
+
+.reward-fan-back,
+.reward-fan-front {
+  position: absolute;
+  left: 2%;
+  bottom: 3%;
+  width: 66%;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border: 2px solid $amber-300;
+  border-radius: $radius-xl;
+  background: $slate-700;
+}
+
+.reward-fan-back {
+  align-items: flex-end;
+  justify-content: flex-start;
+  font-size: 2.875rem;
+  background: repeating-linear-gradient(45deg, $slate-700, $slate-700 10px, $slate-800 10px, $slate-800 20px);
+
+  z-index: calc(3 - var(--back-order));
+  transform: translate(calc(16% * var(--back-order)), calc(-14% * var(--back-order))) rotate(calc(12deg * var(--back-order)));
+}
+
+.reward-fan-front { z-index: 3; background: $slate-900; box-shadow: $shadow-lg; }
+
+.reward-pack-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 14rem;
+  aspect-ratio: 4 / 5;
+  margin: 0.75rem auto;
+  padding: 1rem;
+  border: 3px double $amber-300;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, $slate-600, $slate-900);
+  box-shadow: $shadow-lg;
+
+  > svg { width: 3rem; height: 3rem; color: $amber-300; }
+  > strong { font-size: max(1.25rem, var(--minimum-font-size)); }
+}

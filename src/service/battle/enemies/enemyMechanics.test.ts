@@ -125,7 +125,7 @@ test('watch suppresses only the marked normal hit and manual reroll transfers it
   assert.deepEqual(result.events.filter(e => e.kind === 'player').map(e => e.damage), [5, 10, 10]);
   const rolled = performStartBattleRoll(INITIAL_DICE_POOL, [], round, { control: 3, maxControl: 3, gold: 0, enemies: [enemy] }, 0, () => 0);
   const state = { ...rolled, dicePool: INITIAL_DICE_POOL, equipments: [], enemies: [enemy], control: 3, maxControl: 3, gold: 0, combatPhase: 'CONTROL_PHASE' as const };
-  assert.equal(state.creatureBattleState.watchedDieId, INITIAL_DICE_POOL[1].id);
+  assert.equal(state.creatureBattleState.watchedDieId, INITIAL_DICE_POOL[0].id);
   const reroll = performControlReroll(0, state, () => 0)!;
   assert.ok(reroll.steps.every(step => step.state.manualRerolls === 1 && step.state.watchedDieId === INITIAL_DICE_POOL[0].id));
 });

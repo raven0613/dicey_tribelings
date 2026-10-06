@@ -6,10 +6,9 @@ import { performControlReroll } from '../rollService';
 import { createCreatureBattleState, startCreatureRound } from './creatureState';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
 import { INITIAL_PLAYER_STATS } from '../../../configs/gameConfig';
-import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
 import type { CreatureId } from '../../../types/creatures';
 
-const base = createPermanentSticker('boss', 1).baseValue;
+const base = 3;
 const die = (id: string, role: CreatureId, value = base) => configuredDice(id, id, 'd6', 'amber',
   Array.from({ length: 6 }, (_, index) => [index === 0 ? role : 'food', value]));
 const target = (summary: ReturnType<typeof calculateRollResolution>, source = 'boss') => summary.events

@@ -10,14 +10,14 @@ import { generateShopStock } from '../shop/shopStock';
 import { stickerKey } from '../rewards/refreshService';
 test('shops supply permanent and temporary faces, and refresh excludes only the current stock', () => {
   const owned = [ALL_EQUIPMENT_CATALOG[0]], random = () => 0;
-  const a = generateShopStock(owned, 1, random);
+  const a = generateShopStock(owned, random);
   assert.equal(a.shopStickers.filter(item => !item.isDisposable).length, SHOP_CONFIG.permanentStockCount);
   assert.equal(a.shopStickers.filter(item => item.isDisposable).length, SHOP_CONFIG.stickerStockCount);
   assert.ok(a.shopEquipments.every(item => item.id !== owned[0].id));
-  const b = generateShopStock(owned, 1, random, a);
+  const b = generateShopStock(owned, random, a);
   assert.ok(b.shopStickers.every(item => !a.shopStickers.some(old => stickerKey(old) === stickerKey(item))));
   assert.ok(b.shopEquipments.every(item => !a.shopEquipments.some(old => old.id === item.id)));
-  const c = generateShopStock(owned, 1, random, b);
+  const c = generateShopStock(owned, random, b);
   assert.ok(c.shopStickers.some(item => a.shopStickers.some(old => stickerKey(old) === stickerKey(item))));
 });
 

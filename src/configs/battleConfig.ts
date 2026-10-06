@@ -3,12 +3,13 @@ export const BATTLE_PRESENTATION = {
   pulseMs: 260, nameDelayMs: 20, nameFadeInMs: 80, nameHoldMs: 480, nameFadeOutMs: 160,
   nameRisePx: 18, nameEntryPx: 4, nameGapPx: 4, nameAnchorGapPx: 8,
   nameVerticalMargin: 8,
+  conversionMs: 300,
   eventGapMs: 110, numberDurationMs: 240, numberSoundIntervalMs: 64,
   beforeAttackMs: 80,
   windupMs: 25, dashMs: 50, impactMs: 70, recoilMs: 35, betweenAttackMs: 15,
   victoryMs: 350, enemyThinkMs: 600, nextRoundMs: 600,
 } as const;
-export const COMBAT_GOLD = { normal: 15, elite: 20, boss: 15 } as const;
+export const COMBAT_GOLD = { normal: 15, elite: 25, boss: 35 } as const;
 
 export const SKILL_AUDIO = {
   smallPulse: { frequency: 660, duration: 0.12, volume: 0.07 },

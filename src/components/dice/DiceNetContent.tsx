@@ -37,7 +37,7 @@ export function DiceNetContent({ face, sticker, full = false, lines }: { face: D
   if (isArrowFace(effective.creature) && !full) return <svg className="dice-net-arrow" viewBox="0 0 100 100" aria-label={creature.name}>
     <DiceCharacter creature={effective.creature} animate={false} />
   </svg>;
-  const attack = sticker ? sticker.isDisposable === true ? `${effective.baseValue}（沿用）`
+  const attack = sticker ? original.baseValue === effective.baseValue ? `${effective.baseValue}（沿用）`
     : `${original.baseValue} → ${effective.baseValue}` : effective.baseValue;
   const description = <>
     {lines ? <SkillLines lines={lines} /> : <>
@@ -53,7 +53,7 @@ export function DiceNetContent({ face, sticker, full = false, lines }: { face: D
     <DiceIdentityHeader creature={effective.creature} title={creature.name} tags={getFaceTags(effective)} attack={attack} />
     {full || summaryLines === null ? <span className="dice-net-description">{description}</span>
       : summaryLines > 0 && <span className="dice-net-summary" style={{ WebkitLineClamp: summaryLines }}>
-        <SkillText text={`${creature.ability}：${CREATURE_SKILL_INTRO[effective.creature]}`} />
+        <SkillText text={`${creature.ability ? `${creature.ability}：` : ''}${CREATURE_SKILL_INTRO[effective.creature]}`} />
       </span>}
     {!full && <span ref={measure} className="dice-net-description dice-net-description-measure" aria-hidden="true">{description}</span>}
   </span>;

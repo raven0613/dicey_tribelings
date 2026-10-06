@@ -42,6 +42,7 @@ export const DICE_FACE_PRESENTATION = {
 } as const;
 
 export const DICE_NUMBER_PRESENTATION = {
+  blankColor: '#64748b',
   fontFamily: '"Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif',
   fontWeight: 900, fontSize: 36, maxWidth: 68,
   x: 92, y: 89, strokeColor: '#ffffff', strokeWidth: 3.5,

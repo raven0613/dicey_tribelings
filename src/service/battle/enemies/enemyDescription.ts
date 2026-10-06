@@ -1,18 +1,20 @@
+import { ENEMY_INTENT_TEXT as text, type EnemyIntentDisplay } from '../../../configs/monsters/enemyIntentPresentationConfig';
 import type { Enemy } from '../../../types/enemy';
 import type { BattleComboSummary } from '../../../types/battle';
 import type { CreatureBattleState } from '../../../types/creatures';
 import type { Equipment } from '../../../types/game';
 import { resolveEnemyRound } from './enemyRound';
 import { currentIntent } from './enemyIntent';
-export function describeEnemyIntentDetails(enemy: Enemy, manualRerolls = 0) {
-  const intent = currentIntent(enemy), rules: string[] = [];
+export function describeEnemyIntentDetails(enemy: Enemy, manualRerolls = 0, display: EnemyIntentDisplay = 'battle') {
+  const intent = display === 'sequence' ? enemy.intents[enemy.currentIntentIndex] : currentIntent(enemy), rules: string[] = [];
   const value = 'value' in intent ? intent.value : 0;
-  rules.push(intent.type === 'rest' ? '休息' : intent.type === 'charge' ? intent.command ? '發出號令' : '蓄力'
-    : intent.type === 'defend' ? `獲得 ${value} 護盾` : `攻擊 ${value + (enemy.strength ?? 0)} × ${intent.hits ?? 1} hit`);
   if (intent.type === 'charge' && !intent.command) {
     const next = enemy.intents[(enemy.currentIntentIndex + 1) % enemy.intents.length];
-    if ('value' in next) rules.push(`下回合 ${next.value} 傷害`);
-  }
+    const nextDamage = next.type === 'attack' || next.type === 'heavy_attack'
+      ? (next.value + (enemy.strength ?? 0)) * (next.hits ?? 1) : undefined;
+    rules.push(...text.charge[display](nextDamage));
+  } else rules.push(intent.type === 'rest' ? text.rest : intent.type === 'charge' ? text.command
+    : intent.type === 'defend' ? text.defend(value) : text.attack(value + (enemy.strength ?? 0), intent.hits ?? 1));
   const counter = intent.counter, counters: string[] = [];
   if (counter) counters.push(`${counter.type === 'damage_taken' ? `本輪受傷達 ${counter.threshold}` : '自身護盾耗盡'}則${counter.effect === 'cancel' ? '取消行動' : '傷害減半'}`);
   if (intent.hitWeaken) counters.push(`本輪受到 ${intent.hitWeaken} 次命中則傷害減半`);
@@ -41,10 +43,10 @@ export function describeEnemyIntentDetails(enemy: Enemy, manualRerolls = 0) {
   }
   if (enemy.traits?.contraband) rules.push(enemy.prizeLost ? '額外稀有貼紙已帶走'
     : `額外稀有貼紙：再 ${enemy.traits.contraband.deadline - (enemy.actionsTaken ?? 0)} 次敵方行動後帶走`);
-  return { description: `${intent.name}：${rules.join('；')}。`, counter: counters.join('；') };
+  return { description: rules.length === 1 && rules[0] === intent.name ? `${intent.name}。` : `${intent.name}：${rules.join('；')}。`, counter: counters.join('；') };
 }
-export function describeEnemyIntent(enemy: Enemy, manualRerolls = 0): string {
-  const details = describeEnemyIntentDetails(enemy, manualRerolls);
+export function describeEnemyIntent(enemy: Enemy, manualRerolls = 0, display: EnemyIntentDisplay = 'battle'): string {
+  const details = describeEnemyIntentDetails(enemy, manualRerolls, display);
   return details.description + (details.counter ? `破解：${details.counter}。` : '');
 }
 export function previewEnemyRound(enemies: Enemy[], enemyId: string, selectedId: string | null, summary: BattleComboSummary,

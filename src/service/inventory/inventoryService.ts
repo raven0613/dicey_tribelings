@@ -48,7 +48,6 @@ export function applyPermanentSticker(
     const faces = [...die.faces];
     faces[faceIndex] = {
       ...faces[faceIndex],
-      baseValue: sticker.baseValue,
       material: sticker.material,
       materialDecay: undefined,
       creature: sticker.creature,

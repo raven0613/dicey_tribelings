@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { configuredDice } from '../../dice/diceFactory';
 import { createCreatureBattleState } from './creatureState';
-import { resolveRerollChain, refreshAuthorityTargets } from './rerollResolution';
+import { resolveRerollChain, refreshIdentitySnapshot } from './rerollResolution';
 import { calculateRollResolution } from '../battleEngine';
 import { performControlReroll, performDiceAction, getOppositeFace } from '../rollService';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
@@ -21,16 +21,16 @@ test('altars count only their own die and retain unspent charges while priest is
   const result = calculateRollResolution(pool, next.rolledIndices, [], next.state);
   assert.deepEqual(result.nextAltars, { a: 1, b: 0 });
   assert.equal(result.bonusDice.length, 1);
-  assert.equal(result.bonusDice[0].bonusDamage, CREATURE_BALANCE.priest.damagePerReroll);
+  assert.equal(result.bonusDice[0].bonusDamage, pool[1].faces[next.rolledIndices[1]].baseValue);
 });
 
-test('five-charge priest splits retroactive tier damage without losing odd remainder', () => {
-  const state = createCreatureBattleState(); state.altars.a = CREATURE_BALANCE.priest.splitAt;
-  const result = calculateRollResolution([die('a', 'priest', 'food')], [0], [], state);
-  const total = CREATURE_BALANCE.priest.splitAt * CREATURE_BALANCE.priest.highDamage;
-  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [Math.floor(total / 2), Math.ceil(total / 2)]);
+test('each sacrifice releases one pip-valued extra die per facing priest', () => {
+  const state = createCreatureBattleState(); state.altars.a = 5;
+  const pool = [die('a', 'priest', 'food')];
+  const result = calculateRollResolution(pool, [0], [], state);
+  assert.deepEqual(result.bonusDice.map(bonus => bonus.bonusDamage), Array(state.altars.a).fill(pool[0].faces[0].baseValue));
   assert.equal(result.nextAltars.a, 0);
-  assert.equal(state.altars.a, CREATURE_BALANCE.priest.splitAt);
+  assert.equal(state.altars.a, 5);
 });
 
 test('teacher includes its own reroll in the team count and freezes the earned amount', () => {
@@ -64,14 +64,13 @@ test('protected targets resist forced rerolls and create no reroll events', () =
   assert.equal(resolveRerollChain(pool, [0, 0], state, 1, [], () => 0.5, 'a').length, 0);
 });
 
-test('authority keeps a live target across other rerolls and preview calls', () => {
+test('authority crowns all eligible neighbors and previews preserve committed identities', () => {
   const pool = [die('a', 'family', 'family'), die('b', 'authority', 'authority'), die('c', 'family', 'family')];
-  const state = refreshAuthorityTargets(pool, [0, 0, 0], [], createCreatureBattleState());
-  const target = state.authorityTargets.b.diceId;
-  const other = target === 'a' ? 2 : 0;
-  const step = resolveRerollChain(pool, [0, 0, 0], state, other, [], () => 0.5)[0];
-  assert.equal(step.state.authorityTargets.b.diceId, target);
+  const state = refreshIdentitySnapshot(pool, [0, 0, 0], [], createCreatureBattleState());
+  const step = resolveRerollChain(pool, [0, 0, 0], state, 2, [], () => 0.5)[0];
   const result = calculateRollResolution(pool, step.rolledIndices, [], step.state);
+  assert.ok(result.items.every(item => item.tags.includes('noble')));
+  assert.equal(step.state.identityChanges, state.identityChanges + 2);
   assert.deepEqual(result, calculateRollResolution(pool, step.rolledIndices, [], step.state));
 });
 

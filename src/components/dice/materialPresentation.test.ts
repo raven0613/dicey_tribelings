@@ -73,8 +73,8 @@ test('net preview preserves temporary materials and shows incoming permanent coa
   const temporary = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: { ...DISPOSABLE_STICKERS[0], ...resolveTemporarySticker(DISPOSABLE_STICKERS[0]) } }));
   assert.ok(temporary.includes('data-material="negative"'));
   assert.ok(temporary.includes('9（沿用）'));
-  const permanent = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: { ...createPermanentSticker('family', 1), material: 'foil' } }));
+  const permanent = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: { ...createPermanentSticker('family'), material: 'foil' } }));
   assert.ok(permanent.includes('data-material="foil"'));
-  const ordinary = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: createPermanentSticker('family', 1) }));
+  const ordinary = renderToStaticMarkup(createElement(DiceNetFace, { ...props, sticker: createPermanentSticker('family') }));
   assert.ok(!ordinary.includes('data-material='));
 });

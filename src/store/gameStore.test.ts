@@ -7,6 +7,7 @@ import { REWARD_CONFIG } from '../configs/rewardConfig';
 import { getPaidRerollCost } from '../service/battle/rerollCost';
 import { EQUIPMENT_BALANCE } from '../configs/equipment/equipmentConfig';
 import { INITIAL_MAP_NODES, CHAPTER_END_NODE } from '../configs/regions/mapConfig';
+import { createBossRewardDice } from '../service/dice/diceFactory';
 import { drawDiceRecipes } from '../service/dice/diceDraft';
 import { getRefreshCost, rewardKey } from '../service/rewards/refreshService';
 import { REGION_IDS } from '../configs/regions/regionConfig';
@@ -19,15 +20,12 @@ import { createConsumableSticker } from '../service/inventory/inventoryService';
 import { DISPOSABLE_STICKERS } from '../configs/creatures/creatureStickerConfig';
 import { CREATURE_BALANCE } from '../configs/creatures/creatureBalanceConfig';
 import { useGameStore } from './gameStore';
-
 test('combat nodes wait for preparation confirmation before the first roll', () => {
   useGameStore.getState().restartGame();
   assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
-
   useGameStore.getState().confirmBattlePreparation([]);
   assert.equal(useGameStore.getState().combatPhase, 'ROLLING');
 });
-
 test('cancelling a full chest equipment replacement returns to the same choices', () => {
   useGameStore.getState().restartGame();
   const option = {
@@ -70,14 +68,17 @@ test('a full shop consumable purchase charges only after one instance is replace
   assert.equal(result.consumableStickers[1].stickerId, incoming.id);
 });
 
-test('rations enter the next battle first round once and round food then clears', () => {
+test('rations become initial stock once and remain across rounds', () => {
   useGameStore.getState().restartGame();
-  useGameStore.setState({ storedRations: 9, equipments: ALL_EQUIPMENT_CATALOG.filter((item) => item.ruleId === 'RATIONS') });
+  const dicePool = useGameStore.getState().dicePool.map(die => ({ ...die, faces: die.faces.map(face => ({ ...face, creature: 'chef' as const })) }));
+  useGameStore.setState({ dicePool, storedRations: 9, equipments: ALL_EQUIPMENT_CATALOG.filter(item => item.ruleId === 'RATIONS') });
   useGameStore.getState().confirmBattlePreparation([]);
-  assert.equal(useGameStore.getState().creatureBattleState.virtualFood, 9);
+  const stock = Object.fromEntries(dicePool.map(die => [die.id, 9 / dicePool.length]));
+  assert.deepEqual(useGameStore.getState().creatureBattleState.storedFood, stock);
   assert.equal(useGameStore.getState().storedRations, 0);
   useGameStore.getState().startBattleRoll();
-  assert.equal(useGameStore.getState().creatureBattleState.virtualFood, 0);
+  assert.deepEqual(useGameStore.getState().creatureBattleState.storedFood, stock);
+  assert.deepEqual(useGameStore.getState().creatureBattleState.initialRations, {});
 });
 
 test('guaranteed princess is offered once before advancing its milestone', () => {
@@ -86,7 +87,7 @@ test('guaranteed princess is offered once before advancing its milestone', () =>
   useGameStore.getState().advanceToNextNode();
   assert.equal(useGameStore.getState().stickerFlow?.items[0].creature, 'princess');
   assert.equal(useGameStore.getState().princessGuaranteed, true);
-  useGameStore.getState().discardCurrentSticker();
+  useGameStore.getState().skipStickerFlow();
   assert.deepEqual(useGameStore.getState().routeChoices, INITIAL_MAP_NODES[CREATURE_BALANCE.princess.guaranteedNode].next);
   assert.equal(useGameStore.getState().stickerFlow, null);
 });
@@ -94,7 +95,7 @@ test('guaranteed princess is offered once before advancing its milestone', () =>
 test('shop purchases with space settle immediately and cannot buy the same offer twice', () => {
   useGameStore.getState().restartGame();
   const sticker = DISPOSABLE_STICKERS[0];
-  useGameStore.setState({ shopStickers: [sticker] });
+  useGameStore.setState({ shopStickers: [sticker], gold: sticker.cost! });
   const gold = useGameStore.getState().gold;
   assert.equal(useGameStore.getState().buyShopSticker(sticker.id), true);
   assert.equal(useGameStore.getState().pendingShopSticker, null);
@@ -103,78 +104,62 @@ test('shop purchases with space settle immediately and cannot buy the same offer
   assert.equal(useGameStore.getState().buyShopSticker(sticker.id), false);
 });
 
-test('pack flow automatically stores consumables and pauses only for overflow', () => {
+test('bundle rewards reveal together, apply in any order and retain the receiving pips', () => {
   useGameStore.getState().restartGame();
-  const stickers = DISPOSABLE_STICKERS.slice(0, 4);
-  useGameStore.setState({ openedPackResult: { packName: '測試', stickers, completion: 'stay' } });
-  useGameStore.getState().beginOpenedPack();
-  assert.equal(useGameStore.getState().consumableStickers.length, 3);
-  assert.equal(useGameStore.getState().stickerFlow?.index, 3);
-  useGameStore.getState().discardCurrentSticker();
-  assert.equal(useGameStore.getState().stickerFlow, null);
-});
-
-test('reward stickers commit one at a time and advance after the final choice', () => {
-  useGameStore.getState().restartGame();
-  useGameStore.getState().startNode(6);
-  const options = generateBattleRewardOptions(1, 'boss', () => 0.5);
-  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: REWARD_CONFIG.advancedPickCount });
-  const before = useGameStore.getState();
-  const die = before.dicePool[0];
-  const first = options[0], alternative = options[2];
-  assert.equal(first.kind, 'sticker');
-  assert.equal(alternative.kind, 'sticker');
-  if (first.kind !== 'sticker' || alternative.kind !== 'sticker') throw new Error('Expected permanent sticker rewards');
-
-  before.applyBattleRewardSticker(first.id, die.id, die.faces.length);
-  before.applyBattleRewardSticker('missing-reward', die.id, 0);
-  assert.equal(useGameStore.getState().dicePool, before.dicePool);
+  const fight = INITIAL_MAP_NODES.find(node => node.type === 'fight')!;
+  useGameStore.getState().startNode(fight.id);
+  const options = generateBattleRewardOptions('normal', () => 0.5);
+  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: 1 });
+  const before = useGameStore.getState(), die = before.dicePool[0];
+  before.claimBattleReward('missing');
   assert.equal(useGameStore.getState().battleRewardOptions, options);
-  assert.equal(useGameStore.getState().battleRewardPickCount, REWARD_CONFIG.advancedPickCount);
-
-  before.applyBattleRewardSticker(first.id, die.id, 0);
-  const afterFirst = useGameStore.getState();
-  assert.equal(afterFirst.currentNodeIndex, before.currentNodeIndex);
-  assert.equal(afterFirst.combatPhase, 'VICTORY');
-  assert.equal(afterFirst.stickerFlow, null);
-  assert.equal(afterFirst.battleRewardPickCount, REWARD_CONFIG.advancedPickCount - 1);
-  assert.deepEqual(afterFirst.battleRewardOptions, options.slice(1));
-  assert.equal(afterFirst.dicePool[0].faces[0].creature, first.sticker.creature);
-  assert.equal(afterFirst.dicePool[0].faces[0].baseValue, first.sticker.baseValue);
-  assert.equal(afterFirst.dicePool[0].faces[0].material, first.sticker.material);
-  assert.deepEqual(afterFirst.dicePool[0].faces.slice(1), die.faces.slice(1));
-
-  afterFirst.applyBattleRewardSticker(first.id, die.id, 1);
-  assert.equal(useGameStore.getState().dicePool, afterFirst.dicePool);
-  assert.equal(useGameStore.getState().battleRewardPickCount, afterFirst.battleRewardPickCount);
-
-  // A different remaining reward can be chosen after the first placement.
-  afterFirst.applyBattleRewardSticker(alternative.id, die.id, 1);
-  const afterLast = useGameStore.getState();
-  assert.equal(afterLast.dicePool[0].faces[0].creature, first.sticker.creature);
-  assert.equal(afterLast.dicePool[0].faces[1].creature, alternative.sticker.creature);
-  assert.equal(afterLast.battleRewardPickCount, 0);
-  assert.deepEqual(afterLast.battleRewardOptions, []);
-  assert.deepEqual(afterLast.routeChoices, INITIAL_MAP_NODES[afterLast.currentNodeIndex].next);
-  const combat = afterLast.mapNodes.find(node => afterLast.routeChoices.includes(node.id) && node.type === 'fight')!;
-  afterLast.chooseRoute(combat.id);
-  assert.equal(useGameStore.getState().enemies[0]?.region, combat.region);
-  assert.equal(useGameStore.getState().combatPhase, 'PREPARATION');
+  before.claimBattleReward(options[0].id);
+  const claimed = useGameStore.getState();
+  assert.equal(claimed.stickerFlow?.items.length, 1 + REWARD_CONFIG.normalHiddenStickerCount);
+  assert.equal(claimed.battleRewardPickCount, 0);
+  assert.deepEqual(claimed.battleRewardOptions, []);
+  const chosen = claimed.stickerFlow!.items.at(-1)!;
+  claimed.chooseFlowSticker(claimed.stickerFlow!.items.length - 1);
+  useGameStore.getState().applyCurrentPermanentSticker(die.id, die.faces.length);
+  assert.equal(useGameStore.getState().dicePool, before.dicePool);
+  useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
+  const applied = useGameStore.getState();
+  assert.equal(applied.stickerFlow?.items.length, REWARD_CONFIG.normalHiddenStickerCount);
+  assert.equal(applied.stickerFlow?.index, -1);
+  assert.equal(applied.dicePool[0].faces[0].creature, chosen.creature);
+  assert.equal(applied.dicePool[0].faces[0].baseValue, die.faces[0].baseValue);
+  applied.skipStickerFlow();
+  assert.equal(useGameStore.getState().gold, before.gold);
 });
 
-for (const route of ['safe', 'challenge'] as const) test(`${route} route grants new dice only after boss choices`, () => {
+test('revealing and skipping a whole unused bundle pays exactly once', () => {
+  useGameStore.getState().restartGame();
+  const options = generateBattleRewardOptions('normal', () => 0.5);
+  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: 1 });
+  const gold = useGameStore.getState().gold;
+  useGameStore.getState().claimBattleReward(options[0].id);
+  useGameStore.getState().skipStickerFlow();
+  assert.equal(useGameStore.getState().gold, gold + REWARD_CONFIG.skipGold.normal);
+  useGameStore.getState().skipStickerFlow();
+  useGameStore.getState().skipBattleReward();
+  assert.equal(useGameStore.getState().gold, gold + REWARD_CONFIG.skipGold.normal);
+});
+
+for (const route of ['safe', 'challenge'] as const) test(`${route} route presents a blank die at each boss before advancing`, () => {
   useGameStore.getState().restartGame();
   const initialCount = useGameStore.getState().dicePool.length;
   for (const node of chapterPath(INITIAL_MAP_NODES, route).slice(0, -1)) {
     assert.equal(useGameStore.getState().mapNodes[useGameStore.getState().currentNodeIndex].id, node.id);
     if (node.type === 'boss') {
-      useGameStore.setState({ combatPhase: 'VICTORY', diceRewardOptions: drawDiceRecipes() });
-      const recipe = useGameStore.getState().diceRewardOptions[0];
-      useGameStore.getState().chooseRewardDice(recipe.id);
+      const die = createBossRewardDice();
+      useGameStore.setState({ combatPhase: 'VICTORY', receivedRewardDice: die, dicePool: [...useGameStore.getState().dicePool, die] });
+      useGameStore.getState().advanceToNextNode();
+      assert.equal(useGameStore.getState().currentNodeIndex, node.id);
+      useGameStore.getState().acknowledgeRewardDice();
     }
     if (useGameStore.getState().openedPackResult) useGameStore.getState().beginOpenedPack();
     else useGameStore.getState().advanceToNextNode();
-    while (useGameStore.getState().stickerFlow) useGameStore.getState().discardCurrentSticker();
+    while (useGameStore.getState().stickerFlow) useGameStore.getState().skipStickerFlow();
     const choices = useGameStore.getState().routeChoices;
     if (choices.length) {
       const selected = INITIAL_MAP_NODES.find((candidate) => choices.includes(candidate.id) && (candidate.route === route || candidate.route === 'combat'))!;
@@ -223,7 +208,7 @@ test('each paid reroll awaits confirmation before charging, including retries af
   store.getState().restartGame();
   store.getState().confirmBattlePreparation([]);
   store.getState().finishRollAnimation();
-  store.setState({ control: 0 });
+  store.setState({ control: 0, gold: getPaidRerollCost(0, []) + getPaidRerollCost(1, []) });
   const initial = store.getState();
   const cost = getPaidRerollCost(initial.creatureBattleState.paidRerolls, initial.equipments);
   store.getState().useControlReroll(0);
@@ -316,11 +301,11 @@ test('invalid arrow destinations never consume inventory; valid preparation comm
   assert.notEqual(state.rolledIndices[0], 0);
 });
 
-test('boss choice gates loot, duplicate recipes create independent dice and refresh is affordable and local', () => {
+test('recipe choice gates loot, duplicate recipes create independent dice and refresh is affordable and local', () => {
   useGameStore.getState().restartGame();
   const boss = INITIAL_MAP_NODES.find(node => node.type === 'boss')!;
   useGameStore.getState().startNode(boss.id);
-  const drafts = drawDiceRecipes([], () => 0), loot = generateBattleRewardOptions(boss.region, 'boss', () => 0.5);
+  const drafts = drawDiceRecipes([], () => 0), loot = generateBattleRewardOptions('boss', () => 0.5);
   useGameStore.setState({ combatPhase: 'VICTORY', diceRewardOptions: drafts, battleRewardOptions: loot,
     battleRewardPickCount: REWARD_CONFIG.advancedPickCount, gold: 0 });
   const before = useGameStore.getState();
@@ -344,21 +329,22 @@ test('boss choice gates loot, duplicate recipes create independent dice and refr
   useGameStore.getState().chooseRewardDice(chosen.id);
   const second = useGameStore.getState().dicePool.at(-1)!;
   assert.equal(first.recipeId, second.recipeId); assert.notEqual(first.id, second.id);
-  const reward = loot.find(item => item.kind === 'sticker')!;
-  useGameStore.getState().applyBattleRewardSticker(reward.id, second.id, 0);
+  const reward = loot[0];
+  useGameStore.getState().claimBattleReward(reward.id);
+  useGameStore.getState().chooseFlowSticker(0);
+  useGameStore.getState().applyCurrentPermanentSticker(second.id, 0);
   assert.equal(useGameStore.getState().battleRewardPickCount, REWARD_CONFIG.advancedPickCount - 1);
   assert.deepEqual(useGameStore.getState().dicePool.find(die => die.id === first.id), first);
 });
 
-test('loot refresh preserves consumed picks and modified faces; only the current page is excluded', () => {
+test('loot refresh preserves dice and excludes the current page until a bundle is claimed', () => {
   useGameStore.getState().restartGame();
   const boss = INITIAL_MAP_NODES.find(node => node.type === 'boss')!;
   useGameStore.getState().startNode(boss.id);
-  const options = generateBattleRewardOptions(boss.region, 'boss', () => 0.5);
+  const options = generateBattleRewardOptions('boss', () => 0.5);
   useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: REWARD_CONFIG.advancedPickCount,
     gold: getRefreshCost('loot', 0) });
   const die = useGameStore.getState().dicePool[0];
-  useGameStore.getState().applyBattleRewardSticker(options[0].id, die.id, 0);
   const before = useGameStore.getState();
   before.refreshBattleRewards();
   const after = useGameStore.getState();
@@ -371,9 +357,9 @@ test('loot refresh preserves consumed picks and modified faces; only the current
   assert.equal(useGameStore.getState().battleRewardOptions, after.battleRewardOptions);
   useGameStore.getState().startNode(INITIAL_MAP_NODES.find(node => node.region === 2 && node.type === 'fight')!.id);
   assert.equal(useGameStore.getState().lootRefreshes, 0);
-  const a = generateBattleRewardOptions(1, 'boss', () => 0);
-  const b = generateBattleRewardOptions(1, 'boss', () => 0, a.map(rewardKey));
-  const c = generateBattleRewardOptions(1, 'boss', () => 0, b.map(rewardKey));
+  const a = generateBattleRewardOptions('boss', () => 0);
+  const b = generateBattleRewardOptions('boss', () => 0, a.map(rewardKey));
+  const c = generateBattleRewardOptions('boss', () => 0, b.map(rewardKey));
   assert.deepEqual(c.map(rewardKey), a.map(rewardKey));
 });
 
@@ -389,6 +375,7 @@ test('shop permanent purchases and refresh spend once and keep modified dice', (
   useGameStore.getState().refreshShop();
   assert.equal(useGameStore.getState().shopRefreshes, 0, 'pending placement keeps shop locked');
   const die = useGameStore.getState().dicePool[0];
+  useGameStore.getState().chooseFlowSticker(0);
   useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
   const before = useGameStore.getState();
   before.refreshShop();
@@ -421,17 +408,24 @@ test('chapter completion waits for final die and final loot processing', () => {
   useGameStore.getState().restartGame();
   const final = INITIAL_MAP_NODES.find(node => node.id === CHAPTER_END_NODE)!;
   useGameStore.getState().startNode(final.id);
-  useGameStore.setState({ combatPhase: 'VICTORY', diceRewardOptions: drawDiceRecipes([], () => 0),
-    battleRewardOptions: generateBattleRewardOptions(final.region, 'final_boss'), battleRewardPickCount: REWARD_CONFIG.advancedPickCount });
+  const die = createBossRewardDice();
+  useGameStore.setState({ combatPhase: 'VICTORY', receivedRewardDice: die, dicePool: [...useGameStore.getState().dicePool, die],
+    battleRewardOptions: generateBattleRewardOptions('final_boss'), battleRewardPickCount: REWARD_CONFIG.advancedPickCount });
   useGameStore.getState().skipBattleReward();
   assert.equal(useGameStore.getState().mapNodes[final.id].completed, false);
-  const choice = useGameStore.getState().diceRewardOptions[0];
-  useGameStore.getState().chooseRewardDice(choice.id);
+  const before = useGameStore.getState();
+  before.claimBattleReward(before.battleRewardOptions[0].id);
+  before.refreshBattleRewards();
+  assert.equal(useGameStore.getState(), before);
+  before.acknowledgeRewardDice();
+  useGameStore.getState().acknowledgeRewardDice();
+  assert.equal(useGameStore.getState().dicePool, before.dicePool);
   assert.equal(useGameStore.getState().mapNodes[final.id].completed, false);
   useGameStore.getState().skipBattleReward();
   assert.equal(useGameStore.getState().mapNodes[final.id].completed, true);
   assert.equal(useGameStore.getState().battleRewardPickCount, 0);
-  assert.equal(useGameStore.getState().dicePool.at(-1)!.recipeId, choice.id);
+  assert.equal(useGameStore.getState().dicePool.at(-1), die);
+  assert.ok(die.faces.every(face => face.creature === 'blank'));
 });
 
 test('camp draws on entry, refreshes the current offer, keeps full-health choices open and claims once', () => {
@@ -472,4 +466,34 @@ test('camp focus survives noncombat nodes, starts the next fight with extra Cont
   assert.equal(state.maxControl, state.control);
   state.restartGame();
   assert.equal(useGameStore.getState().campBuff, null);
+});
+
+test('a shop pack costs once, grants three permanent stickers and leaves a healing budget', () => {
+  useGameStore.getState().restartGame();
+  useGameStore.getState().startNode(INITIAL_MAP_NODES.find(node => node.type === 'shop')!.id);
+  useGameStore.setState({ gold: SHOP_CONFIG.packCost + SHOP_CONFIG.healCost, playerHp: 1 });
+  const pack = useGameStore.getState().shopPacks[0];
+  assert.equal(useGameStore.getState().buyShopPack(pack.id), true);
+  assert.equal(useGameStore.getState().gold, SHOP_CONFIG.healCost);
+  assert.equal(useGameStore.getState().openedPackResult?.stickers.length, REWARD_CONFIG.packStickerCount);
+  assert.equal(useGameStore.getState().buyShopPack(pack.id), false);
+  useGameStore.getState().beginOpenedPack();
+  useGameStore.getState().skipStickerFlow();
+  assert.equal(useGameStore.getState().gold, SHOP_CONFIG.healCost);
+  assert.equal(useGameStore.getState().buyHeal(), true);
+  assert.equal(useGameStore.getState().gold, 0);
+  assert.equal(useGameStore.getState().playerHp, 1 + SHOP_CONFIG.healAmount);
+});
+
+test('discarding all unused reward stickers separately pays one whole-bundle compensation', () => {
+  useGameStore.getState().restartGame();
+  const options = generateBattleRewardOptions('normal', () => 0.5);
+  useGameStore.setState({ combatPhase: 'VICTORY', battleRewardOptions: options, battleRewardPickCount: 1 });
+  const gold = useGameStore.getState().gold;
+  useGameStore.getState().claimBattleReward(options[0].id);
+  for (let i = 0; i < 3; i++) useGameStore.getState().discardStickerAt(0);
+  assert.equal(useGameStore.getState().stickerFlow, null);
+  assert.equal(useGameStore.getState().gold, gold + REWARD_CONFIG.skipGold.normal);
+  useGameStore.getState().discardStickerAt(0);
+  assert.equal(useGameStore.getState().gold, gold + REWARD_CONFIG.skipGold.normal);
 });

@@ -1,3 +1,4 @@
+import { MATERIAL_BALANCE } from '../../configs/materials/materialConfig';
 import { getEffectiveFace } from '../dice/diceFaces';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -15,11 +16,9 @@ const permanentSticker: PermanentSticker = {
   id: 'permanent-boss',
   name: '孩子王貼紙',
   isDisposable: false,
-  baseValue: 12,
   creature: 'boss',
   description: '孩子王12',
   rarity: 'rare',
-  region: 3,
 };
 
 const disposableSticker: DisposableSticker = {
@@ -94,7 +93,7 @@ test('temporary placements override faces for the battle and restore the permane
 test('permanent stickers replace base face data without retaining a temporary sticker', () => {
   const result = applyPermanentSticker(dicePool, 'die-1', 1, permanentSticker);
 
-  assert.equal(result[0].faces[1].baseValue, 12);
+  assert.equal(result[0].faces[1].baseValue, dicePool[0].faces[1].baseValue);
   assert.equal(result[0].faces[1].creature, 'boss');
   assert.equal(result[0].faces[1].temporarySticker, undefined);
 });
@@ -115,8 +114,8 @@ test('prebattle temporary stickers keep negative coating and battle cleanup rese
 
 test('permanent replacement installs incoming coating and ordinary replacement removes the old material', () => {
   const pool = applyPermanentSticker(dicePool, 'die-1', 0, { ...permanentSticker, material: 'foil' });
-  assert.equal(getEffectiveFace(pool[0].faces[0]).baseValue, 15);
+  assert.equal(getEffectiveFace(pool[0].faces[0]).baseValue, dicePool[0].faces[0].baseValue + MATERIAL_BALANCE.foil);
   const replaced = applyPermanentSticker(pool, 'die-1', 0, permanentSticker);
   assert.equal(replaced[0].faces[0].material, undefined);
-  assert.equal(getEffectiveFace(replaced[0].faces[0]).baseValue, 12);
+  assert.equal(getEffectiveFace(replaced[0].faces[0]).baseValue, dicePool[0].faces[0].baseValue);
 });

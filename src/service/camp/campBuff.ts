@@ -6,7 +6,8 @@ export function resolveCampShield(c: ResolutionContext) {
   const event = c.event(4, undefined, CAMP_BUFFS.ward.name, c.items, 'support', 'camp');
   const before = c.teamShield.value;
   c.teamShield.value += CAMP_BUFFS.ward.shield;
-  event.changes.push({ kind: 'shield', targetId: 'player', before, after: c.teamShield.value });
+  c.teamShield.events++;
+  c.log.change(event, { kind: 'shield', targetId: 'player', before, after: c.teamShield.value });
 }
 
 export function resolveCampAttacks(c: ResolutionContext) {

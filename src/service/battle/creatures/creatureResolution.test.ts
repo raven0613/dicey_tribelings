@@ -1,191 +1,136 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { configuredDice } from '../../dice/diceFactory';
-import { getDiceGeometry } from '../../dice/diceGeometry';
-import { calculateRollResolution } from '../battleEngine';
+import { die, resolve, faceIndex } from './testFixtures';
 import { createCreatureBattleState, combatNumber } from './creatureState';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
-import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
-import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
-import type { CreatureId } from '../../../types/creatures';
-const base = createPermanentSticker('family', 3).baseValue;
-const die = (id: string, role: CreatureId, value = base) => configuredDice(id, id, 'd6', 'amber', Array.from({ length: 6 }, () => [role, value]));
-const resolve = (pool: ReturnType<typeof die>[], state = createCreatureBattleState()) => calculateRollResolution(pool, pool.map(() => 0), [], state);
+import { MATERIAL_BALANCE } from '../../../configs/materials/materialConfig';
 
-test('family thresholds use total face count and the rolled base', () => {
-  for (let count = 1; count <= 6; count++) {
-    const d = die('a', 'food');
-    d.faces.slice(0, count).forEach((face) => { face.creature = 'family'; });
-    assert.equal(resolve([d]).items[0].finalDamage, base * b.family.multipliers[count - 1]);
-  }
+test('blank faces attack by pip and have no identity, including iridescence', () => {
+  const blank = die('a', {}); blank.faces[0].material = 'iridescent';
+  const result = resolve([blank], [1]);
+  assert.deepEqual(result.items[0].tags, []);
+  assert.equal(result.totalDamage, 1);
 });
-test('sisters scale by board count and repeats never become bonus dice', () => {
-  for (const count of [1, 2, 3, 4, 5]) {
-    const result = resolve(Array.from({ length: count }, (_, i) => die(`${i}`, 'sisters')));
-    const multiplier = count >= b.sisters.middle ? b.sisters.highMultiplier : count >= b.sisters.minimum ? b.sisters.multiplier : 1;
-    assert.ok(result.items.every((item) => item.finalDamage === base * multiplier));
-    assert.equal(result.repeatAttacks.length, count >= b.sisters.repeatAt ? count : 0);
-    assert.equal(result.bonusDice.length, 0);
-  }
-});
-test('twins share the highest base and use half/full/two repeat attacks', () => {
-  for (let count = 1; count <= 6; count++) {
-    const d = die('a', 'food');
-    d.faces.slice(0, count).forEach((face) => { face.creature = 'twins'; face.baseValue = base / 2; });
-    d.faces[count - 1].baseValue = base;
-    const result = resolve([d]);
-    const factors = count >= b.twins.doubleAt ? [1, 1] : count >= b.twins.fullAt ? [1] : count >= b.twins.halfAt ? [b.twins.half] : [];
-    assert.equal(result.items[0].finalDamage, base);
-    assert.deepEqual(result.repeatAttacks.map((attack) => attack.damage), factors.map((factor) => base * factor));
-    assert.equal(result.bonusDice.length, 0);
-  }
-});
-test('gang geometry controls bonus quantity and damage at every threshold', () => {
-  for (let count = 0; count <= 4; count++) {
-    const d = die('a', 'food'); d.faces[0].creature = 'gang';
-    getDiceGeometry('d6')[0].neighbors.slice(0, count).forEach((index) => { d.faces[index].creature = 'gang'; });
-    const result = resolve([d]);
-    const copies = count * (count >= b.gang.doubleAt ? b.gang.copies : 1);
-    const damage = count >= b.gang.middle ? b.gang.highDamage : b.gang.damagePerNeighbor;
-    assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), Array(copies).fill(damage));
-  }
-});
-test('porter sums original bases then applies whole-chain and final tail multipliers', () => {
-  for (const count of [1, 2, 3, 4, 5, 7]) {
-    const result = resolve(Array.from({ length: count }, (_, i) => die(`${i}`, 'porter', (i + 1) * base)));
-    let prefix = 0;
-    const expected = result.items.map((item, i) => {
-      prefix += item.baseValue;
-      return prefix * (count >= b.porter.doubleAt ? b.porter.multiplier : 1) * (i === count - 1 && count >= b.porter.tailAt ? b.porter.multiplier : 1);
-    });
-    assert.deepEqual(result.items.map((item) => item.finalDamage), expected);
-    assert.deepEqual(result.repeatAttacks.map((attack) => attack.damage), count >= b.porter.repeatAt ? [expected.at(-1)] : []);
-  }
-});
-test('warrior uses neighboring follower faces; follower preserves own value and copies original warrior base', () => {
-  const result = resolve([die('a', 'warrior'), die('b', 'follower', base / 2), die('c', 'warrior')]);
-  assert.equal(result.items[0].finalDamage, base * b.warrior.multiplier + 6 * b.warrior.bonusPerFollower);
-  assert.equal(result.items[1].finalDamage, base * 1.5);
-  assert.equal(result.repeatAttacks[0].damage, base * 1.5 * b.follower.repeatMultiplier);
-  const high = resolve([die('a', 'follower'), die('b', 'warrior'), die('c', 'follower')]);
-  assert.equal(high.items[1].finalDamage, base * b.warrior.highMultiplier + 12 * b.warrior.bonusPerFollower);
-});
-test('loner only uses the stronger multiplier with one local face and no other warrior', () => {
-  const d = die('a', 'food'); d.faces[0].creature = 'loner';
-  assert.equal(resolve([d]).items[0].finalDamage, base * b.loner.soloMultiplier);
-  assert.equal(resolve([d, die('b', 'guard')]).items[0].finalDamage, base * b.loner.multiplier);
-  assert.equal(resolve([die('a', 'loner')]).items[0].finalDamage, base);
-});
-test('food boosts, glutton sum and chef storage use the same strengthened food values', () => {
-  const foods = Array.from({ length: b.glutton.sumAt }, (_, i) => { const d = die(`f${i}`, 'food'); d.faces[1].creature = 'chef'; return d; });
-  const result = resolve([...foods, die('farmer', 'farmer'), die('g', 'glutton')]);
-  const foodTotal = foods.length * base + foods.length * b.farmer.foodBonus;
-  assert.equal(result.items.at(-1)!.finalDamage, base * (1 + foods.length * b.glutton.perFood.at(-1)!) + foodTotal);
-  assert.equal(Object.values(result.nextStoredFood).reduce((sum, value) => sum + value, 0), foodTotal);
-  const farm = die('a', 'farmer'); farm.faces[1].creature = 'chef';
-  const converted = resolve([farm, die('b', 'farmer')]);
-  assert.deepEqual(converted.items.map((item) => item.creature), ['food', 'food']);
-  assert.equal(converted.nextStoredFood.a, base);
-});
-test('chef thresholds preserve a fraction of the original bank without mutating previews', () => {
-  for (const amount of [b.chef.retainAt - 1, b.chef.retainAt, b.chef.burstAt - 1, b.chef.burstAt]) {
-    const state = createCreatureBattleState(); state.storedFood.a = amount;
-    const result = resolve([die('a', 'chef')], state);
-    const high = amount >= b.chef.burstAt;
-    assert.equal(result.bonusDice[0].bonusDamage, amount * (high ? b.chef.multiplier : 1));
-    assert.equal(result.nextStoredFood.a, combatNumber(amount * (high ? b.chef.highRetention : amount >= b.chef.retainAt ? b.chef.retention : 0)));
-    assert.equal(state.storedFood.a, amount);
-    assert.deepEqual(result, resolve([die('a', 'chef')], state));
-  }
-});
-test('fruit uses other food to boost neighbors and stores its own food value', () => {
-  const fruit = die('fruit', 'fruit'); fruit.faces[1].creature = 'chef';
-  const food = die('food', 'food'); food.faces[1].creature = 'chef';
-  const result = resolve([die('a', 'warrior'), fruit, food]);
-  assert.equal(result.items[0].finalDamage, base + b.fruit.highBonus);
-  assert.equal(result.nextStoredFood.food, base + b.fruit.highBonus);
-  assert.equal(result.nextStoredFood.fruit, base);
-});
-test('thieves produce one bonus per transfer even after being robbed to zero', () => {
-  const result = resolve([die('boss', 'boss'), die('thief', 'thief')]);
-  assert.equal(result.items[0].finalDamage, base + Math.ceil(base * b.boss.multipliers[0]));
-  assert.equal(result.items[1].finalDamage, 0);
-  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [base]);
-  const both = resolve([die('left', 'thief'), die('bully', 'bully'), die('right', 'thief')]);
-  assert.equal(both.bonusDice.length, 4);
-});
-test('boss chain counts this robbery and never selects one target twice', () => {
-  const result = resolve([die('a', 'boss'), die('b', 'boss'), die('c', 'boss')]);
-  const events = result.events.filter((event) => event.relation === 'robbery');
-  const victims = events.flatMap((event) => event.changes.filter((change) => change.kind === 'attack' && change.after === 0));
-  assert.equal(new Set(victims.map((change) => change.targetId)).size, victims.length);
-  events.forEach((event, i) => {
-    const lost = event.changes.find((change) => change.after === 0)!;
-    const gained = event.changes.find((change) => change.targetId === event.sourceDiceId)!;
-    assert.equal(gained.after - gained.before, Math.ceil(lost.before * b.boss.multipliers[Math.min(i, b.boss.multipliers.length - 1)]));
-  });
-});
-test('detectives confiscate each culprit once and split one pool exactly', () => {
-  const result = resolve([die('left', 'thief'), die('bully', 'bully'), die('right', 'thief'), die('d1', 'detective'), die('d2', 'detective')]);
-  const bully = result.events.filter((e) => e.sourceDiceId === 'bully').flatMap((e) => e.changes).filter((change) => change.targetId === 'bully').at(-1)!.after;
-  assert.equal(result.items[1].finalDamage, 0);
-  assert.equal(combatNumber(result.items[3].finalDamage + result.items[4].finalDamage - base * 2), combatNumber(bully * b.detective.multiplier));
-  assert.equal(result.bonusDice.length, 4);
-});
-test('guards and artisans use higher shield tier and bulwarks preserve shared shields', () => {
-  const result = resolve([die('a', 'guard'), ...Array.from({ length: b.guard.threshold }, (_, i) => die(`f${i}`, 'family')), die('giant', 'bulwark')]);
-  assert.equal(result.totalShield, b.guard.threshold * b.guard.highShield);
-  const artisan = resolve([die('a', 'artisan'), die('b', 'artisan'), die('giant', 'bulwark')]);
-  assert.equal(artisan.totalShield, 8 * b.artisan.highShield);
-  assert.equal(artisan.bonusDice[0].bonusDamage, artisan.totalShield * b.bulwark.highMultiplier);
-});
-test('authority uses the pre-conferral noble snapshot and knights earn noble before guard counts', () => {
-  const result = resolve([die('a', 'authority'), die('f', 'family'), die('b', 'authority')]);
-  assert.equal(result.items[1].finalDamage, base * b.family.multipliers.at(-1)!);
-  const knight = resolve([die('k', 'knight'), ...Array.from({ length: b.knight.burstAt }, (_, i) => die(`f${i}`, 'family')), die('p', 'princess')]);
-  assert.ok(knight.items[0].tags.includes('noble'));
-  assert.equal(knight.items[0].finalDamage, (base + b.knight.burstAt * b.knight.highBonus) * b.knight.multiplier);
-  assert.equal(knight.repeatAttacks.length, 1);
-});
-test('imposter uses board majority then its own configured majority', () => {
-  const local = die('i', 'sisters'); local.faces[0].creature = 'imposter';
-  const result = resolve([die('a', 'family'), local]);
-  assert.equal(result.items[1].creature, 'sisters');
-  const board = resolve([die('a', 'sisters'), die('b', 'sisters'), die('i', 'imposter')]);
-  assert.ok(board.items.every((item) => item.creature === 'sisters'));
-});
-test('cheer registers one die per source before herald and fills it from the final warrior', () => {
-  const pool = [die('gang', 'gang'), die('h', 'herald'), die('w1', 'warrior'), die('w2', 'guard'), die('w3', 'knight'), die('c1', 'cheerleader'), die('c2', 'cheerleader')];
+test('family gains a flat bonus per face including itself and reproduces each external gain once per other family', () => {
+  const pool = [die('a', { 1: 'family', 2: 'family', 5: 'family' }), die('f', { 1: 'fruit' })];
   const result = resolve(pool);
-  const cheers = result.bonusDice.filter((bonus) => bonus.creature === 'cheerleader');
-  const quantity = 4 * b.gang.copies + 2;
-  assert.equal(result.bonusDice.length, quantity);
-  assert.equal(cheers.length, 2);
-  const highest = Math.max(...result.items.filter((item) => item.tags.includes('warrior')).map((item) => item.finalDamage));
-  assert.ok(cheers.every((bonus) => bonus.bonusDamage === highest + b.herald.bonusDiceDamage));
-  assert.ok(result.events.filter((e) => e.skill === 'cheerleader' && e.stage === 5).every((e) => e.bonusIds.length === 1 && e.changes.every((change) => change.kind !== 'bonus')));
+  assert.equal(result.items[0].finalDamage, 1 + b.family.bonusPerFace * 3 + b.fruit.bonus * 3);
 });
-test('princess only repeats noble bodies and each event continues the prior value', () => {
-  const pool = [die('p', 'princess'), die('n', 'elder'), die('g', 'gang'), die('h', 'herald')];
-  const result = calculateRollResolution(pool, pool.map(() => 0), ALL_EQUIPMENT_CATALOG.filter((eq) => ['RESERVE', 'RESONATOR'].includes(eq.ruleId)));
-  assert.equal(result.repeatAttacks.length, 1);
-  assert.equal(result.repeatAttacks[0].damage, result.items[1].finalDamage);
-  const values = new Map(result.items.map((item) => [`attack:${item.diceId}`, item.rolledBaseValue]));
-  for (const event of result.events) for (const change of event.changes) {
-    const key = `${change.kind}:${change.targetId}`;
-    assert.equal(change.before, values.get(key) ?? 0);
-    values.set(key, change.after);
+test('three sisters share each team grant once without a feedback loop', () => {
+  const pool = [die('a', { 1: 'sisters' }), die('b', { 1: 'sisters' }), die('c', { 1: 'sisters' }), die('h', { 1: 'herald' })];
+  const state = { ...createCreatureBattleState(), rerollBonuses: [{ diceId: 'h', damage: 4 }] };
+  const result = resolve(pool, undefined, ['REROLL_DROP'], state);
+  assert.deepEqual(result.items.slice(0, 3).map(item => item.finalDamage), Array(3).fill(1 + b.herald.bonusPerAttack * 3));
+});
+test('twins use highest pip while preserving material base modifier and full repeats per pair', () => {
+  const twin = die('a', { 1: 'twins', 2: 'twins', 4: 'twins', 6: 'twins' });
+  twin.faces[0].material = 'foil';
+  const result = resolve([twin]);
+  assert.equal(result.items[0].finalDamage, 6 + MATERIAL_BALANCE.foil);
+  assert.equal(result.repeatAttacks.length, Math.floor(4 / b.twins.facesPerPair));
+  assert.ok(result.repeatAttacks.every(hit => hit.damage === result.items[0].finalDamage));
+});
+test('warrior adds all neighboring follower faces and combines two facing followers additively', () => {
+  const result = resolve([die('l', { 1: 'follower', 2: 'follower' }), die('w', { 4: 'warrior' }), die('r', { 1: 'follower' })], [1, 4, 1]);
+  const warrior = (4 + 3 * b.warrior.bonusPerFollower) * (1 + 2 * b.warrior.perFacingFollower);
+  assert.equal(result.items[1].finalDamage, warrior);
+  assert.equal(result.items[0].finalDamage, 1 + warrior * (b.follower.fraction + b.follower.perFace));
+  assert.equal(result.items[2].finalDamage, 1 + warrior * b.follower.fraction);
+});
+test('porters accumulate completed predecessors and restart after a gap', () => {
+  const roles = ['porter', 'porter', 'porter', 'blank', 'porter'] as const;
+  const result = resolve(roles.map((role, i) => die(String(i), { 1: role })));
+  assert.deepEqual(result.items.map(item => item.finalDamage), [1, 2, 4, 1, 1]);
+});
+test('elder counts recipient same-role faces, excludes self and blank', () => {
+  const result = resolve([die('e', { 1: 'elder' }), die('a', { 1: 'family', 2: 'family' }), die('b', {})]);
+  assert.equal(result.items[0].finalDamage, 1);
+  assert.equal(result.items[1].finalDamage, 1 + b.family.bonusPerFace * 2 + b.elder.bonusPerFace * 2 * 2);
+  assert.equal(result.items[2].finalDamage, 1);
+});
+test('royal guard copies the actual externally delivered amount for every other noble', () => {
+  const result = resolve([die('r', { 1: 'royalGuard', 2: 'elder', 3: 'authority' }), die('f', { 1: 'fruit' })]);
+  assert.equal(result.items[0].finalDamage, 1 + b.fruit.bonus * 3);
+});
+test('authority uses the pre-coronation noble count and preserves common identity', () => {
+  const result = resolve([die('a', { 1: 'authority' }), die('f', { 1: 'family' }), die('b', { 1: 'authority' })]);
+  assert.deepEqual(result.items[1].tags, ['common', 'noble']);
+  assert.equal(result.items[1].finalDamage, 1 + b.family.bonusPerFace + b.authority.bonusPerNoble * 2);
+});
+test('farmers convert from the opening food snapshot regardless of stored rations', () => {
+  const pool = [die('a', { 1: 'farmer' }), die('b', { 1: 'farmer' })];
+  assert.deepEqual(resolve(pool).items.map(item => item.creature), ['food', 'food']);
+  const state = { ...createCreatureBattleState(), storedFood: { a: 5 }, initialRations: { a: 5 } };
+  const result = resolve(pool, undefined, [], state);
+  assert.deepEqual(result.items.map(item => item.creature), ['food', 'food']);
+  assert.deepEqual(result.nextStoredFood, state.storedFood);
+});
+test('farmers use local farmer and food faces; stored food includes all pre-storage attack gains', () => {
+  const pool = [die('a', { 1: 'farmer', 2: 'farmer', 3: 'food' }), die('f', { 4: 'food', 2: 'chef' })];
+  const state = { ...createCreatureBattleState(), lockedDice: ['f'] };
+  const result = resolve(pool, [1, 4], ['WHISTLE'], state);
+  assert.equal(result.nextStoredFood.f, Math.ceil(result.items[1].finalDamage * b.food.storageMultiplier + b.chef.storagePerFace));
+});
+test('chef splits integers, creates only positive dice, and releases once', () => {
+  const chef = die('c', { 1: 'chef', 2: 'chef', 3: 'chef', 4: 'chef' });
+  for (const amount of [0, 3, 10]) {
+    const state = { ...createCreatureBattleState(), storedFood: { c: amount } };
+    const result = resolve([chef], [1], [], state);
+    assert.equal(result.bonusDice.length, Math.min(amount, 4));
+    assert.equal(result.bonusDice.reduce((sum, dice) => sum + dice.bonusDamage, 0), amount);
+    assert.equal(result.nextStoredFood.c, 0);
+    assert.equal(state.storedFood.c, amount);
+  }
+});
+test('glutton reads effective food face bases while stored rations remain a chef resource', () => {
+  const food = die('f', { 1: 'food', 4: 'food', 5: 'farmer' });
+  food.faces[faceIndex(4)].material = 'foil';
+  const result = resolve([die('g', { 1: 'glutton' }), food], undefined, [], { ...createCreatureBattleState(), storedFood: { f: 7 }, initialRations: { f: 7 } });
+  assert.equal(result.items[0].finalDamage, 1 + 1 + 4 + MATERIAL_BALANCE.foil);
+});
+test('priest produces sacrifices times facing priests, each with the source pip', () => {
+  const pool = [die('a', { 2: 'priest' }), die('b', { 5: 'priest' })];
+  const state = { ...createCreatureBattleState(), altars: { a: 2, b: 1 } };
+  const result = resolve(pool, [2, 5], [], state);
+  assert.deepEqual(result.bonusDice.map(die => die.bonusDamage), [2, 2, 2, 2, 5, 5]);
+  assert.deepEqual(result.nextAltars, { a: 0, b: 0 });
+});
+test('detectives each receive the complete common confiscation pool', () => {
+  const result = resolve([die('b', { 1: 'boss' }), die('v', { 4: 'family' }), die('d1', { 1: 'detective' }), die('d2', { 1: 'detective' })], [1, 4, 1, 1]);
+  const stolen = Math.ceil((4 + b.family.bonusPerFace) * (1 + b.boss.perRobbery));
+  assert.equal(result.items[0].finalDamage, 0);
+  assert.equal(result.items[2].finalDamage, combatNumber(1 + (1 + stolen) * b.detective.multiplier));
+  assert.equal(result.items[3].finalDamage, result.items[2].finalDamage);
+});
+test('bully doubles craftsman robbery events and thieves sum their local base values', () => {
+  const result = resolve([die('b', { 1: 'bully' }), die('c', { 4: 'chef' }), die('t', { 2: 'thief', 6: 'thief' })], [1, 4, 2]);
+  assert.equal(result.items[0].finalDamage, 1 + 2 * b.bully.craftsmanMultiplier);
+  assert.deepEqual(result.bonusDice.map(die => die.bonusDamage), [8, 8]);
+});
+test('princess receives external buffs and commands other princesses but never herself', () => {
+  const pool = [die('a', { 1: 'princess' }), die('h', { 1: 'herald' }), die('b', { 1: 'princess' })];
+  const result = resolve(pool, undefined, ['REROLL_DROP'], { ...createCreatureBattleState(), rerollBonuses: [{ diceId: 'h', damage: 4 }] });
+  assert.equal(result.items[0].finalDamage, b.herald.bonusPerAttack);
+  assert.equal(result.repeatAttacks.length, 2);
+  assert.ok(result.repeatAttacks.every(hit => hit.diceId !== hit.sourceDiceId));
+});
+
+test('food deposits add the chef bonus after the food multiplier for each local chef face', () => {
+  for (const role of ['food', 'fruit'] as const) for (let chefs = 0; chefs < 6; chefs++) {
+    const cook = die('c', { 6: role, ...Object.fromEntries(Array.from({ length: chefs }, (_, i) => [i + 1, 'chef'])) });
+    const state = createCreatureBattleState();
+    const result = resolve([cook], [6], [], state);
+    const attack = result.items[0].finalDamage;
+    const amount = Math.ceil(attack * (role === 'food' ? b.food.storageMultiplier : 1) + chefs * b.chef.storagePerFace);
+    assert.equal(result.nextStoredFood.c ?? 0, chefs ? amount : 0);
+    assert.equal(attack, 6);
+    assert.deepEqual(state.storedFood, {});
   }
 });
 
-test('knight and porter multiply support before theft while herald is added afterward', () => {
-  const pool = [die('k', 'knight'), die('g', 'gang'), ...Array.from({ length: 4 }, (_, i) => die(`f${i}`, 'family')), die('h', 'herald')];
-  const result = resolve(pool);
-  const bonusCount = result.bonusDice.length;
-  assert.equal(result.items[0].finalDamage, (base + b.knight.burstAt * b.knight.highBonus) * b.knight.multiplier + bonusCount * b.herald.bonusPerAttack);
-  const porters = Array.from({ length: b.porter.tailAt }, (_, i) => die(`p${i}`, 'porter'));
-  const robbery = resolve([...porters, die('bully', 'bully')]);
-  const tail = base * porters.length * b.porter.multiplier * b.porter.multiplier;
-  assert.equal(robbery.items[porters.length - 1].finalDamage, tail * (1 - b.bully.stolenFraction));
-  assert.equal(robbery.items.at(-1)!.finalDamage, base + tail * b.bully.stolenFraction * b.bully.craftsmanMultiplier);
+test('a lone family gets its flat bonus once and preserves material base and external gains', () => {
+  const family = die('a', { 6: 'family' }); family.faces[faceIndex(6)].material = 'foil';
+  const result = resolve([family, die('f', { 1: 'fruit' })], [6, 1]);
+  assert.equal(result.items[0].baseValue, 6 + MATERIAL_BALANCE.foil);
+  assert.equal(result.items[0].finalDamage, 6 + MATERIAL_BALANCE.foil + b.family.bonusPerFace + b.fruit.bonus);
 });

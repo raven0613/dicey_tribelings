@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ARROW_IDS, ARROW_CONFIG } from '../../configs/directionalStickerConfig';
 import { SHOP_CONFIG } from '../../configs/shopConfig';
-import { ALL_STICKERS_CATALOG, DIRECTIONAL_STICKER_ITEM, createPermanentSticker } from '../../configs/creatures/creatureStickerConfig';
+import { ALL_STICKERS_CATALOG, DIRECTIONAL_STICKER_ITEM } from '../../configs/creatures/creatureStickerConfig';
 import { getStickerOffer } from '../shop/shopService';
 import { configuredDice } from './diceFactory';
 import { getDiceGeometry } from './diceGeometry';
@@ -14,7 +14,7 @@ import { calculateRollResolution } from '../battle/battleEngine';
 import { createCreatureBattleState } from '../battle/creatures/creatureState';
 import type { ArrowId } from '../../types/creatures';
 
-const makeDie = () => configuredDice('a', 'A', 'd6', 'amber', Array.from({ length: 6 }, () => ['family', createPermanentSticker('family', 1).baseValue]));
+const makeDie = () => configuredDice('a', 'A', 'd6', 'amber', Array.from({ length: 6 }, () => ['family', 3]));
 const owned = (id = 'arrow') => createConsumableSticker(DIRECTIONAL_STICKER_ITEM, id);
 
 test('each direction chooses the adjacent cube face across that edge of the fixed net', () => {
@@ -124,11 +124,11 @@ test('teacher compares the final destination and one real reroll charges the alt
   const { CREATURE_BALANCE: b } = await import('../../configs/creatures/creatureBalanceConfig');
   const die = makeDie(), target = getArrowTarget(die, 0, 'arrowRight');
   die.faces[target].creature = 'priest';
-  die.faces[target].baseValue = createPermanentSticker('priest', 3).baseValue;
+  die.faces[target].baseValue = 5;
   const teacher = configuredDice('teacher', 'teacher', 'd6', 'amber', Array.from({ length: 6 }, () => ['teacher', die.faces[target].baseValue]));
   const pool = applyTemporaryPlacements([die, teacher], [{ diceId: die.id, faceIndex: 0, consumable: owned(), direction: 'arrowRight' }]);
   const initial = performStartBattleRoll(pool, [], undefined, undefined, 0, () => 0.5);
-  initial.creatureBattleState.altars[die.id] = b.priest.splitAt - 1;
+  initial.creatureBattleState.altars[die.id] = 4;
   const result = performControlReroll(0, { ...initial, combatPhase: 'CONTROL_PHASE', dicePool: pool,
     equipments: [], control: 0, maxControl: 0, gold: 0 }, () => 0, teacher.id)!;
   assert.ok(result);
@@ -136,11 +136,10 @@ test('teacher compares the final destination and one real reroll charges the alt
   const step = result.steps[0];
   assert.equal(step.rolledIndices[0], target);
   assert.equal(step.state.rerollCount, 1);
-  assert.equal(step.state.altars[die.id], b.priest.splitAt);
+  assert.equal(step.state.altars[die.id], 5);
   assert.equal(step.state.teacherBonuses[die.id], b.teacher.bonus);
   const summary = calculateRollResolution(pool, step.rolledIndices, [], step.state);
-  const damage = b.priest.splitAt * b.priest.highDamage;
-  assert.deepEqual(summary.bonusDice.map((bonus) => bonus.bonusDamage), [Math.floor(damage / 2), Math.ceil(damage / 2)]);
+  assert.deepEqual(summary.bonusDice.map(bonus => bonus.bonusDamage), Array(5).fill(die.faces[target].baseValue));
 });
 
 test('a prankster reroll resolves its neighbor arrow within the same finite chain', async () => {

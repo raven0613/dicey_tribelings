@@ -1,3 +1,5 @@
+import { BATTLE_PRESENTATION } from '../../configs/battleConfig';
+import './bonusConversion.scss';
 import { useGameStore } from '../../store/gameStore';
 import { ceilDamage } from '../../service/battle/damageValue';
 import { SkillFeedback } from './SkillFeedback';
@@ -18,6 +20,7 @@ interface BonusPhantomDiceProps {
   dice: BonusAttackDice;
   attackIndex: number;
   sourceLabel: string;
+  conversion?: { kind: 'absorb' | 'split'; x: number; y: number };
   feedback: Feedback[];
   isAttacking: boolean;
   attackingStage: AttackStage;
@@ -35,7 +38,7 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
   size,
   dice,
   attackIndex,
-  sourceLabel,
+  sourceLabel, conversion,
   feedback,
   isAttacking,
   attackingStage,
@@ -81,8 +84,11 @@ export const BonusPhantomDice: React.FC<BonusPhantomDiceProps> = ({
       onFocus={() => onInspect(dice.id)} onBlur={() => onInspect(null)}
       onKeyDown={(event) => { if (event.key === 'Escape') onInspect(null); }}
       id={`phantom-die-${dice.id}`}
-      className={`phantom-die-anchor ${isAttacking ? 'is-attacking' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
+      className={`phantom-die-anchor ${conversion ? `bonus-${conversion.kind}` : ''} ${isAttacking ? 'is-attacking' : ''} ${isAttacking && attackEmphasis > 0 ? 'is-carry' : ''}`}
       style={{
+        '--transfer-x': `${reducedMotion ? 0 : conversion?.x ?? 0}px`,
+        '--transfer-y': `${reducedMotion ? 0 : conversion?.y ?? 0}px`,
+        '--transfer-duration': `${BATTLE_PRESENTATION.conversionMs}ms`,
         '--creature-color': color,
         '--phantom-side': `${config.side}px`,
         '--phantom-border-width': `${config.borderWidth}px`,

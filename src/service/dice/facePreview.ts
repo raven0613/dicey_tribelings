@@ -6,7 +6,7 @@ export function getPreviewSourceFace(face: DiceFace, sticker?: FaceSticker): Dic
   if (!sticker) return face;
   return sticker.isDisposable === true
     ? { ...face, temporarySticker: { name: sticker.name, creature: sticker.creature, description: sticker.description } }
-    : { id: face.id, creature: sticker.creature, baseValue: sticker.baseValue, material: sticker.material };
+    : { id: face.id, creature: sticker.creature, baseValue: face.baseValue, material: sticker.material };
 }
 
 export const getPreviewFace = (face: DiceFace, sticker?: FaceSticker) => getEffectiveFace(getPreviewSourceFace(face, sticker));

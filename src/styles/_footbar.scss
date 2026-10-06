@@ -150,6 +150,7 @@
       }
 
       .forecast-shield {
+        position: relative;
         font-size: max(1.2rem, var(--minimum-font-size));
         font-weight: 700;
         color: #93c5fd;

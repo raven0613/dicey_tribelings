@@ -26,7 +26,7 @@
 .battle-round.is-warning { padding: .3rem .55rem; color: #fecaca; background: #7f1d1d; border: 1px solid #fb7185; border-radius: .4rem; }
 .food-capacity { color: #cbd5e1; font-size: max(.8rem, var(--minimum-font-size)); }
 
-.reward-card .reward-options-grid .reward-option-card[data-material],
+.reward-bundle[data-material],
 .pack-sticker-card[data-material], .sticker-overview[data-material] {
   background-image: var(--material-pattern);
   border-color: var(--material-color);

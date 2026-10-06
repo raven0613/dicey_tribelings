@@ -51,7 +51,7 @@ test('imposter priest uses only the altar belonging to its own die', () => {
   assert.equal(calculateRollResolution(pool, other.rolledIndices, [], other.state).bonusDice.filter((bonus) => bonus.source.kind === 'creature' && bonus.source.diceId === 'a').length, 0);
   const own = resolveRerollChain(pool, other.rolledIndices, other.state, 0, [], () => 0.2)[0];
   const result = calculateRollResolution(pool, own.rolledIndices, [], own.state);
-  assert.equal(result.bonusDice.find((bonus) => bonus.source.kind === 'creature' && bonus.source.diceId === 'a')!.bonusDamage, CREATURE_BALANCE.priest.damagePerReroll);
+  assert.equal(result.bonusDice.find((bonus) => bonus.source.kind === 'creature' && bonus.source.diceId === 'a')!.bonusDamage, pool[0].faces[0].baseValue);
 });
 
 test('shared storage admits leftmost food first and iridescent characters count as food', () => {
@@ -66,7 +66,7 @@ test('shared storage admits leftmost food first and iridescent characters count 
 test('ripple contributes to bulwark and shock contributes to herald', () => {
   const pool = [die('a', 'bulwark', 4, 'ripple'), die('b', 'herald', 4, 'shock')];
   const result = calculateRollResolution(pool, [0, 0], []);
-  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage).sort(), [2, 4 * CREATURE_BALANCE.bulwark.lowMultiplier]);
+  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage).sort(), [3, 9]);
   assert.equal(result.totalShield, 4);
   assert.equal(result.items[0].finalDamage, 6);
 });
@@ -75,11 +75,11 @@ test('echo duplicates the whole gang ability once, while previews remain pure', 
   const pool = [die('a', 'gang', 4, 'echo')];
   const state = createCreatureBattleState();
   const first = calculateRollResolution(pool, [0], [], state);
-  assert.equal(first.bonusDice.length, 4 * CREATURE_BALANCE.gang.copies * 2);
+  assert.equal(first.bonusDice.length, 4 * 2);
   assert.deepEqual(first, calculateRollResolution(pool, [0], [], state));
   assert.deepEqual(state.echoUsed, []);
   const second = calculateRollResolution(pool, [0], [], { ...state, echoUsed: first.nextEchoUsed });
-  assert.equal(second.bonusDice.length, 4 * CREATURE_BALANCE.gang.copies);
+  assert.equal(second.bonusDice.length, 4);
 });
 
 test('imposters stay themselves when both board and own die lack a majority', () => {
@@ -110,22 +110,23 @@ test('resonance stacks on facing neighbors, foil is readable by followers and ne
   assert.deepEqual(calculateRollResolution(pool, [0, 0, 0], []).items.map((i) => i.finalDamage), [4, 8, 4]);
   const warrior = die('w', 'warrior', 4, 'foil');
   const follower = die('f', 'follower');
-  assert.equal(calculateRollResolution([warrior, follower], [1, 0], []).items[1].finalDamage, 11);
+  const result = calculateRollResolution([warrior, follower], [0, 0], []);
+  assert.equal(result.items[1].finalDamage, follower.faces[0].baseValue + result.items[0].finalDamage * (CREATURE_BALANCE.follower.fraction + (follower.faces.length - 1) * CREATURE_BALANCE.follower.perFace));
 });
 
-test('storage caps virtual food too and supports underground capacity', () => {
+test('food deposits respect the underground storage capacity', () => {
   const pool = [die('a', 'food', 8), die('b', 'food', 8)];
   pool.forEach((d) => { d.faces[1].creature = 'chef'; });
-  const state = createCreatureBattleState(); state.storedFood.a = 190; state.virtualFood = 5;
+  const state = createCreatureBattleState(); state.storedFood.a = 190;
   const result = calculateRollResolution(pool, [0, 0], [], state, { control: 0, maxControl: 3, gold: 0, foodCapacity: 200 });
-  assert.deepEqual(result.nextStoredFood, { a: 198, b: 2 });
+  assert.deepEqual(result.nextStoredFood, { a: 200 });
 });
 
 test('echo chef spends food once and repeats the full additional attack', () => {
   const pool = [die('a', 'chef', 4, 'echo')];
   const state = createCreatureBattleState(); state.storedFood.a = 20;
   const result = calculateRollResolution(pool, [0], [], state);
-  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage), [20, 20]);
+  assert.deepEqual(result.bonusDice.map((b) => b.bonusDamage), [4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3]);
   assert.equal(result.nextStoredFood.a, 0);
 });
 
@@ -146,7 +147,7 @@ test('echo priest releases once after returning, doubles the ability and clears 
   const away = resolveRerollChain(pool, [0], initial.creatureBattleState, 0, [], () => 0)[0];
   const back = resolveRerollChain(pool, away.rolledIndices, away.state, 0, [], () => 0)[0];
   const result = calculateRollResolution(pool, back.rolledIndices, [], back.state);
-  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), Array(2).fill(back.state.altars.a * CREATURE_BALANCE.priest.damagePerReroll));
+  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), Array(2 * back.state.altars.a).fill(pool[0].faces[0].baseValue));
   assert.deepEqual(result.nextEchoUsed, [pool[0].faces[0].id]);
   assert.equal(result.nextAltars.a, 0);
 });
@@ -175,15 +176,15 @@ test('iridescent tags survive authority and contribute each tag only once', () =
   const pool = [die('a', 'family', 4, 'iridescent'), die('b', 'authority'), die('c', 'guard')];
   const result = calculateRollResolution(pool, [0, 0, 0], []);
   assert.equal(result.items[0].tags.length, 6);
-  assert.equal(result.items[2].shieldGranted, 2 * CREATURE_BALANCE.guard.shield);
+  assert.equal(result.items[2].shieldGranted, 2 * pool[2].faces.length);
 });
 
 test('echo farmer doubles food and attack boost while preserving base attacks, and echo herald buffs the full team', () => {
   const pool = [die('a', 'farmer', 4, 'echo'), die('b', 'food')]; pool[1].faces[1].creature = 'chef';
   const result = calculateRollResolution(pool, [0, 0], []);
   assert.equal(result.items[1].baseValue, pool[1].faces[0].baseValue);
-  assert.equal(result.items[1].finalDamage, 10);
-  assert.equal(result.nextStoredFood.b, 10);
+  assert.equal(result.items[1].finalDamage, 4 + pool[0].faces.length * 2);
+  assert.equal(result.nextStoredFood.b, result.items[1].finalDamage * CREATURE_BALANCE.food.storageMultiplier + CREATURE_BALANCE.chef.storagePerFace);
   const team = [die('a', 'herald', 4, 'echo'), die('b', 'food', 4, 'shock')];
   assert.deepEqual(calculateRollResolution(team, [0, 0], []).items.map((i) => i.finalDamage), [6, 6]);
 });

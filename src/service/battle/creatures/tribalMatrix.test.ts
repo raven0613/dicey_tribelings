@@ -2,9 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { INITIAL_DICE_POOL } from '../../../configs/creatures/initialDiceConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
+import { D6_FACE_VALUES } from '../../../configs/creatures/diceValueConfig';
 import type { PermanentCreatureId } from '../../../types/creatures';
-import type { RegionId } from '../../../types/enemy';
-import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
 import type { Dice } from '../../../types/game';
 import { configuredDice } from '../../dice/diceFactory';
 import { calculateRollResolution, predetermineRollResults } from '../battleEngine';
@@ -12,7 +11,7 @@ import { buildAttackPlan } from '../attackPlan';
 import { createCreatureBattleState, combatNumber, startCreatureRound } from './creatureState';
 import { resolveRerollChain } from './rerollResolution';
 
-function build(size: number, region: RegionId): Dice[] {
+function build(size: number): Dice[] {
   const rows: PermanentCreatureId[][] = [
     ['sisters', 'sisters', 'gang', 'gang', 'gang', 'family'],
     ['boss', 'thief', 'coward', 'prankster', 'family', 'family'],
@@ -22,12 +21,11 @@ function build(size: number, region: RegionId): Dice[] {
     ['porter', 'porter', 'teacher', 'twins', 'twins', 'glutton'],
   ];
   return Array.from({ length: size }, (_, index) => configuredDice(`matrix-${index}`, `矩陣 ${index}`, 'd6', 'amber',
-    rows[index % rows.length].map((creature) => [creature,
-      createPermanentSticker(creature, region).baseValue])));
+    rows[index % rows.length].map((creature, faceIndex) => [creature, D6_FACE_VALUES[faceIndex]])));
 }
 
 for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite rerolls, exact attack plans and event continuity`, (context) => {
-  const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size, size === 6 ? 2 : 3);
+  const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size);
   const gear = size === 3 ? [] : ALL_EQUIPMENT_CATALOG.filter((item) => ['RESONATOR', 'BARRICADE', 'CROWN', 'WARHAMMER', 'RESERVE'].includes(item.ruleId));
   let seed = 741;
   const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 0x100000000);
@@ -37,7 +35,7 @@ for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite r
     let state = createCreatureBattleState(seed);
     const first = predetermineRollResults(pool, random);
     const chain = resolveRerollChain(pool, first, state, sample % size, gear, random);
-    assert.ok(chain.length <= size + 1);
+    assert.ok(chain.length <= size * 2 + 1);
     const last = chain.at(-1)!; state = last.state;
     const battle = { control: sample % 4, maxControl: 3, gold: 0, targetShield: 12 };
     const summary = calculateRollResolution(pool, last.rolledIndices, gear, state, battle);
@@ -63,8 +61,8 @@ test('round rollover retains battle resources while reroll earnings and temporar
   const state = createCreatureBattleState();
   state.storedFood.a = 12; state.cowardShields.a = 4; state.altars.a = 6;
   state.teacherBonuses.a = 3; state.teachersAvailable = ['a']; state.prankstersUsed = ['a'];
-  state.authorityTargets.a = { diceId: 'b', version: 2 }; state.lockedDice = ['b'];
-  state.virtualFood = 8; state.controlSpent = 2; state.formationUsed = true;
+  state.identitySnapshot.a = 'noble'; state.lockedDice = ['b'];
+  state.initialRations = { a: 8 }; state.controlSpent = 2; state.formationUsed = true;
   const next = startCreatureRound(state, 19);
   assert.deepEqual(next, { ...createCreatureBattleState(), storedFood: { a: 12 }, altars: { a: 6 }, round: 1, roundSeed: 19, seed: 19 });
   next.storedFood.a = 1;

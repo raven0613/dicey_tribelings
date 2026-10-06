@@ -28,15 +28,14 @@ export function calculateRollResolution(dicePool: Dice[], rolledIndices: number[
   if (goldGranted) c.triggeredEquipmentIds.add(equipments.find((item) => item.ruleId === 'PURSE')!.id);
   const totalDamage = combatNumber(buildAttackPlan(c, battle.enemies?.length ? battle.enemies : battle.targetShield ?? 0, equipments, battle.selectedEnemyId, state)
     .reduce((sum, attack) => sum + attack.value, 0));
-  for (const event of c.events) event.activated ||= Boolean(event.bonusIds.length || event.changes.length || event.identities.length || event.repeatDiceIds.length);
   return { items: c.items, bonusDice: c.bonusDice, repeatAttacks: c.repeatAttacks,
-    events: c.events.filter((event) => event.activated),
+    events: c.log.timeline,
     triggeredEquipmentIds: [...c.triggeredEquipmentIds], totalDamage,
     totalShield: combatNumber(c.items.reduce((sum, item) => sum + item.shieldGranted, c.teamShield.value)),
     healing: c.materials.healing, reflection: c.materials.reflection, nextEchoUsed: [...c.echoUsed],
     nextGildedFaces: [...c.materials.gildedFaces],
     bonusControlGranted, goldGranted, nextStoredFood: c.nextStoredFood, nextAltars: c.nextAltars,
-    virtualFood: c.virtualFood,
-    leftoverFood: combatNumber(c.items.filter((item) => item.tags.includes('food')).reduce((sum, item) => sum + c.foodValues[item.diceId], 0)),
+    nextFirstBonusUsed: c.batchState.firstUsed,
+    nextChargeLayers: Object.fromEntries(c.items.map(item => [item.diceId, state.rerolledDice?.includes(item.diceId) ? 0 : Math.min(eq.chargeLimit, (state.chargeLayers[item.diceId] ?? 0) + 1)])),
   };
 }

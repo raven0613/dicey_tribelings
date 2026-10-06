@@ -1,107 +1,84 @@
-import { getRefreshCost } from '../../service/rewards/refreshService';
-import { PaidRefreshButton } from '../common/PaidRefreshButton';
+import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { StickerPlacementDialog } from '../stickers/StickerPlacementDialog';
-import { MaterialBadge, materialStyle } from '../dice/MaterialBadge';
-import { getEffectiveFace } from '../../service/dice/diceFaces';
-import { SkillText } from '../common/SkillText';
-import React, { useEffect, useState } from 'react';
-import confetti from 'canvas-confetti';
-import { Dices, Gift, Trophy } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
-import { CreatureBadge } from '../dice/CreatureBadge';
 import { RarityBadge } from '../dice/RarityBadge';
+import { PaidRefreshButton } from '../common/PaidRefreshButton';
+import { StickerPlacementDialog } from '../stickers/StickerPlacementDialog';
+import { getRefreshCost } from '../../service/rewards/refreshService';
+import { getSkipRewardGold } from '../../service/rewards/rewardService';
+import { RewardBundleCard } from './RewardBundleCard';
+import { RewardPackCard } from './RewardPackCard';
+import type { StickerBundleReward } from '../../types/game';
+import './rewardBundles.scss';
 
-export const RewardModal: React.FC<{ onOpenDiceBag: () => void; inspectingDice: boolean }> = ({ onOpenDiceBag, inspectingDice }) => {
-  const { battleRewardOptions, battleRewardPickCount, combatPhase, encounterTitle, currentNodeIndex,
-    dicePool, diceRewardOptions, extraReward, stickerFlow, beginExtraReward, lootRefreshes, refreshBattleRewards, gold, applyBattleRewardSticker, claimBattleRewardPack, skipBattleReward } = useGameStore(useShallow((state) => ({
-      battleRewardOptions: state.battleRewardOptions,
-      battleRewardPickCount: state.battleRewardPickCount,
-      combatPhase: state.combatPhase,
-      encounterTitle: state.mapNodes[state.currentNodeIndex].title,
-      diceRewardOptions: state.diceRewardOptions, extraReward: state.extraReward, stickerFlow: state.stickerFlow,
-      beginExtraReward: state.beginExtraReward, lootRefreshes: state.lootRefreshes, refreshBattleRewards: state.refreshBattleRewards, gold: state.gold,
-      currentNodeIndex: state.currentNodeIndex,
-      dicePool: state.dicePool,
-      applyBattleRewardSticker: state.applyBattleRewardSticker,
-      claimBattleRewardPack: state.claimBattleRewardPack,
-      skipBattleReward: state.skipBattleReward,
-    })));
+interface RewardModalProps {
+  onOpenDiceBag: () => void;
+  inspectingDice: boolean;
+}
+
+export function RewardModal({ onOpenDiceBag, inspectingDice }: RewardModalProps) {
+  const state = useGameStore(useShallow(s => ({
+    phase: s.combatPhase, nodeIndex: s.currentNodeIndex, options: s.battleRewardOptions,
+    received: s.receivedRewardDice, dice: s.diceRewardOptions, extra: s.extraReward, flow: s.stickerFlow,
+    opened: s.openedPackResult, gold: s.gold, refreshes: s.lootRefreshes,
+    rank: s.enemies[0]?.rank, pool: s.dicePool,
+    claim: s.claimBattleReward, skip: s.skipBattleReward,
+    refresh: s.refreshBattleRewards, beginExtra: s.beginExtraReward,
+  })));
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const hasRewards = battleRewardPickCount > 0;
-  useEffect(() => setPreviewId(null), [currentNodeIndex, combatPhase]);
-  useEffect(() => {
-    if (combatPhase === 'VICTORY' && hasRewards)
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-  }, [combatPhase, hasRewards]);
-  if (combatPhase !== 'VICTORY' || diceRewardOptions.length || stickerFlow || battleRewardOptions.length === 0) return null;
-  if (extraReward) return <div className="modal-overlay"><div className="reward-card">
-    <h2>奪回黑市額外戰利品</h2><p>{extraReward.name}・稀有永久貼紙</p>
-    <button type="button" onClick={beginExtraReward}>領取並選擇骰面</button>
-  </div></div>;
-  const preview = battleRewardOptions.find((option) => option.id === previewId);
-  const showingPreview = preview?.kind === 'sticker';
-  const covered = inspectingDice || showingPreview;
+  useEffect(() => setPreviewId(null), [state.phase, state.nodeIndex]);
+
+  if (state.phase !== 'VICTORY' || state.received || state.dice.length || state.flow || state.opened) return null;
+  if (state.extra) return inspectingDice ? null : (
+    <div className="modal-overlay">
+      <div className="reward-card" role="dialog" aria-modal="true" aria-label="黑市額外獎勵">
+        <h2>黑市額外獎勵</h2>
+        <p>{state.extra.name}</p>
+        <RarityBadge rarity={state.extra.rarity} />
+        <button type="button" className="btn-primary-modal" onClick={state.beginExtra}>領取</button>
+      </div>
+    </div>
+  );
+  if (!state.options.length) return null;
+
+  const preview = state.options.find((option): option is StickerBundleReward => option.kind === 'bundle' && option.id === previewId);
+  const covered = inspectingDice || Boolean(preview);
+  const claim = (id: string) => {
+    setPreviewId(null);
+    state.claim(id);
+  };
+
   return <>
     <div className="modal-overlay" inert={covered} aria-hidden={covered || undefined}>
       <div className="reward-card" role="dialog" aria-modal="true" aria-labelledby="reward-title">
-        <div className="reward-header"><div className="victory-badge">
-          <div className="victory-icon-box"><Trophy className="ui-icon" /></div>
-          <div><div className="victory-title" id="reward-title">擊敗 {encounterTitle}</div>
-            <div className="victory-subtitle">還可領取 {battleRewardPickCount} 份戰利品・點擊貼紙預覽並覆蓋。</div></div>
+        <div className="reward-header">
+          <h2 id="reward-title">{state.rank === 'normal' ? '選擇一組戰利品' : '選擇一包貼紙'}</h2>
+          <button type="button" className="btn-view-dice" onClick={onOpenDiceBag}>查看骰池</button>
         </div>
-          <button type="button" className="btn-view-dice" onClick={() => onOpenDiceBag()}><Dices className="ui-icon" />查看骰池</button>
-        </div>
-
         <div className="reward-body">
-          <div className="reward-options-grid">
-            {battleRewardOptions.map((option) => <article key={option.id} className="reward-option-card"
-              data-material={option.kind === 'sticker' ? option.sticker.material : undefined}
-              style={materialStyle(option.kind === 'sticker' ? option.sticker.material : undefined)}>
-              <button type="button" className={`reward-option-main ${option.kind === 'sticker' ? 'has-preview-action' : ''}`} onClick={() => option.kind === 'sticker' ? setPreviewId(option.id) : claimBattleRewardPack(option.id)}>
-                {option.kind === 'stickerPack' ? <>
-                  <div className="card-tag-row"><span className="type-badge pack">貼紙包</span><RarityBadge rarity={option.pack.rarity} /></div>
-                  <div className="card-value-box"><Gift size={36} /><strong>{option.pack.stickerCount} 張</strong></div>
-                  <div className="sticker-name">{option.pack.name}</div>
-                  <div className="sticker-desc"><SkillText text={option.pack.description} /></div>
-                </> : <>
-                  <div className="card-tag-row">
-                    <span className="type-badge permanent">
-                      永久改造
-                    </span>
-                    <RarityBadge rarity={option.sticker.rarity} />
-                  </div>
-
-                  <div className="card-value-box">
-                    <div className="main-number">{getEffectiveFace(option.sticker).baseValue}</div>
-                    <CreatureBadge creature={option.sticker.creature} />
-                  </div>
-
-                  <MaterialBadge material={option.sticker.material} description />
-                  <div className="sticker-name">{option.sticker.name}</div>
-                  <div className="sticker-desc"><SkillText text={option.sticker.description} /></div>
-                </>}
-                <div className="btn-pick-reward">{option.kind === 'sticker' ? '預覽並覆蓋 →' : '領取並開包 →'}</div>
-              </button>
-            </article>)}
+          <div className="reward-bundles">
+            {state.options.map(option => option.kind === 'bundle'
+              ? <RewardBundleCard key={option.id} option={option} onPreview={() => setPreviewId(option.id)}
+                onClaim={() => claim(option.id)} />
+              : <RewardPackCard key={option.id} pack={option.pack} onClaim={() => claim(option.id)} />)}
           </div>
         </div>
         <div className="reward-footer">
           <div className="reward-refresh">
-            <span>持有 {gold} 金幣</span>
-            <PaidRefreshButton cost={getRefreshCost('loot', lootRefreshes)} gold={gold}
-              onRefresh={() => { setPreviewId(null); refreshBattleRewards(); }} />
+            <span>持有 {state.gold} 金幣</span>
+            <PaidRefreshButton cost={getRefreshCost('loot', state.refreshes)} gold={state.gold}
+              onRefresh={() => { setPreviewId(null); state.refresh(); }} />
           </div>
-          <button type="button" onClick={skipBattleReward} className="btn-skip-reward">略過剩餘獎勵並前進</button>
+          <button type="button" className="btn-skip-reward" onClick={state.skip}>
+            放棄並獲得 {getSkipRewardGold(state.rank!)} 金幣
+          </button>
         </div>
       </div>
     </div>
-    {showingPreview && <StickerPlacementDialog key={preview.id} sticker={preview.sticker} dicePool={dicePool}
-      subtitle="預覽配置・點擊骰面即領取並覆蓋" exitLabel="返回選其他張"
+    {preview && !inspectingDice && <StickerPlacementDialog key={preview.id}
+      sticker={preview.sticker} dicePool={state.pool}
+      subtitle="預覽明牌配置・選擇整組後揭曉其餘貼紙" exitLabel="返回選擇戰利品"
       onExit={() => setPreviewId(null)}
-      onApply={(diceId, faceIndex) => {
-        applyBattleRewardSticker(preview.id, diceId, faceIndex);
-        setPreviewId(null);
-      }} />}
+      footer={<button type="button" className="btn-primary-modal" onClick={() => claim(preview.id)}>選擇</button>} />}
   </>;
-};
+}

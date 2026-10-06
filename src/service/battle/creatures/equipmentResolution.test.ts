@@ -1,174 +1,93 @@
-import { CAMP_BUFFS } from '../../../configs/campConfig';
 import { CREATURE_BALANCE as b } from '../../../configs/creatures/creatureBalanceConfig';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ALL_EQUIPMENT_CATALOG, EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentConfig';
-import { configuredDice } from '../../dice/diceFactory';
-import type { CreatureId } from '../../../types/creatures';
-import { calculateRollResolution } from '../battleEngine';
-import { createCreatureBattleState, combatNumber } from './creatureState';
+import { die, resolve, gear } from './testFixtures';
+import { createCreatureBattleState } from './creatureState';
+import { EQUIPMENT_BALANCE as eq } from '../../../configs/equipment/equipmentConfig';
+import { CAMP_BUFFS } from '../../../configs/campConfig';
 import { buildAttackPlan } from '../attackPlan';
-import { applyEnemyDamage } from '../enemies/enemyIntent';
-import { createEnemy } from '../enemies/enemyFactory';
-import { computeMaxControl } from '../nodeService';
+import { monotoneRuns } from './bonusResolution';
+import { splitInteger } from './splitInteger';
 
-const die = (id: string, creature: CreatureId, value = 4) => configuredDice(id, id, 'd6', 'amber',
-  Array.from({ length: 6 }, () => [creature, value] as [CreatureId, number]));
-const equipment = (...rules: string[]) => ALL_EQUIPMENT_CATALOG.filter((item) => rules.includes(item.ruleId));
-
-test('virtual rations count as one food and distribute one total across chef dice', () => {
-  const pool = [die('a', 'chef'), die('b', 'food'), die('c', 'farmer'), die('d', 'glutton')];
-  pool[1].faces[1].creature = 'chef';
-  const state = { ...createCreatureBattleState(), virtualFood: 9 };
-  const result = calculateRollResolution(pool, [0, 0, 0, 0], equipment('RATIONS'), state);
-  assert.equal(result.items[2].creature, 'farmer');
-  assert.equal(result.nextStoredFood.a, 0);
-  assert.equal(result.bonusDice[0].bonusDamage, Math.ceil(state.virtualFood / 2));
-  assert.equal(result.nextStoredFood.b, Math.floor(state.virtualFood / 2) + pool[1].faces[0].baseValue + b.farmer.foodBonus);
-  assert.equal(result.items[3].finalDamage, combatNumber(pool[3].faces[0].baseValue * (1 + 2 * b.glutton.perFood[1])));
-  assert.equal(result.items.length, 4);
-  assert.equal(result.leftoverFood, pool[1].faces[0].baseValue + b.farmer.foodBonus);
+test('absorb then split applies drum and herald once to each generation', () => {
+  const pool = [die('a', { 6: 'blank' }), die('h', { 1: 'herald' })];
+  const state = { ...createCreatureBattleState(), firstRerollMemory: { a: 14 }, absorbTarget: 'a', splitEnabled: true,
+    rerollBonuses: [{ diceId: 'h', damage: 4 }, { diceId: 'h', damage: 4 }] };
+  const result = resolve(pool, [6, 1], ['REROLL_MEMORY', 'REROLL_DROP', 'ABSORB', 'SPLIT', 'RESONATOR'], state);
+  assert.equal(result.items[0].finalDamage, 0);
+  assert.equal(result.items[0].attackTransferred, true);
+  assert.deepEqual(result.bonusDice.filter(bonus => !bonus.absorbed).map(bonus => bonus.bonusDamage), [15, 15, 15]);
+  assert.equal(result.items[1].finalDamage, 1 + 2 + 3);
+  assert.deepEqual(result, resolve(pool, [6, 1], ['REROLL_MEMORY', 'REROLL_DROP', 'ABSORB', 'SPLIT', 'RESONATOR'], state));
+  assert.equal(state.firstBonusUsed, false);
 });
-
-test('extra barricade shield feeds each bulwark; resonator and reserve affect their specified attack types', () => {
-  const pool = [die('a', 'bulwark'), die('b', 'bulwark')];
-  const result = calculateRollResolution(pool, [0, 0], equipment('BARRICADE', 'RESONATOR', 'RESERVE'),
-    createCreatureBattleState(), { control: 2, maxControl: 3, gold: 0 });
-  assert.equal(result.totalShield, eq.barricadeShield);
-  assert.deepEqual(result.bonusDice.map((bonus) => bonus.bonusDamage), [combatNumber(eq.barricadeShield * b.bulwark.lowMultiplier + eq.bonusDamage), combatNumber(eq.barricadeShield * b.bulwark.lowMultiplier + eq.bonusDamage)]);
-  assert.deepEqual(result.items.map((item) => item.finalDamage), [4 + 2 * eq.reserveDamage, 4]);
+test('absorption grants external copies and body repeats inherit the completed attack', () => {
+  const pool = [die('a', { 1: 'family', 2: 'family' }), die('p', { 1: 'princess' })];
+  pool[0].faces[0].material = 'iridescent';
+  const state = { ...createCreatureBattleState(), absorbTarget: 'a', rerollBonuses: [{ diceId: 'p', damage: 4 }] };
+  const result = resolve(pool, undefined, ['ABSORB', 'REROLL_DROP'], state);
+  assert.equal(result.items[0].finalDamage, 1 + b.family.bonusPerFace * 2 + 4 * 2);
+  assert.equal(result.repeatAttacks[0].damage, result.items[0].finalDamage);
 });
-
-test('frugal reads spent Control rather than refunded balance, and purse pays once per settlement', () => {
-  const pool = [die('a', 'bully'), die('b', 'thief'), die('c', 'bully')];
-  const gear = equipment('FRUGAL', 'PURSE');
-  const state = createCreatureBattleState();
-  const spent = calculateRollResolution(pool, [0, 0, 0], gear, { ...state, controlSpent: 1 });
-  const saved = calculateRollResolution(pool, [0, 0, 0], gear, state);
-  saved.items.forEach((item, index) => assert.equal(item.finalDamage, combatNumber(spent.items[index].finalDamage * eq.frugalMultiplier)));
-  assert.ok(saved.goldGranted >= eq.stolenGoldMin && saved.goldGranted <= eq.stolenGoldMax);
-  assert.equal(saved.goldGranted, spent.goldGranted);
+test('split is opt-in, removes repeat eligibility, and chooses the leftmost highest tie', () => {
+  const pool = [die('a', { 1: 'twins', 6: 'twins' }), die('b', { 6: 'blank' })];
+  const off = resolve(pool, [1, 6], ['SPLIT']);
+  assert.equal(off.repeatAttacks.length, 1);
+  const on = resolve(pool, [1, 6], ['SPLIT'], { ...createCreatureBattleState(), splitEnabled: true });
+  assert.equal(on.items[0].attackTransferred, true);
+  assert.equal(on.repeatAttacks.length, 0);
+  assert.equal(on.items[1].finalDamage, 6);
 });
-
-test('crown changes common identity before theft and princess snapshots, abacus counts distinct tags', () => {
-  const pool = [die('a', 'boss', 2), die('b', 'family', 8), die('c', 'princess', 0), die('d', 'imposter')];
-  const result = calculateRollResolution(pool, [0, 0, 0, 0], equipment('CROWN', 'ABACUS'));
-  assert.deepEqual(result.items[1].tags, ['noble']);
-  assert.equal(result.items[1].finalDamage > 0, true);
-  assert.equal(result.repeatAttacks[0].diceId, 'b');
-  assert.equal(result.bonusControlGranted, eq.abacusControl); // 無多數的偽裝者保留神秘，與普通、貴族合計三種標籤。
+test('integer conversion preserves rounded total and emits positive dice only', () => {
+  assert.deepEqual(splitInteger(10, eq.splitParts), [4, 3, 3]);
+  assert.deepEqual(splitInteger(2, eq.splitParts), [1, 1]);
+  assert.deepEqual(splitInteger(0, eq.splitParts), []);
+  assert.equal(splitInteger(10.2, eq.splitParts).reduce((a, b) => a + b, 0), 11);
 });
-
-test('slot match grants one base contribution and retains other support bonuses', () => {
-  const pool = [die('a', 'family', 4), die('b', 'guard', 4), die('c', 'chef', 3)];
-  const bare = calculateRollResolution(pool, [0, 0, 0], []);
-  const result = calculateRollResolution(pool, [0, 0, 0], equipment('SLOTS'));
-  assert.deepEqual(result.items.map((item, index) => item.finalDamage - bare.items[index].finalDamage),
-    [4 * (eq.matchedMultiplier - 1), 4 * (eq.matchedMultiplier - 1), 0]);
+test('first source batch copying and low split terminate with N + K + N + N dice', () => {
+  const pool = [die('g', { 1: 'gang', 2: 'gang', 3: 'gang' })];
+  const result = resolve(pool, undefined, ['FIRST_BONUS', 'LOW_SPLIT', 'RESONATOR']);
+  const n = 2, k = 2;
+  assert.equal(result.bonusDice.length, n + k + n + n);
+  assert.ok(result.bonusDice.every(bonus => bonus.bonusDamage === bonus.originalDamage! + eq.bonusDamage));
+  assert.equal(result.nextFirstBonusUsed, true);
+  const later = resolve(pool, undefined, ['FIRST_BONUS', 'LOW_SPLIT'], { ...createCreatureBattleState(), firstBonusUsed: true });
+  assert.equal(later.bonusDice.length, n + k);
 });
-
-test('warhammer shares exact preview and sequential normal, bonus and repeat damage after shield breaks', () => {
-  const pool = [die('a', 'gang', 4), die('b', 'elder', 4), die('c', 'princess', 0)];
-  const gear = equipment('WARHAMMER');
-  const enemy = createEnemy('r1_slinger'); enemy.hp = enemy.maxHp = 1000; enemy.shield = 6;
-  const summary = calculateRollResolution(pool, [0, 0, 0], gear, createCreatureBattleState(),
-    { control: 0, maxControl: 3, gold: 0, enemies: [enemy] });
-  const plan = buildAttackPlan(summary, enemy.shield, gear);
-  assert.equal(plan[0].value, Math.ceil(combatNumber(summary.items[0].finalDamage * eq.shieldDamageMultiplier)));
-  assert.equal(plan[1].value, Math.ceil(combatNumber(summary.items[1].finalDamage * eq.shieldDamageMultiplier)));
-  assert.equal(plan[2].value, summary.bonusDice[0].bonusDamage);
-  assert.deepEqual(plan.filter((hit) => hit.bonus).map((hit) => hit.value), summary.bonusDice.map((bonus) => bonus.bonusDamage));
-  assert.equal(plan.at(-1)!.value, summary.repeatAttacks[0].damage);
-  const remaining = plan.reduce((target, attack) => applyEnemyDamage(target, attack.value).enemy, enemy);
-  assert.equal(combatNumber(enemy.hp + enemy.shield - remaining.hp - remaining.shield), summary.totalDamage);
+test('same-role monotone runs share turning points and stop at equality or different roles', () => {
+  const row = (values: number[]) => values.map(baseValue => ({ creature: 'porter', baseValue }));
+  assert.deepEqual(monotoneRuns(row([1, 2, 6, 5, 4])), [[0, 1, 2], [2, 3, 4]]);
+  assert.deepEqual(monotoneRuns(row([1, 2, 3, 4])), [[0, 1, 2, 3]]);
+  assert.deepEqual(monotoneRuns(row([1, 2, 2, 3])), []);
 });
-
-test('piggy bank thresholds are strict and starting Control includes pipe', () => {
-  const gear = equipment('PIGGY', 'PIPE');
-  const base = computeMaxControl([]) + eq.pipeControl;
-  assert.deepEqual([50, 51, 100, 101].map((gold) => computeMaxControl(gear, gold)), [base, base + 1, base + 1, base + 2]);
+test('food rebate floors once and echo never repeats consumption', () => {
+  const chef = die('c', { 1: 'chef' }); chef.faces[0].material = 'echo';
+  const amount = 26;
+  const result = resolve([chef], undefined, ['FOOD_REBATE'], { ...createCreatureBattleState(), storedFood: { c: amount } });
+  assert.equal(result.nextStoredFood.c, Math.floor(amount * eq.foodRebate));
+  assert.equal(result.bonusDice.reduce((sum, bonus) => sum + bonus.bonusDamage, 0), amount * 2);
 });
-
-test('normal, bonus and repeated attacks round up individually after fractional skill calculations', () => {
-  const pool = [die('a', 'gang', 3), die('b', 'royalGuard', 1), die('c', 'princess', 0)];
-  const gear = equipment('FRUGAL');
-  const summary = calculateRollResolution(pool, [0, 0, 0], gear);
-  const guard = combatNumber((pool[1].faces[0].baseValue + (pool[1].faces.length - 1) * b.royalGuard.highBonus) * eq.frugalMultiplier);
-  const gang = combatNumber(pool[0].faces[0].baseValue * eq.frugalMultiplier);
-  const copies = 4 * b.gang.copies;
-  const bonus = combatNumber(b.gang.highDamage * eq.frugalMultiplier);
-  assert.equal(summary.items[0].finalDamage, gang);
-  assert.equal(summary.items[1].finalDamage, guard);
-  assert.deepEqual(summary.bonusDice.map((bonus) => bonus.bonusDamage), Array(copies).fill(bonus));
-  assert.equal(summary.repeatAttacks[0].damage, guard);
-  const expected = [Math.ceil(gang), Math.ceil(guard), ...Array(copies).fill(Math.ceil(bonus)), Math.ceil(guard)];
-  assert.deepEqual(buildAttackPlan(summary, 0, gear).map((hit) => hit.value), expected);
-  assert.equal(summary.totalDamage, expected.reduce((sum, hit) => sum + hit, 0));
+test('shield operations each count once even when they spend multiple Control', () => {
+  const result = resolve([die('b', { 1: 'bulwark' })], undefined, ['CONTROL_SHIELD'], { ...createCreatureBattleState(), controlPayments: [1, 2], controlSpent: 3 });
+  assert.equal(result.totalShield, 3 * eq.controlShield);
+  assert.equal(result.bonusDice[0].bonusDamage, result.totalShield + 2);
 });
-
-test('fractional normal hit rounds up to break shield before evaluating later warhammer hits', () => {
-  const pool = [die('a', 'glutton', 3), die('b', 'chef', 2)];
-  const gear = equipment('WARHAMMER');
-  const summary = calculateRollResolution(pool, [0, 0], gear, createCreatureBattleState(),
-    { control: 0, maxControl: 3, gold: 0, targetShield: 4 });
-  assert.equal(summary.items[0].finalDamage, 2.7);
-  const plan = buildAttackPlan(summary, 4, gear);
-  assert.deepEqual(plan.map((hit) => hit.value), [4, 2]);
-  assert.equal(summary.totalDamage, 6);
+test('body combo advances per source body while frugal applies once to every final hit', () => {
+  const pool = [die('a', { 1: 'twins', 2: 'twins', 3: 'twins', 4: 'twins' })];
+  const result = resolve(pool, undefined, ['BODY_COMBO', 'FRUGAL']);
+  const plan = buildAttackPlan(result, 0, gear('BODY_COMBO', 'FRUGAL'));
+  assert.deepEqual(plan.map(hit => hit.value), [0, 1, 2].map(i => Math.ceil(4 * eq.frugalMultiplier * (1 + i * eq.bodyComboStep))));
 });
-
-test('robbery halves odd attack values precisely and zero attacks stay out of the attack plan', () => {
-  const summary = calculateRollResolution([die('a', 'bully', 0), die('b', 'chef', 5), die('c', 'princess', 0)], [0, 0, 0], []);
-  assert.equal(summary.items[1].finalDamage, 2.5);
-  assert.equal(summary.items[0].finalDamage, 5);
-  assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [5, 3, 5]);
-  assert.equal(summary.totalDamage, 13);
+test('camp changes only ordinary attacks after repeated attacks have captured their value', () => {
+  const pool = [die('t', { 1: 'twins', 6: 'twins' })];
+  const state = { ...createCreatureBattleState(), round: 1 };
+  const result = resolve(pool, undefined, [], state, { control: 0, maxControl: 3, gold: 0, campBuff: 'sharpen' });
+  assert.equal(result.items[0].finalDamage, 6 + CAMP_BUFFS.sharpen.attack);
+  assert.equal(result.repeatAttacks[0].damage, 6);
 });
-
-test('nearest food receives the full farmer boost in the attack plan', () => {
-  const pool = [die('a', 'farmer', 1), ...['b', 'c', 'd', 'e'].map((id) => die(id, 'food', 1))];
-  const summary = calculateRollResolution(pool, pool.map(() => 0), []);
-  assert.deepEqual(summary.items.slice(1).map((item) => item.baseValue), [1, 1, 1, 1]);
-  assert.deepEqual(buildAttackPlan(summary, 0, []).map((hit) => hit.value), [1, 1 + 4 * b.farmer.foodBonus, 1, 1, 1]);
-  assert.equal(summary.totalDamage, 5 + 4 * b.farmer.foodBonus);
-});
-
-test('camp attack buffs modify only final positive normal attacks during configured opening rounds', () => {
-  const pool = [die('gang', 'gang'), die('elder', 'elder'), die('princess', 'princess', 0), die('chef', 'chef')];
-  pool[0].faces[0].material = 'echo';
-  const gear = equipment('FRUGAL');
-  for (const id of ['sharpen', 'initiative'] as const) {
-    const buff = CAMP_BUFFS[id];
-    for (const round of [1, buff.rounds, buff.rounds + 1]) {
-      const state = { ...createCreatureBattleState(), round };
-      const base = calculateRollResolution(pool, pool.map(() => 0), gear, state);
-      const result = calculateRollResolution(pool, pool.map(() => 0), gear, state,
-        { control: 0, maxControl: 3, gold: 0, campBuff: id });
-      assert.ok(base.bonusDice.length && base.repeatAttacks.length);
-      assert.deepEqual(result.bonusDice, base.bonusDice);
-      assert.deepEqual(result.repeatAttacks, base.repeatAttacks);
-      assert.deepEqual(result.nextStoredFood, base.nextStoredFood);
-      result.items.forEach((item, i) => {
-        const damage = base.items[i].finalDamage;
-        const expected = round > buff.rounds || damage === 0 ? damage : id === 'sharpen'
-          ? damage + CAMP_BUFFS.sharpen.attack : combatNumber(damage * CAMP_BUFFS.initiative.multiplier);
-        assert.equal(item.finalDamage, expected);
-        assert.equal(item.baseValue, base.items[i].baseValue);
-      });
-    }
-  }
-});
-
-test('camp ward adds new shield before bulwark scaling and expires after its opening rounds', () => {
-  const pool = [die('bulwark', 'bulwark')], gear = equipment('BARRICADE');
-  const round = { ...createCreatureBattleState(), round: CAMP_BUFFS.ward.rounds };
-  const context = { control: 0, maxControl: 3, gold: 0, campBuff: 'ward' as const };
-  const result = calculateRollResolution(pool, [0], gear, round, context);
-  const expectedShield = eq.barricadeShield + CAMP_BUFFS.ward.shield;
-  assert.equal(result.totalShield, expectedShield);
-  const without = calculateRollResolution(pool, [0], gear, { ...round, round: round.round + 1 }, context);
-  assert.equal(without.totalShield, eq.barricadeShield);
-  assert.ok(result.bonusDice[0].bonusDamage > without.bonusDice[0].bonusDamage);
-  const shieldEvents = result.events.flatMap(event => event.changes.filter(change => change.kind === 'shield'));
-  assert.equal(shieldEvents.at(-1)?.after, expectedShield);
+test('frugal preserves the absorption total until final damage scaling', () => {
+  const pool = [die('a', { 1: 'blank' })];
+  const state = { ...createCreatureBattleState(), absorbTarget: 'a', rerollBonuses: [{ diceId: 'a', damage: 4 }] };
+  const result = resolve(pool, undefined, ['ABSORB', 'REROLL_DROP', 'FRUGAL'], state);
+  assert.equal(result.items[0].finalDamage, (1 + 4) * eq.frugalMultiplier);
 });

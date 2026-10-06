@@ -12,20 +12,21 @@ import { RUN_SIMULATION_CONFIG as config } from '../../../configs/regions/runSim
 import { ALL_EQUIPMENT_CATALOG, EQUIPMENT_BALANCE, hasEquipment } from '../../../configs/equipment/equipmentConfig';
 import { CREATURE_BALANCE } from '../../../configs/creatures/creatureBalanceConfig';
 import { createPermanentSticker } from '../../../configs/creatures/creatureStickerConfig';
+import { REWARD_CONFIG } from '../../../configs/rewardConfig';
 import { SHOP_CONFIG } from '../../../configs/shopConfig';
 import { COMBAT_GOLD } from '../../../configs/battleConfig';
-import { generateBattleRewardOptions, generateChestRewardOptions, getBattleRewardCount, generateContrabandPrize } from '../../rewards/rewardService';
+import { generateBattleRewardOptions, generateChestRewardOptions, getSkipRewardGold, generateContrabandPrize, getBattleRewardStickers } from '../../rewards/rewardService';
 import { openStickerPack } from '../../stickers/packService';
 import { calculateHealPurchase } from '../../shop/shopService';
 import { computeMaxControl, getEnemiesForNode } from '../nodeService';
 import { generateShopStock } from '../../shop/shopStock';
-import { drawDiceRecipes, instantiateRecipe } from '../../dice/diceDraft';
+import { createBossRewardDice } from '../../dice/diceFactory';
 import { resolveEnemyRound } from '../enemies/enemyRound';
 import { chapterPath } from '../../regions/routeService';
 import { calculateRollResolution } from '../battleEngine';
 import { createCreatureBattleState } from '../creatures/creatureState';
 import { performStartBattleRoll, performControlReroll, teacherTargets } from '../rollService';
-import { chooseEquipment, chooseUpgrade, evaluateBuild, seededRandom } from './buildPolicy';
+import { chooseBattleReward, chooseEquipment, chooseUpgrade, evaluateBuild, seededRandom } from './buildPolicy';
 
 export interface RunSample {
   seed: number; chapterCompleted: boolean; lastNode: number; hp: number; gold: number; diceCount: number;
@@ -43,17 +44,19 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
     && (!commonRewards || item.rarity === 'common'));
   const grant = (items: StickerItem[], pickCount: number, policySeed: number) => {
     let available = allowed(items);
+    let used = false;
     for (let pick = 0; pick < pickCount && available.length; pick++) {
       const result = chooseUpgrade(pool, gear, available, policySeed);
       if (!result.stickerId) break;
-      pool = result.pool;
-      available = available.filter((item) => item.id !== result.stickerId);
+      pool = result.pool; used = true;
+      available.splice(available.findIndex(item => item.id === result.stickerId), 1);
     }
+    return used;
   };
-  const pack = (id: string, region: Parameters<typeof openStickerPack>[1], policySeed: number) => {
-    const opened = openStickerPack(id, region, random, princesses);
+  const pack = (id: string, policySeed: number) => {
+    const opened = openStickerPack(id, random, princesses);
     princesses += opened.stickers.filter((item) => item.creature === 'princess').length;
-    for (const sticker of opened.stickers) grant([sticker], 1, policySeed);
+    return grant(opened.stickers, opened.stickers.length, policySeed);
   };
   for (const node of chapterPath(INITIAL_MAP_NODES, route, entry)) {
     report.lastNode = node.id;
@@ -69,15 +72,24 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         if (!healing) break;
         hp = healing.playerHp; gold = healing.gold;
       }
-      const stock = generateShopStock(gear, node.region, random);
+      const stock = generateShopStock(gear, random);
       if (gold >= SHOP_CONFIG.equipmentCost) {
         const result = chooseEquipment(pool, gear, stock.shopEquipments, policySeed);
         if (result.equipmentId) { gear = result.gear; gold -= SHOP_CONFIG.equipmentCost; }
+      }
+      for (const offer of stock.shopStickers.filter(item => !item.isDisposable)) {
+        if (gold < SHOP_CONFIG.permanentCost) break;
+        if (grant([offer], 1, policySeed)) gold -= SHOP_CONFIG.permanentCost;
+      }
+      if (gold >= SHOP_CONFIG.packCost && stock.shopPacks.length) {
+        gold -= SHOP_CONFIG.packCost;
+        pack(stock.shopPacks[0].id, policySeed);
       }
     } else if (node.type === 'chest') {
       const choices = generateChestRewardOptions(ALL_EQUIPMENT_CATALOG.filter((item) => !gear.some((owned) => owned.id === item.id)), random);
       const result = chooseEquipment(pool, gear, choices.flatMap((item) => item.kind === 'equipment' ? [item.equipment] : []), policySeed);
       if (result.equipmentId) gear = result.gear;
+      else gold += REWARD_CONFIG.skipGold.equipment;
     }
     else {
       if (node.type === 'boss') report.checkpoints.push({ region: node.region, damage: evaluateBuild(pool, gear, seed + 1777).damage, dice: pool.length });
@@ -137,13 +149,13 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
         control = state.control; gold = state.gold + summary.goldGranted;
         rerolls += state.creatureBattleState.rerollCount;
         shield += summary.totalShield;
-        round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood, altars: summary.nextAltars, echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces };
+        round = { ...state.creatureBattleState, storedFood: summary.nextStoredFood, altars: summary.nextAltars, firstBonusUsed: summary.nextFirstBonusUsed, chargeLayers: summary.nextChargeLayers, echoUsed: summary.nextEchoUsed, gildedFaces: summary.nextGildedFaces };
         hp = Math.min(INITIAL_PLAYER_STATS.maxHp, hp + summary.healing);
         pool = commitMaterialRound(pool, state.rolledIndices);
         const resolution = resolveEnemyRound(enemies, summary, gear, { hp, shield }, state.creatureBattleState);
         heavyActions += resolution.events.filter((event) => event.kind === 'enemy' && event.heavy).length;
         enemies = resolution.enemies; hp = resolution.hp; shield = retainPlayerShield(resolution.shield, gear);
-        if (enemies.every(enemy => enemy.hp <= 0) && hp > 0) rations = hasEquipment(gear, 'RATIONS') ? summary.leftoverFood : 0;
+        if (enemies.every(enemy => enemy.hp <= 0) && hp > 0) rations = hasEquipment(gear, 'RATIONS') ? Object.values(summary.nextStoredFood).reduce((sum, amount) => sum + amount, 0) : 0;
         control = Math.min(maxControl + EQUIPMENT_BALANCE.controlHeadroom, control + summary.bonusControlGranted);
       }
       campBuff = null;
@@ -153,21 +165,17 @@ export function simulateRun(seed: number, commonRewards = false, useRerolls = tr
       gold += round.gildedFaces.length * MATERIAL_BALANCE.gilded;
       const rank = node.type === 'fight' ? 'normal' : node.type === 'elite' ? 'elite' : node.region === 3 ? 'final_boss' : 'boss';
       gold += rank === 'normal' ? COMBAT_GOLD.normal : rank === 'elite' ? COMBAT_GOLD.elite : COMBAT_GOLD.boss;
-      if (node.type === 'boss') {
-        const drafts = drawDiceRecipes([], random).map(recipe => instantiateRecipe(recipe, node.region, `simulation-${node.id}-${recipe.id}`));
-        const best = drafts.reduce((best, die) => evaluateBuild([...pool, die], gear, policySeed).score > evaluateBuild([...pool, best], gear, policySeed).score ? die : best);
-        pool = [...pool, best];
-      }
-      const choices = generateBattleRewardOptions(node.region, rank, random);
+      if (node.type === 'boss') pool = [...pool, createBossRewardDice(`simulation-${node.id}-blank`)];
+      const choices = generateBattleRewardOptions(rank, random, [], undefined, princesses);
       if (enemies.some(enemy => enemy.traits?.contraband && !enemy.prizeLost))
-        grant([generateContrabandPrize(node.region, random)], 1, policySeed);
-      const upgrade = chooseUpgrade(pool, gear, allowed(choices.flatMap((item) => item.kind === 'sticker' ? [item.sticker] : [])), policySeed);
-      const packOption = choices.find((item) => item.kind === 'stickerPack');
-      if (!upgrade.stickerId && packOption?.kind === 'stickerPack') pack(packOption.pack.id, node.region, policySeed);
-      else grant(choices.flatMap((item) => item.kind === 'sticker' ? [item.sticker] : []), getBattleRewardCount(rank), policySeed);
+        grant([generateContrabandPrize(random)], 1, policySeed);
+      const selected = chooseBattleReward(pool, gear, choices, policySeed, commonRewards);
+      const rewards = getBattleRewardStickers(selected);
+      princesses += rewards.filter(item => item.creature === 'princess').length;
+      if (!grant(rewards, rewards.length, policySeed)) gold += getSkipRewardGold(rank);
       if (rank === 'final_boss') report.chapterCompleted = true;
     }
-    if (node.id === CREATURE_BALANCE.princess.guaranteedNode) grant([createPermanentSticker('princess', node.region)], 1, policySeed);
+    if (node.id === CREATURE_BALANCE.princess.guaranteedNode) grant([createPermanentSticker('princess')], 1, policySeed);
   }
   return { ...report, hp, gold, diceCount: pool.length };
 }

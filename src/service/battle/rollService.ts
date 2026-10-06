@@ -1,3 +1,4 @@
+import { distributeInitialRations } from './creatures/foodResolution';
 import { resolveLandingFace } from '../dice/directionalFaces';
 import { getPaidRerollCost } from './rerollCost';
 import { EQUIPMENT_ACTIONS } from '../../configs/equipment/equipmentActionConfig';
@@ -6,7 +7,7 @@ import type { Enemy, Dice, Equipment, CombatPhase } from '../../types/game';
 import { predetermineRollResults, calculateRollResolution } from './battleEngine';
 import type { CreatureBattleState } from '../../types/creatures';
 import { createCreatureBattleState, startCreatureRound } from './creatures/creatureState';
-import { refreshAuthorityTargets, resolveRerollChain } from './creatures/rerollResolution';
+import { refreshIdentitySnapshot, resolveRerollChain } from './creatures/rerollResolution';
 import { findTeacherTargets } from './creatures/rerollTargets';
 import { getEffectiveFace } from '../dice/diceFaces';
 import { EQUIPMENT_BALANCE as eq, hasEquipment } from '../../configs/equipment/equipmentConfig';
@@ -19,16 +20,19 @@ export interface RollState {
   control: number; maxControl: number; gold: number; dicePool: Dice[]; rolledIndices: number[];
   equipments: Equipment[]; combatPhase: CombatPhase; creatureBattleState: CreatureBattleState;
 }
-export type DiceAction = 'reroll' | 'swap' | 'lock' | 'flip' | `teacher:${string}`;
+export type DiceAction = 'reroll' | 'swap' | 'lock' | 'flip' | 'absorb' | `teacher:${string}`;
 
 export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[],
   state: CreatureBattleState = createCreatureBattleState(),
-  battle: import('../../types/battle').BattleContext = { control: 3, maxControl: 3, gold: 0 }, virtualFood = 0, random = Math.random) {
+  battle: import('../../types/battle').BattleContext = { control: 3, maxControl: 3, gold: 0 }, storedRations = 0, random = Math.random) {
   const origins = predetermineRollResults(dicePool, random);
   const rolledIndices = origins.map((index, i) => resolveLandingFace(dicePool[i], index));
   let round = startCreatureRound(state, Math.floor(random() * 0xffffffff));
   round.rollOrigins = Object.fromEntries(dicePool.map((die, i) => [die.id, origins[i]]));
-  round.virtualFood = virtualFood;
+  if (state.round === 0 && hasEquipment(equipments, 'RATIONS')) {
+    round.initialRations = distributeInitialRations(dicePool, storedRations, battle.foodCapacity);
+    round.storedFood = { ...round.storedFood, ...round.initialRations };
+  }
   round.sealedDice = battle.enemies?.filter(enemy => enemy.hp > 0 && enemy.sealedDie).map(enemy => enemy.sealedDie!) ?? [];
   if (battle.enemies?.some(enemy => enemy.hp > 0 && enemy.traits?.watch))
     round.watchedDieId = dicePool.reduce((best, die, index) =>
@@ -39,7 +43,7 @@ export function performStartBattleRoll(dicePool: Dice[], equipments: Equipment[]
   round.rerolledDice = [];
   round = refreshImposterTargets(dicePool, rolledIndices, round);
   round.teachersAvailable = dicePool.filter((die, index) => getRoundFace(die, rolledIndices[index], round).creature === 'teacher').map((die) => die.id);
-  round = refreshAuthorityTargets(dicePool, rolledIndices, equipments, round);
+  round = refreshIdentitySnapshot(dicePool, rolledIndices, equipments, round);
   soundService.playDiceRoll();
   return { rolledIndices, comboSummary: calculateRollResolution(dicePool, rolledIndices, equipments, round, battle),
     combatPhase: 'ROLLING' as const, creatureBattleState: round };
@@ -73,6 +77,7 @@ export function performControlReroll(dieIndex: number, state: RollState, random 
     watchedDieId: state.creatureBattleState.watchedDieId ? state.dicePool[dieIndex].id : undefined,
     paidRerollUsed: state.creatureBattleState.paidRerollUsed || paid,
     seed: Math.floor(random() * 0xffffffff) };
+  if (cost) round.controlPayments = [...round.controlPayments, cost];
   const steps = resolveRerollChain(state.dicePool, state.rolledIndices, round, dieIndex, state.equipments, random, teacherId);
   if (!steps.length) return null;
   const first = steps[0];
@@ -91,7 +96,9 @@ export function performDiceAction(action: Exclude<DiceAction, 'reroll'>, index: 
   const pool = [...state.dicePool];
   const rolled = [...state.rolledIndices];
   let cost = 0;
-  if (action === 'swap') {
+  if (action === 'absorb') {
+    round.absorbTarget = round.absorbTarget === die.id ? null : die.id;
+  } else if (action === 'swap') {
     cost = eq.formationCost; round.formationUsed = true;
     [pool[index], pool[index + 1]] = [pool[index + 1], pool[index]];
     [rolled[index], rolled[index + 1]] = [rolled[index + 1], rolled[index]];
@@ -102,10 +109,11 @@ export function performDiceAction(action: Exclude<DiceAction, 'reroll'>, index: 
     cost = eq.prismCost; round.rollOrigins[die.id] = opposite; rolled[index] = resolveLandingFace(die, opposite);
     round.faceVersions[die.id] = (round.faceVersions[die.id] ?? 0) + 1;
     round.teachersAvailable = round.teachersAvailable.filter((id) => id !== die.id);
-    delete round.teacherBonuses[die.id]; delete round.authorityTargets[die.id];
+    delete round.teacherBonuses[die.id]; delete round.inheritance[die.id]; delete round.firstRerollMemory[die.id];
   } else return null;
   round.controlSpent += cost;
-  const creatureBattleState = refreshAuthorityTargets(pool, rolled, state.equipments, round);
+  if (cost) round.controlPayments.push(cost);
+  const creatureBattleState = refreshIdentitySnapshot(pool, rolled, state.equipments, round, action === 'flip' ? [die.id] : []);
   const control = state.control - cost;
   return { dicePool: pool, rolledIndices: rolled, creatureBattleState, control,
     comboSummary: calculateRollResolution(pool, rolled, state.equipments, creatureBattleState, { ...state, control }) };
@@ -129,7 +137,7 @@ export function getActionTargets(action: DiceAction, state: RollState): number[]
   if ((action === 'swap' && round.formationUsed) || (action === 'lock' && round.whistleUsed)) return [];
   return state.dicePool.flatMap((die, index) => {
     if (action === 'swap') return index < state.dicePool.length - 1 ? [index] : [];
-    if (action === 'lock') return [index];
+    if (action === 'lock' || action === 'absorb') return [index];
     if (round.sealedDice?.includes(die.id)) return [];
     if (action === 'flip' && getOppositeFace(die, state.rolledIndices[index]) === null) return [];
     return [index];

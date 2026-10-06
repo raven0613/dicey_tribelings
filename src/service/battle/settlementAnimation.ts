@@ -24,7 +24,7 @@ function scheduleSkills(events: SkillEvent[]) {
       ...event.changes.map((change) => `${change.kind}:${change.targetId}`),
       ...event.identities.map((item) => `identity:${item.diceId}`)];
     const start = Math.max(stageStart, ...keys.map((key) => occupied.get(key) ?? 0));
-    keys.forEach((key) => occupied.set(key, start + timing.eventGapMs));
+    keys.forEach((key) => occupied.set(key, start + (event.bonusMotion ? timing.conversionMs : timing.eventGapMs)));
     lastStart = Math.max(lastStart, start);
     return { event, start };
   });
@@ -43,6 +43,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   let identities = Object.fromEntries(summary.items.map((item) => [item.diceId, { creature: item.rolledCreature, tags: [...CREATURE_CONFIG[item.rolledCreature].tags] }]));
   const active = createNumberTimeline();
   let visible: string[] = [];
+  const absorbedUntil = new Map<string, number>();
   let feedback: SkillFeedback[] = [];
   const nameLifetime = timing.nameDelayMs + timing.nameFadeInMs + timing.nameHoldMs + timing.nameFadeOutMs;
   const numberDelay = timing.nameDelayMs + timing.nameFadeInMs;
@@ -91,12 +92,16 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
       const newIds = event.bonusIds.filter((id) => !visible.includes(id));
       if (newIds.length) visible = [...visible, ...newIds];
       for (const id of newIds) if (!event.changes.some((change) => change.kind === 'bonus' && change.targetId === id)) bonuses = { ...bonuses, [id]: { ...still(0), pending: true } };
+      if (event.bonusMotion?.kind === 'absorb') for (const change of event.changes) {
+        if (change.kind === 'bonus') absorbedUntil.set(change.targetId, time + timing.conversionMs);
+      }
       for (const change of event.changes) {
         if (change.kind === 'bonus' && bonuses[change.targetId]?.pending && event.skill !== 'cheerleader') continue;
         const display = valueFor(change);
         active.start(change, display, time);
       }
     }
+    visible = visible.filter(id => !absorbedUntil.has(id) || elapsed < absorbedUntil.get(id)!);
     settled = advanceNumbers(elapsed) || settled;
     if (active.size && elapsed - lastRollSound >= timing.numberSoundIntervalMs) {
       soundService.playNumberRoll(); lastRollSound = elapsed;
@@ -120,7 +125,7 @@ export async function animateCalculatedNumbers(methods: BattleStoreMethods, summ
   if (get().combatPhase !== 'RESOLVING_CALCULATION' || get().comboSummary !== summary) return;
   set({ diceSlotStates: Object.fromEntries(summary.items.map((item, index) => [index, { ...still(ceilDamage(item.finalDamage)), isBuffed: item.finalDamage > item.rolledBaseValue }])),
     bonusSlotStates: Object.fromEntries(summary.bonusDice.map((bonus) => [bonus.id, still(ceilDamage(bonus.bonusDamage))])),
-    visibleBonusIds: summary.bonusDice.map((bonus) => bonus.id), playerShieldDisplay: null, playerHpDisplay: null, skillFeedback: [] });
+    visibleBonusIds: summary.bonusDice.filter(bonus => !bonus.absorbed).map(bonus => bonus.id), playerShieldDisplay: null, playerHpDisplay: null, skillFeedback: [] });
 }
 
 export async function animateAttack(methods: BattleStoreMethods, index: number, bonus: boolean,

@@ -9,7 +9,7 @@ import { choose } from './creatureState';
 export function refreshImposterTargets(dice: Dice[], indices: number[], state: CreatureBattleState): CreatureBattleState {
   const faces = dice.map((die, i) => getEffectiveFace(die.faces[resolveLandingFace(die, indices[i])]));
   const counts = new Map<CreatureId, number>();
-  for (const face of faces) if (face.creature !== 'imposter') counts.set(face.creature, (counts.get(face.creature) ?? 0) + 1);
+  for (const face of faces) if (face.creature !== 'imposter' && face.creature !== 'blank' && !isArrowFace(face.creature)) counts.set(face.creature, (counts.get(face.creature) ?? 0) + 1);
   const maximum = Math.max(0, ...counts.values());
   const candidates = [...counts].filter(([, n]) => n === maximum).map(([role]) => role);
   const imposterTargets = { ...state.imposterTargets };
@@ -18,7 +18,7 @@ export function refreshImposterTargets(dice: Dice[], indices: number[], state: C
     const id = dice[i].id;
     if (face.creature !== 'imposter') return;
     const local = new Map<CreatureId, number>();
-    for (const original of dice[i].faces.map(getEffectiveFace)) if (original.creature !== 'imposter' && !isArrowFace(original.creature)) local.set(original.creature, (local.get(original.creature) ?? 0) + 1);
+    for (const original of dice[i].faces.map(getEffectiveFace)) if (original.creature !== 'imposter' && original.creature !== 'blank' && !isArrowFace(original.creature)) local.set(original.creature, (local.get(original.creature) ?? 0) + 1);
     const localMax = Math.max(0, ...local.values());
     const choices = maximum > 1 ? candidates : localMax > 1 ? [...local].filter(([, n]) => n === localMax).map(([role]) => role) : [];
     choices.sort();

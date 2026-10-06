@@ -1,4 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
+import { REWARD_CONFIG } from '../../configs/rewardConfig';
 import { SkillText } from '../common/SkillText';
 import React, { useRef, useState } from 'react';
 import { RefreshCcw } from 'lucide-react';
@@ -61,7 +62,7 @@ export const EquipmentReplacementModal: React.FC = () => {
               <div className="modal-title">裝備槽已滿</div>
               <div className="modal-subtitle">
                 {pendingEquipment.source === 'chest'
-                  ? '選擇一件現有裝備替換、返回寶箱選擇，或跳過獎勵。'
+                  ? '選擇一件現有裝備替換、返回寶箱選擇，或放棄裝備換取金幣。'
                   : '選擇一件現有裝備替換，或取消購買。'}
               </div>
             </div>
@@ -92,7 +93,7 @@ export const EquipmentReplacementModal: React.FC = () => {
         </button>
         {pendingEquipment.source === 'chest' && (
           <button type="button" disabled={transfer !== null} className="btn-secondary-modal" onClick={skipChestReward}>
-            跳過獎勵，繼續前進
+            放棄裝備，獲得 {REWARD_CONFIG.skipGold.equipment} 金幣
           </button>
         )}
       </div>

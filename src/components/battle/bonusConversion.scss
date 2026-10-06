@@ -1,0 +1,10 @@
+.phantom-die-anchor.bonus-absorb { animation: bonusAbsorb var(--transfer-duration) ease-in forwards; pointer-events: none; }
+.phantom-die-anchor.bonus-split { animation: bonusSplit var(--transfer-duration) ease-out both; }
+@keyframes bonusAbsorb {
+  from { transform: translate(0, 0) scale(1); opacity: 1; }
+  to { transform: translate(var(--transfer-x), var(--transfer-y)) scale(0.15); opacity: 0; }
+}
+@keyframes bonusSplit {
+  from { transform: translate(var(--transfer-x), var(--transfer-y)) scale(0.15); opacity: 0; }
+  to { transform: translate(0, 0) scale(1); opacity: 1; }
+}

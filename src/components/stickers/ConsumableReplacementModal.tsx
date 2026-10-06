@@ -7,29 +7,20 @@ import { StickerBadge } from './StickerBadge';
 
 export const ConsumableReplacementModal: React.FC = () => {
   const {
-    stickerFlow,
     pendingShopSticker,
     consumableStickers,
-    replaceCurrentConsumable,
-    discardCurrentSticker,
     replaceShopSticker,
     cancelShopSticker,
   } = useGameStore(useShallow((state) => ({
-    stickerFlow: state.stickerFlow,
     pendingShopSticker: state.pendingShopSticker,
     consumableStickers: state.consumableStickers,
-    replaceCurrentConsumable: state.replaceCurrentConsumable,
-    discardCurrentSticker: state.discardCurrentSticker,
     replaceShopSticker: state.replaceShopSticker,
     cancelShopSticker: state.cancelShopSticker,
   })));
-  const flowSticker = stickerFlow?.items[stickerFlow.index];
-  const isFlow = Boolean(flowSticker?.isDisposable);
-  const sticker = isFlow ? flowSticker : pendingShopSticker?.sticker;
+  const sticker = pendingShopSticker?.sticker;
   if (!sticker) return null;
-
-  const replace = isFlow ? replaceCurrentConsumable : replaceShopSticker;
-  const cancel = isFlow ? discardCurrentSticker : cancelShopSticker;
+  const replace = replaceShopSticker;
+  const cancel = cancelShopSticker;
 
   return (
     <div className="modal-overlay">
@@ -62,7 +53,7 @@ export const ConsumableReplacementModal: React.FC = () => {
 
         </div>
         <button type="button" className="btn-secondary-modal" onClick={cancel}>
-          {isFlow ? '放棄新貼紙' : '取消購買'}
+          取消購買
         </button>
       </div>
     </div>

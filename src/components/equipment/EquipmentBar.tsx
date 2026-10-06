@@ -29,7 +29,7 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
     activeRerollingIndex: state.activeRerollingIndex,
     equipmentSlotFeedback: state.equipmentSlotFeedback,
     diceAction: state.diceAction,
-    setDiceAction: state.setDiceAction,
+    setDiceAction: state.setDiceAction, toggleSplit: state.toggleSplit,
     setHoveredEquipment: state.setHoveredEquipment,
     control: state.control,
     maxControl: state.maxControl,
@@ -102,7 +102,8 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
 
           const IconComponent = getEquipmentIcon(equip.iconName);
           const isSelected = hoveredEquip?.equip.id === equip.id;
-          const isTriggered = triggeredEquipmentIds.has(equip.id);
+          const splitActive = equip.ruleId === 'SPLIT' && actionState.creatureBattleState.splitEnabled;
+          const isTriggered = triggeredEquipmentIds.has(equip.id) || splitActive;
           const action = getEquipmentAction(equip.ruleId);
           const selecting = action?.action === diceAction;
           const canActivate = !!action && activeRerollingIndex === null
@@ -136,6 +137,10 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
                 <IconComponent className="ui-icon" />
               </div>
 
+              {equip.ruleId === 'SPLIT' && <button type="button" className="equipment-action" aria-pressed={splitActive}
+                disabled={!leader || combatPhase !== 'CONTROL_PHASE' || activeRerollingIndex !== null}
+                onClick={event => { event.stopPropagation(); actionState.toggleSplit(); }}>
+                {splitActive ? '✓ 拆分已啟用' : '啟用拆分'}</button>}
               {action && <button type="button" className="equipment-action"
                 disabled={!selecting && !canActivate} aria-pressed={selecting}
                 aria-label={selecting ? `取消${action.label}` : `${action.label} ${action.cost} ${action.currency}`}
@@ -143,7 +148,7 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
                 onClick={(event) => { event.stopPropagation(); setDiceAction(selecting ? 'reroll' : action.action); }}>
                 {selecting ? '取消' : action.label}
               </button>}
-              {isTriggered && !action && (
+              {isTriggered && !action && equip.ruleId !== 'SPLIT' && (
                 <span className="equipment-trigger-badge">
                   <Zap className="ui-icon" />
                   發動
@@ -216,6 +221,12 @@ export const EquipmentBar: React.FC<{ idPrefix?: string }> = ({ idPrefix = 'equi
                   <SkillText text={equip.description} />
                 </p>
 
+                {equip.ruleId === 'ABSORB' && actionState.creatureBattleState.absorbTarget && <p className="tooltip-desc">
+                  目標：{actionState.dicePool.find(die => die.id === actionState.creatureBattleState.absorbTarget)?.name}，
+                  吸收 {Math.ceil(comboSummary?.events.filter(event => event.equipmentId === equip.id)
+                    .flatMap(event => event.changes).filter(change => change.kind === 'bonus')
+                    .reduce((sum, change) => sum + change.before - change.after, 0) ?? 0)} 傷害。再次選擇同一骰可取消。
+                </p>}
                 {action && <p className="tooltip-desc">
                   {action.label}：{action.cost} {action.currency}
                 </p>}

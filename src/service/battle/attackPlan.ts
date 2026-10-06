@@ -7,7 +7,7 @@ import { EQUIPMENT_BALANCE, hasEquipment } from '../../configs/equipment/equipme
 import { ceilDamage } from './damageValue';
 export function buildRawAttackPlan(summary: Pick<BattleComboSummary, 'items' | 'bonusDice' | 'repeatAttacks'>) {
   return [
-    ...summary.items.flatMap((item, index) => item.finalDamage > 0
+    ...summary.items.flatMap((item, index) => item.finalDamage > 0 && !item.attackTransferred
       ? [{ index, diceId: item.diceId, kind: 'normal' as const, bonus: false, value: item.finalDamage, creature: item.creature, label: '' }] : []),
     ...summary.bonusDice.flatMap((bonus, index) => bonus.bonusDamage > 0
       ? [{ index, diceId: '', kind: 'bonus' as const, bonus: true, value: bonus.bonusDamage, creature: bonus.creature, label: bonus.label }] : []),
@@ -29,7 +29,13 @@ export function attackTarget(enemies: readonly Enemy[], selectedId?: string | nu
 export function buildAttackPlan(summary: Pick<BattleComboSummary, 'items' | 'bonusDice' | 'repeatAttacks'>,
   targets: readonly Enemy[] | number, equipment: Equipment[], selectedId?: string | null,
   round?: Pick<CreatureBattleState, 'watchedDieId'>) {
-  const raw = buildRawAttackPlan(summary);
+  const bodyCounts = new Map<string, number>();
+  const raw = buildRawAttackPlan(summary).map(attack => {
+    if (attack.kind === 'bonus' || !hasEquipment(equipment, 'BODY_COMBO')) return attack;
+    const count = bodyCounts.get(attack.diceId) ?? 0;
+    bodyCounts.set(attack.diceId, count + 1);
+    return { ...attack, value: attack.value * (1 + count * EQUIPMENT_BALANCE.bodyComboStep) };
+  });
   if (typeof targets === 'number') {
     let shield = targets;
     return raw.map(attack => {

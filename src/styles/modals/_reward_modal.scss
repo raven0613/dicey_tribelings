@@ -1,6 +1,5 @@
 @use '../variables' as *;
 
-// Reward Modal
 .reward-card {
   width: 100%;
   max-width: 60rem;
@@ -34,167 +33,35 @@
     justify-content: space-between;
     border-bottom: 1px solid $slate-800;
     padding-bottom: 0.5rem;
-
-    .victory-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      .victory-icon-box {
-        padding: 0.5rem;
-        background-color: rgba($amber-500, 0.2);
-        border-radius: $radius-xl;
-        color: $amber-400;
-        border: 1px solid rgba($amber-500, 0.4);
-      }
-
-      .victory-title {
-        font-size: max(1.25rem, var(--minimum-font-size));
-        font-weight: 900;
-        color: $amber-300;
-      }
-      .victory-subtitle {
-        font-size: max(0.75rem, var(--minimum-font-size));
-        color: $slate-400;
-      }
-    }
-  }
-
-  .btn-view-dice {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    flex-shrink: 0;
-    padding: 0.625rem 0.75rem;
-    border: 1px solid $slate-500;
-    border-radius: $radius-lg;
-    background: $slate-800;
-    color: $slate-100;
-    font-weight: 700;
-    &:hover { border-color: $amber-300; color: $amber-300; }
-    &:focus-visible { outline: 2px solid $amber-300; outline-offset: 2px; }
   }
 
   .reward-options-grid {
     display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
 
     @container game-stage (min-width: 768px) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+  }
 
-    .reward-option-card {
-      position: relative;
-      background-color: rgba($slate-800, 0.9);
-      border: 2px solid $slate-700;
-      border-radius: $radius-2xl;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: all $transition-fast;
-      cursor: pointer;
-      box-shadow: $shadow-lg;
-      min-height: 22rem;
+  .reward-option-card {
+    position: relative;
+    background-color: rgba($slate-800, 0.9);
+    border: 2px solid $slate-700;
+    border-radius: $radius-2xl;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.75rem;
+    box-shadow: $shadow-lg;
+    min-height: 22rem;
+    transition: background-color $transition-fast, border-color $transition-fast;
 
-      &:hover {
-        background-color: $slate-750;
-        border-color: $amber-400;
-        transform: scale(1.05);
-      }
-
-      &.disabled {
-        opacity: 0.5;
-        pointer-events: none;
-        cursor: not-allowed;
-      }
-
-      .card-tag-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-
-        .type-badge {
-          font-size: max(10px, var(--minimum-font-size));
-          font-weight: 900;
-          padding: 0.125rem 0.5rem;
-          border-radius: $radius-full;
-
-          &.disposable {
-            background-color: rgba($rose-950, 0.8);
-            color: $rose-300;
-            border: 1px solid rgba($rose-500, 0.5);
-          }
-          &.permanent {
-            background-color: rgba($emerald-950, 0.8);
-            color: $emerald-300;
-            border: 1px solid rgba($emerald-500, 0.5);
-          }
-          &.pack {
-            background-color: rgba($purple-950, 0.8);
-            color: $purple-300;
-            border: 1px solid rgba($purple-500, 0.5);
-          }
-        }
-
-      }
-
-      .card-value-box {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin: 0.5rem 0;
-
-        .main-number {
-          font-size: max(2.25rem, var(--minimum-font-size));
-          font-weight: 900;
-          font-family: monospace;
-          color: $amber-300;
-        }
-      }
-
-      .sticker-name {
-        font-size: max(0.875rem, var(--minimum-font-size));
-        font-weight: 900;
-        color: $slate-100;
-        margin-bottom: 0.25rem;
-      }
-
-      .sticker-desc {
-        font-size: max(0.75rem, var(--minimum-font-size));
-        color: $slate-300;
-        line-height: 1.4;
-      }
-
-      .reward-option-main.has-preview-action {
-        > .sticker-desc { margin-bottom: 1rem; }
-        > .btn-pick-reward { margin-top: auto; }
-      }
-
-      .btn-pick-reward {
-        margin-top: 1rem;
-        width: 100%;
-        padding: 0.5rem;
-        border-radius: $radius-xl;
-        background-color: $slate-900;
-        color: $slate-200;
-        border: 1px solid $slate-700;
-        font-size: max(0.75rem, var(--minimum-font-size));
-        font-weight: 900;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-        transition: all $transition-fast;
-
-        &:hover {
-          background-color: $amber-500;
-          color: $slate-950;
-          border-color: $amber-500;
-        }
-      }
+    &:hover, &:focus-within {
+      background-color: $slate-750;
+      border-color: $amber-400;
     }
   }
 
@@ -214,31 +81,5 @@
       align-items: center;
       gap: 0.75rem;
     }
-
-    .footer-tip {
-      font-size: max(11px, var(--minimum-font-size));
-      color: $slate-400;
-    }
-
-    .btn-skip-reward {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      font-size: max(0.75rem, var(--minimum-font-size));
-      font-weight: 700;
-      color: $slate-400;
-      padding: 0.375rem 0.75rem;
-      border-radius: $radius-lg;
-      transition: all $transition-fast;
-
-      &:hover {
-        color: $slate-200;
-        background-color: $slate-800;
-      }
-    }
   }
 }
-
-.reward-card .victory-subtitle, .reward-card .sticker-desc, .reward-card .sticker-name { font-size: max(0.875rem, var(--minimum-font-size)); }
-
-.reward-option-main { width: 100%; display: flex; flex-direction: column; align-items: stretch; flex: 1; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }

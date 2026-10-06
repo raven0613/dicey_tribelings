@@ -2,32 +2,24 @@ import { getEnemyAppearance } from '../../../configs/monsters/enemyAppearanceCon
 import type { Enemy } from '../../../types/enemy';
 import { Heart, Shield } from 'lucide-react';
 import { useGameStore } from '../../../store/gameStore';
-import { describeEnemyIntent } from '../../../service/battle/enemies/enemyDescription';
-import { SkillText } from '../../common/SkillText';
+import { useSkillTooltip } from '../../common/useSkillTooltip';
+import { PreparationEnemyActions } from './PreparationEnemyActions';
 
 export function PreparationEnemySummary() {
   const enemies = useGameStore(state => state.enemies);
-  return <>{enemies.map(enemy => <EnemySummary key={enemy.id} enemy={enemy} />)}</>;
+  return <div className="preparation-enemies">{enemies.map(enemy => <EnemySummary key={enemy.id} enemy={enemy} />)}</div>;
 }
 function EnemySummary({ enemy }: { enemy: Enemy }) {
+  const { tooltip, tooltipProps, show } = useSkillTooltip(<PreparationEnemyActions enemy={enemy} />, {
+    interactive: true, hoverable: true, className: 'preparation-enemy-tooltip', label: `${enemy.name}・完整行動與階段`,
+  });
   return <section className="preparation-enemy" aria-label="下一場敵人">
-    <div className="preparation-enemy-heading">
+    <button type="button" className="preparation-enemy-heading" {...tooltipProps} onClick={show}>
       <img className="preparation-enemy-image" src={getEnemyAppearance(enemy.definitionId).src} alt="" /><strong>{enemy.name}</strong>
       <span><Heart className="ui-icon" /> {enemy.hp}／{enemy.maxHp}</span>
       <span><Shield className="ui-icon" /> {enemy.shield}</span>
       {enemy.isBoss && <span>BOSS</span>}{enemy.isElite && <span>菁英</span>}
-    </div>
-    <p><SkillText text={describeEnemyIntent(enemy)} /></p>
-    <details><summary>查看完整行動與階段</summary>
-      <ol>{enemy.intents.map((_, index) => <li key={index}>
-        <SkillText text={describeEnemyIntent({ ...enemy, currentIntentIndex: index })} />
-      </li>)}</ol>
-      {enemy.phases?.map((phase) => <div key={phase.below}>
-        <strong>生命低於 {phase.below * 100}%</strong>
-        <ol>{phase.intents.map((_, index) => <li key={index}><SkillText text={describeEnemyIntent({
-          ...enemy, intents: [...phase.intents], currentIntentIndex: index,
-        })} /></li>)}</ol>
-      </div>)}
-    </details>
+    </button>
+    {tooltip}
   </section>;
 }

@@ -1,0 +1,33 @@
+@use '../../styles/variables' as *;
+
+.reroll-shield-anchor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.skill-name.reroll-shield-gain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: max(1.2rem, var(--minimum-font-size));
+  color: $blue-300;
+  font-weight: 900;
+  text-shadow: 0 2px 3px $slate-950;
+  animation: rerollShieldGain var(--shield-gain-ms) ease-out forwards;
+}
+
+@keyframes rerollShieldGain {
+  0% { opacity: 1; transform: translate(-50%, 0); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, calc(-1 * var(--shield-gain-rise))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-name.reroll-shield-gain { animation-name: rerollShieldFade; animation-timing-function: ease-out; transform: translateX(-50%); }
+}
+
+@keyframes rerollShieldFade {
+  0%, 40% { opacity: 1; }
+  100% { opacity: 0; }
+}

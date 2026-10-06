@@ -1,24 +1,24 @@
-import type { PermanentCreatureId } from '../../types/creatures';
-
-export interface DiceRecipe { id: string; name: string; colorTheme: string; faces: readonly (readonly [PermanentCreatureId, number])[] }
-export const DICE_DRAFT_CONFIG = { optionCount: 3, regionBonus: { 1: 0, 2: 2, 3: 4 } } as const;
+import type { CreatureId } from '../../types/creatures';
+import { D6_FACE_VALUES } from './diceValueConfig';
+export interface DiceRecipe { id: string; name: string; colorTheme: string; selfStarting: boolean; faces: readonly (readonly [CreatureId, number])[] }
+export const DICE_DRAFT_CONFIG = { optionCount: 3 } as const;
+export const BOSS_DICE_REWARD = { name: '白板骰', colorTheme: 'sapphire' } as const;
+function recipe(id: string, name: string, colorTheme: string, roles: Partial<Record<number, CreatureId>>, selfStarting = false): DiceRecipe {
+  return { id, name, colorTheme, selfStarting, faces: D6_FACE_VALUES.map(value => [roles[value] ?? 'blank', value]) };
+}
 export const ROAD_DICE_RECIPES: readonly DiceRecipe[] = [
-  { id: 'clan', name: '宗族骰', colorTheme: 'emerald', faces: [['family', 3], ['family', 3], ['family', 3], ['sisters', 3], ['sisters', 3], ['knight', 3]] },
-  { id: 'combo', name: '連擊骰', colorTheme: 'ruby', faces: [['twins', 3], ['twins', 3], ['twins', 3], ['family', 3], ['family', 3], ['guard', 3]] },
-  { id: 'gang', name: '混混骰', colorTheme: 'obsidian', faces: [['gang', 2], ['boss', 3], ['gang', 2], ['thief', 2], ['gang', 2], ['coward', 3]] },
-  { id: 'alliance', name: '同盟骰', colorTheme: 'emerald', faces: [['sisters', 3], ['sisters', 3], ['sisters', 3], ['porter', 3], ['porter', 3], ['guard', 3]] },
-  { id: 'porter', name: '搬運骰', colorTheme: 'amber', faces: [['artisan', 3], ['porter', 3], ['porter', 3], ['porter', 3], ['follower', 2], ['coward', 3]] },
-  { id: 'valor', name: '勇武骰', colorTheme: 'ruby', faces: [['warrior', 3], ['warrior', 3], ['follower', 2], ['follower', 2], ['knight', 3], ['cheerleader', 2]] },
-  { id: 'guard', name: '護衛骰', colorTheme: 'sapphire', faces: [['guard', 3], ['guard', 3], ['coward', 3], ['coward', 3], ['bulwark', 2], ['knight', 3]] },
-  { id: 'works', name: '工事骰', colorTheme: 'amber', faces: [['artisan', 3], ['artisan', 3], ['porter', 3], ['teacher', 3], ['sisters', 3], ['coward', 3]] },
-  { id: 'kitchen', name: '廚房骰', colorTheme: 'amber', faces: [['chef', 4], ['chef', 4], ['food', 6], ['fruit', 2], ['farmer', 3], ['porter', 3]] },
-  { id: 'feast', name: '宴席骰', colorTheme: 'amber', faces: [['glutton', 3], ['glutton', 3], ['farmer', 3], ['farmer', 3], ['food', 6], ['fruit', 2]] },
-  { id: 'tactics', name: '調度骰', colorTheme: 'sapphire', faces: [['teacher', 3], ['teacher', 3], ['prankster', 3], ['prankster', 3], ['coward', 3], ['priest', 2]] },
-  { id: 'altar', name: '祭壇骰', colorTheme: 'obsidian', faces: [['priest', 2], ['priest', 2], ['coward', 3], ['coward', 3], ['teacher', 3], ['elder', 2]] },
-  { id: 'robbery', name: '搶奪骰', colorTheme: 'ruby', faces: [['boss', 3], ['boss', 3], ['bully', 3], ['family', 3], ['family', 3], ['prankster', 3]] },
-  { id: 'thief', name: '趁火骰', colorTheme: 'obsidian', faces: [['thief', 2], ['thief', 2], ['boss', 3], ['sisters', 3], ['porter', 3], ['coward', 3]] },
-  { id: 'detective', name: '辦案骰', colorTheme: 'sapphire', faces: [['detective', 3], ['detective', 3], ['teacher', 3], ['porter', 3], ['boss', 3], ['guard', 3]] },
-  { id: 'court', name: '宮廷骰', colorTheme: 'gold', faces: [['royalGuard', 3], ['elder', 2], ['authority', 2], ['knight', 3], ['guard', 3], ['sisters', 3]] },
-  { id: 'herald', name: '號令骰', colorTheme: 'gold', faces: [['herald', 2], ['herald', 2], ['cheerleader', 2], ['bulwark', 2], ['warrior', 3], ['sisters', 3]] },
-  { id: 'versatile', name: '百變骰', colorTheme: 'obsidian', faces: [['imposter', 2], ['elder', 2], ['loner', 3], ['sisters', 3], ['family', 3], ['family', 3]] },
+  recipe('clan', '宗族骰', 'emerald', { 2: 'family', 4: 'family', 5: 'family' }, true),
+  recipe('twins', '雙子骰', 'ruby', { 2: 'twins', 5: 'twins', 3: 'coward' }, true),
+  recipe('gang', '混混骰', 'obsidian', { 1: 'gang', 2: 'gang', 3: 'gang' }, true),
+  recipe('alliance', '同盟骰', 'emerald', { 2: 'sisters', 4: 'sisters', 1: 'fruit' }),
+  recipe('porter', '搬運骰', 'amber', { 2: 'porter', 4: 'porter', 3: 'artisan' }),
+  recipe('valor', '勇武骰', 'ruby', { 4: 'warrior', 2: 'follower', 3: 'cheerleader' }),
+  recipe('guard', '護衛骰', 'sapphire', { 2: 'guard', 4: 'guard', 3: 'coward' }),
+  recipe('works', '工事骰', 'amber', { 1: 'artisan', 2: 'artisan', 3: 'farmer' }, true),
+  recipe('kitchen', '廚房骰', 'amber', { 2: 'chef', 4: 'food', 1: 'fruit' }, true),
+  recipe('farm', '農園骰', 'amber', { 2: 'farmer', 3: 'farmer', 5: 'chef' }, true),
+  recipe('tactics', '調度骰', 'sapphire', { 1: 'teacher', 2: 'prankster', 4: 'coward' }),
+  recipe('altar', '祭壇骰', 'obsidian', { 3: 'priest', 1: 'prankster', 4: 'coward' }),
+  recipe('robbery', '壞壞骰', 'ruby', { 3: 'boss', 2: 'thief', 5: 'family' }),
+  recipe('court', '宮廷骰', 'gold', { 2: 'authority', 4: 'royalGuard', 3: 'knight' }),
 ];

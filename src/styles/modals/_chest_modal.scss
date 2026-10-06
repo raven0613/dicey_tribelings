@@ -286,17 +286,18 @@
     }
 
     .card-description {
+      width: 100%;
+      min-width: 0;
       font-size: max(0.75rem, var(--minimum-font-size));
       color: $slate-300;
       line-height: 1.35;
       min-height: 2.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      overflow-wrap: anywhere;
     }
 
     .btn-select-relic {
       width: 100%;
+      margin-top: auto;
       padding: 0.375rem 0.75rem;
       background-color: rgba($slate-700, 0.7);
       color: $slate-200;

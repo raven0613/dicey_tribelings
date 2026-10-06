@@ -1,7 +1,7 @@
+import type { RegionId } from './enemy';
 import type { FaceMaterial } from './materials';
 import type { ArrowId, CreatureId, PermanentCreatureId } from './creatures';
 
-import type { RegionId } from './enemy';
 
 export interface TemporarySticker {
   name: string;
@@ -47,6 +47,8 @@ export interface BonusAttackDice {
   sourceName: string;
   creature?: CreatureId;
   bonusDamage: number;
+  originalDamage?: number;
+  absorbed?: boolean;
   label: string;
   description: string;
 }
@@ -65,8 +67,6 @@ export interface PermanentSticker extends StickerIdentity {
   creature: PermanentCreatureId;
   isDisposable: false;
   material?: FaceMaterial;
-  baseValue: number;
-  region: RegionId;
 }
 export interface DisposableSticker extends StickerIdentity {
   isDisposable: true;
@@ -93,11 +93,24 @@ export interface StickerPack {
   permanentCount: number;
   themeName: string;
   creatures: readonly PermanentCreatureId[];
+  slots: readonly (readonly PermanentCreatureId[])[];
 }
 
-export type BattleRewardOption =
-  | { id: string; kind: 'sticker'; sticker: PermanentSticker }
-  | { id: string; kind: 'stickerPack'; pack: StickerPack };
+export interface StickerBundleReward {
+  id: string;
+  kind: 'bundle';
+  sticker: PermanentSticker;
+  hidden: PermanentSticker[];
+}
+
+export interface StickerPackReward {
+  id: string;
+  kind: 'pack';
+  pack: StickerPack;
+  stickers: PermanentSticker[];
+}
+
+export type BattleRewardOption = StickerBundleReward | StickerPackReward;
 
 export type ChestRewardOption = { id: string; kind: 'equipment'; equipment: Equipment };
 

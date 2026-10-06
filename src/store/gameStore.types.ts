@@ -18,6 +18,8 @@ import {
   Equipment,
   MapNode,
   StickerItem,
+  PermanentSticker,
+  StickerPack,
   DisposableSticker,
   TemporaryStickerPlacement,
 } from '../types/game';
@@ -27,9 +29,11 @@ import { PackOpenResult } from '../service/stickers/packService';
 export type FlowCompletion = 'advance' | 'stay';
 
 export interface StickerFlow {
-  items: StickerItem[];
+  items: PermanentSticker[];
   index: number;
   completion: FlowCompletion;
+  rewardGold?: number;
+  usedAny?: boolean;
 }
 
 export interface PackRevealState extends PackOpenResult {
@@ -107,6 +111,8 @@ export interface GameState {
   soundMuted: boolean;
   selectedDiceForInspect: Dice | null;
   diceRewardOptions: DiceRecipe[];
+  receivedRewardDice: Dice | null;
+  acknowledgeRewardDice: () => void;
   diceRefreshes: number;
   lootRefreshes: number;
   shopRefreshes: number;
@@ -130,6 +136,14 @@ export interface GameState {
   refreshCamp: () => void;
   chestRewardOptions: ChestRewardOption[];
   shopStickers: StickerItem[];
+  shopPacks: StickerPack[];
+  buyShopPack: (id: string) => boolean;
+  toggleSplit: () => void;
+  chooseFlowSticker: (index: number) => void;
+  returnToStickerSelection: () => void;
+  discardStickerAt: (index: number) => void;
+  skipStickerFlow: () => void;
+  claimBattleReward: (id: string) => void;
   shopEquipments: Equipment[];
   toggleSound: () => void;
   startNode: (nodeIndex: number) => void;
@@ -145,10 +159,6 @@ export interface GameState {
   openPackAction: (packId: string, completion: FlowCompletion) => void;
   beginOpenedPack: () => void;
   applyCurrentPermanentSticker: (diceId: string, faceIndex: number) => void;
-  replaceCurrentConsumable: (instanceId: string) => void;
-  discardCurrentSticker: () => void;
-  applyBattleRewardSticker: (optionId: string, diceId: string, faceIndex: number) => void;
-  claimBattleRewardPack: (optionId: string) => void;
   skipBattleReward: () => void;
   openChest: () => void;
   claimChestReward: (option: ChestRewardOption) => void;

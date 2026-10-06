@@ -22,6 +22,7 @@ function arrow(id: ArrowId): CreatureDefinition {
 }
 export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
   arrowUp: arrow('arrowUp'), arrowDown: arrow('arrowDown'), arrowLeft: arrow('arrowLeft'), arrowRight: arrow('arrowRight'),
+  blank: { name: '白板土人', emoji: '▫️', tags: [], ability: '白板', description: '依骰面點數攻擊。', rarity: 'common', color: '#b6b1a7' },
   family: role('土人家族', '👪', ['common'], '土人 在一起 強大', creatureDescription('family')),
   sisters: role('土人姐妹花', '👭', ['common'], '互相提攜', creatureDescription('sisters')),
   twins: role('土人雙胞胎', '👯', ['common'], '頂替上場', creatureDescription('twins')),
@@ -55,4 +56,4 @@ export const CREATURE_CONFIG: Record<CreatureId, CreatureDefinition> = {
   fruit: role('水果拼盤', '🍇', ['food'], '水果拼盤', creatureDescription('fruit')),
   food: role('好吃的', '🍖', ['food'], '好吃的', creatureDescription('food')),
 };
-export const CREATURE_IDS = (Object.keys(CREATURE_CONFIG) as CreatureId[]).filter((id): id is PermanentCreatureId => !isArrowFace(id));
+export const CREATURE_IDS = (Object.keys(CREATURE_CONFIG) as CreatureId[]).filter((id): id is PermanentCreatureId => !isArrowFace(id) && id !== 'blank');

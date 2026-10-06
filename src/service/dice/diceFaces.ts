@@ -14,7 +14,7 @@ export const getEffectiveFace = (face: DiceFace): DiceFace => {
   };
 };
 export const getFaceTags = (face: Pick<DiceFace, 'creature' | 'material'>): CreatureTag[] =>
-  isArrowFace(face.creature) ? [] : [...(face.material === 'iridescent' ? ALL_FACE_TAGS : CREATURE_CONFIG[face.creature].tags)];
+  isArrowFace(face.creature) || face.creature === 'blank' ? [] : [...(face.material === 'iridescent' ? ALL_FACE_TAGS : CREATURE_CONFIG[face.creature].tags)];
 export const getAdjacentFaces = (die: Dice, faceIndex: number) => getDiceGeometry(die.dieType)[faceIndex].neighbors
   .map((index) => getEffectiveFace(die.faces[index]));
 export const hasCreatureTag = (creature: CreatureId, tag: CreatureTag) => CREATURE_CONFIG[creature].tags.includes(tag);

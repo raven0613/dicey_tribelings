@@ -68,20 +68,21 @@ export const BattleDiceSlot = React.memo(function BattleDiceSlot({ die, idx, pos
   const nextFood = calcItem ? comboSummary.nextStoredFood[die.id] ?? 0 : storedFood;
   const resolving = combatPhase === 'RESOLVING_CALCULATION' || combatPhase === 'RESOLVING_ATTACK';
   const resultLabels = calcItem && combatPhase === 'CONTROL_PHASE' ? [
-    `攻擊 ${ceilDamage(calcItem.finalDamage)}`,
+    `點數 ${calcItem.pipValue}・攻擊 ${ceilDamage(calcItem.finalDamage)}`,
+    calcItem.attackTransferred ? '將拆分為追加骰' : '',
+    creatureBattleState.absorbTarget === die.id ? '追加吸收目標' : '',
     altar !== undefined ? `祭壇 ${altar} 次` : '',
     calcItem.shieldGranted > 0 ? `護盾 ${calcItem.shieldGranted}` : '',
     storedFood > 0 || nextFood > 0 ? `存糧 ${storedFood === nextFood ? storedFood : `${storedFood}→${nextFood}`}` : '',
   ].filter(Boolean) : resolving ? [
+    `點數 ${calcItem?.pipValue ?? die.faces[rolledIndices[idx] ?? 0].baseValue}`,
     combatPhase === 'RESOLVING_ATTACK' && altar !== undefined ? `祭壇 ${altar} 次` : '',
     (shield?.displayValue ?? 0) > 0 ? `護盾 ${shield.displayValue}` : '',
     (food?.displayValue ?? 0) > 0 ? `存糧 ${food.displayValue}` : '',
   ].filter(Boolean) : [];
   const dieSize = size;
   const pumpVal = slotState?.displayValue;
-  const rationsStored = comboSummary?.events.filter((event) => rationsEquipment && event.equipmentId === rationsEquipment.id)
-    .flatMap((event) => event.changes).filter((change) => change.kind === 'food' && change.targetId === die.id)
-    .reduce((sum, change) => sum + change.after - change.before, 0) ?? 0;
+  const rationsStored = creatureBattleState.initialRations[die.id] ?? 0;
 
   const isRerolling = roll.rolling;
   const face = getEffectiveFace(die.faces[roll.faceIndex]);
