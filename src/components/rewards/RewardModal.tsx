@@ -6,6 +6,7 @@ import { PaidRefreshButton } from '../common/PaidRefreshButton';
 import { StickerPlacementDialog } from '../stickers/StickerPlacementDialog';
 import { getRefreshCost } from '../../service/rewards/refreshService';
 import { getSkipRewardGold } from '../../service/rewards/rewardService';
+import { applyTemporaryPlacements } from '../../service/inventory/inventoryService';
 import { RewardBundleCard } from './RewardBundleCard';
 import { RewardPackCard } from './RewardPackCard';
 import type { StickerBundleReward } from '../../types/game';
@@ -21,7 +22,7 @@ export function RewardModal({ onOpenDiceBag, inspectingDice }: RewardModalProps)
     phase: s.combatPhase, nodeIndex: s.currentNodeIndex, options: s.battleRewardOptions,
     received: s.receivedRewardDice, dice: s.diceRewardOptions, extra: s.extraReward, flow: s.stickerFlow,
     opened: s.openedPackResult, gold: s.gold, refreshes: s.lootRefreshes,
-    rank: s.enemies[0]?.rank, pool: s.dicePool,
+    rank: s.enemies[0]?.rank, pool: s.dicePool, placements: s.temporaryPlacements,
     claim: s.claimBattleReward, skip: s.skipBattleReward,
     refresh: s.refreshBattleRewards, beginExtra: s.beginExtraReward,
   })));
@@ -76,7 +77,7 @@ export function RewardModal({ onOpenDiceBag, inspectingDice }: RewardModalProps)
       </div>
     </div>
     {preview && !inspectingDice && <StickerPlacementDialog key={preview.id}
-      sticker={preview.sticker} dicePool={state.pool}
+      sticker={preview.sticker} dicePool={applyTemporaryPlacements(state.pool, state.placements)}
       subtitle="預覽明牌配置・選擇整組後揭曉其餘貼紙" exitLabel="返回選擇戰利品"
       onExit={() => setPreviewId(null)}
       footer={<button type="button" className="btn-primary-modal" onClick={() => claim(preview.id)}>選擇</button>} />}

@@ -16,7 +16,7 @@ export function syncStoryProgress(state: GameState, previous: GameState): void {
     if (state.combatPhase === 'CONTROL_PHASE' && previous.combatPhase === 'ROLLING') story.enqueue('control');
   }
   if (state.consumableStickers.some((item) => !previous.consumableStickers.some((old) => old.instanceId === item.instanceId))) {
-    story.unlockTemporary();
+    story.enqueue('temporary');
   }
   const sticker = state.stickerFlow?.items[state.stickerFlow.index];
   if (sticker?.creature === 'princess' && !sticker.isDisposable) story.enqueue('princess');

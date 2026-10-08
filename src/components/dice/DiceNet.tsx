@@ -22,10 +22,12 @@ interface DiceNetProps {
   previewFaceIndex?: number | null;
   onPreviewFaceChange?: (faceIndex: number) => void;
   previewOnly?: boolean;
+  faceDragBindings?: (faceIndex: number) => Pick<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onPointerDown'>;
+  onFaceContextMenu?: (event: React.MouseEvent<HTMLButtonElement>, faceIndex: number) => void;
 }
 
 export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApplyFace, highlightCreature, placementError,
-  previewFaceIndex, onPreviewFaceChange, previewOnly }) => {
+  previewFaceIndex, onPreviewFaceChange, previewOnly, onFaceContextMenu, faceDragBindings }) => {
   const { minimumFontSize } = useGameViewport();
   const net = getDiceNet(dice.dieType);
   const geometry = getDiceGeometry(dice.dieType);
@@ -66,7 +68,7 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApp
   const width = net.width * scale;
   const height = net.height * scale;
   const stickerHint = previewOnly
-    ? onApplyFace ? '點骰面預覽，再按「貼到此面」' : '移到或點擊骰面預覽覆蓋'
+    ? '移到或點擊骰面預覽覆蓋'
     : '移到骰面預覽覆蓋・點擊套用貼紙';
 
   return <section className="dice-net" aria-label={`${dice.name}展開圖`} style={{
@@ -98,6 +100,8 @@ export const DiceNet: React.FC<DiceNetProps> = ({ dice, dicePool, sticker, onApp
             neighbors={geometry[index].neighbors} onHover={preview} onFocus={(index) => preview(index, true)}
             sticker={sticker} previewing={activeFace === index}
             onPreviewSelect={previewOnly ? () => preview(index, true) : undefined}
+            onContextMenu={onFaceContextMenu ? event => onFaceContextMenu(event, index) : undefined}
+            dragBindings={faceDragBindings?.(index)}
             onApply={onApplyFace ? () => onApplyFace(index) : undefined} />)}
           {activeFace !== null && arrowTarget !== null && activeRole && isArrowFace(activeRole) &&
             <DiceNetArrowLink dice={dice} source={activeFace} target={arrowTarget} arrow={activeRole}

@@ -1,0 +1,208 @@
+@use 'variables' as *;
+
+.sticker-editor {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sticker-editor-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+.sticker-backpack {
+  width: 25rem;
+  flex-shrink: 0;
+  min-height: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: $slate-900;
+  border: 1px solid $slate-600;
+  border-radius: $radius-xl;
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  h2,
+  h3 {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 800;
+  }
+  button {
+    min-height: 2.5rem;
+    border: 1px solid $slate-600;
+    border-radius: $radius-md;
+    color: $slate-100;
+    background: $slate-800;
+    padding: 0.35rem;
+  }
+  button:hover {
+    border-color: $amber-300;
+  }
+  button[aria-pressed='true'] {
+    border-color: $amber-300;
+    background: $amber-950;
+  }
+  button:disabled {
+    cursor: default;
+  }
+}
+
+.backpack-sort {
+  display: flex;
+  gap: 0.3rem;
+}
+.backpack-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0.4rem;
+  h3 {
+    display: flex;
+    justify-content: space-between;
+  }
+  h3 span {
+    color: $slate-400;
+    font-weight: 400;
+  }
+  &.is-temporary {
+    flex: 0 1 15rem;
+  }
+  &.is-permanent {
+    flex: 1;
+  }
+}
+.backpack-items {
+  min-height: 3rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.backpack-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: var(--backpack-card-height);
+  gap: var(--backpack-grid-gap);
+}
+.backpack-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-radius: $radius-md;
+  &.is-placed .backpack-sticker {
+    border-style: dashed;
+    background: $slate-950;
+  }
+}
+.backpack-sticker {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  .creature-badge {
+    white-space: normal;
+    text-align: center;
+  }
+  small {
+    color: $amber-300;
+  }
+}
+.backpack-discard {
+  flex-shrink: 0;
+  color: $slate-400 !important;
+}
+.backpack-empty,
+.backpack-help {
+  color: $slate-400;
+  margin: 0.25rem 0;
+  font-size: max(0.8rem, var(--minimum-font-size));
+}
+.sticker-face-menu {
+  position: absolute;
+  z-index: 6000;
+  background: $slate-900;
+  border: 1px solid $slate-500;
+  border-radius: $radius-md;
+  padding: 0.4rem;
+  box-shadow: $shadow-xl;
+  pointer-events: auto;
+  button {
+    width: 100%;
+    padding: 0.6rem;
+    text-align: left;
+    border-radius: $radius-md;
+    background: $slate-800;
+    color: $slate-100;
+  }
+  button:hover {
+    background: $slate-700;
+  }
+  button:disabled {
+    color: $slate-400;
+  }
+  p {
+    margin: 0.5rem 0 0;
+    color: $slate-300;
+  }
+}
+.sticker-transfer,
+.sticker-drag-ghost {
+  position: absolute;
+  z-index: 7000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  border: 2px solid $amber-300;
+  border-radius: $radius-lg;
+  background: $slate-800;
+  box-shadow: $shadow-xl;
+  transform: translate(-50%, -50%);
+  .creature-badge {
+    pointer-events: none;
+  }
+}
+.sticker-drag-ghost {
+  padding: 0.75rem;
+}
+.is-transferring .backpack-items {
+  overflow: hidden;
+}
+.dice-net-dialog > .sticker-editor {
+  flex-shrink: 1;
+}
+
+@container game-stage (max-width: 799px) {
+  .sticker-editor-content {
+    flex-direction: column;
+    overflow: auto;
+  }
+  .sticker-editor-content > .preparation-editor {
+    flex: 1 0 26rem;
+  }
+  .sticker-backpack {
+    width: 100%;
+    min-height: 28rem;
+    flex: 0 0 28rem;
+  }
+}

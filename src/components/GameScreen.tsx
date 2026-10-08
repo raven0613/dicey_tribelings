@@ -50,10 +50,9 @@ export function GameScreen() {
   const currentNode = mapNodes[currentNodeIndex];
   const isCombatNode =
     currentNode?.type === 'fight' || currentNode?.type === 'elite' || currentNode?.type === 'boss';
-  const temporaryUnlocked = useStoryStore((state) => state.temporaryUnlocked);
   const storyPending = useStoryStore((state) => state.queue.length > 0);
   const isCombat = routeChoices.length === 0 && isCombatNode;
-  const isConfiguring = isCombat && combatPhase === 'PREPARATION' && temporaryUnlocked;
+  const isConfiguring = isCombat && combatPhase === 'PREPARATION';
   const showPreparation = isConfiguring && !stickerFlow && !openedPackResult && !storyPending;
 
   const handleResolveBattle = async () => {
@@ -68,7 +67,7 @@ export function GameScreen() {
       {isCombat && <GameImpactFrame />}
       <MapProgress />
       <div className="game-screen-content">
-        <div className="game-screen-background" inert={isConfiguring}>
+        <div className="game-screen-background" inert={isConfiguring || isDiceBagOpen || Boolean(stickerFlow) || Boolean(openedPackResult)}>
           <main className="app-main">
             <div className="combat-arena">
               {isCombat && <EnemyFormation />}

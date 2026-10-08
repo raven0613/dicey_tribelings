@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { INITIAL_DICE_POOL } from '../../../configs/creatures/initialDiceConfig';
+import { CREATURE_IDS } from '../../../configs/creatures/creatureConfig';
+import { MONSTER_BALANCE_CONFIG } from '../../../configs/monsters/monsterBalanceConfig';
 import { ALL_EQUIPMENT_CATALOG } from '../../../configs/equipment/equipmentConfig';
 import { D6_FACE_VALUES } from '../../../configs/creatures/diceValueConfig';
 import type { PermanentCreatureId } from '../../../types/creatures';
@@ -23,6 +25,38 @@ function build(size: number): Dice[] {
   return Array.from({ length: size }, (_, index) => configuredDice(`matrix-${index}`, `矩陣 ${index}`, 'd6', 'amber',
     rows[index % rows.length].map((creature, faceIndex) => [creature, D6_FACE_VALUES[faceIndex]])));
 }
+
+test('every tribeling resolves across region dice counts, face densities and all pip positions', context => {
+  let samples = 0;
+  for (const [roleIndex, role] of CREATURE_IDS.entries()) {
+    for (const size of Object.values(MONSTER_BALANCE_CONFIG.diceCountByRegion)) {
+      for (const copies of [1, D6_FACE_VALUES.length / 2, D6_FACE_VALUES.length]) {
+        const pool = Array.from({ length: size }, (_, index) => configuredDice(
+          `roster-${index}`, role, 'd6', 'amber', D6_FACE_VALUES.map((pip, face) => [
+            index === Math.floor(size / 2) && face < copies ? role
+              : CREATURE_IDS[(roleIndex + index + face + 1) % CREATURE_IDS.length], pip,
+          ]),
+        ));
+        const original = structuredClone(pool);
+        for (const face of D6_FACE_VALUES.keys()) {
+          const indices = pool.map(() => face);
+          const state = createCreatureBattleState();
+          const summary = calculateRollResolution(pool, indices, [], state);
+          assert.deepEqual(summary, calculateRollResolution(pool, indices, [], state));
+          for (const value of [summary.totalDamage, summary.totalShield, summary.healing,
+            ...summary.items.map(item => item.finalDamage)]) {
+            assert.ok(Number.isFinite(value) && value >= 0, `${role}/${size}/${copies}/${face}`);
+          }
+          assert.equal(combatNumber(buildAttackPlan(summary, 0, [])
+            .reduce((sum, hit) => sum + hit.value, 0)), summary.totalDamage);
+          samples++;
+        }
+        assert.deepEqual(pool, original);
+      }
+    }
+  }
+  context.diagnostic(`${CREATURE_IDS.length} tribelings, ${samples} deterministic roster samples; current abilities unchanged.`);
+});
 
 for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite rerolls, exact attack plans and event continuity`, (context) => {
   const pool = size === 3 ? structuredClone(INITIAL_DICE_POOL) : build(size);

@@ -2,7 +2,7 @@ export const TELEMETRY_CONFIG = {
   databaseName: 'tribelings-telemetry',
   schemaVersion: 2,
   gameVersion: '2026-10-04',
-  balanceVersion: '2026-10-06-family-chef-rations',
+  balanceVersion: '2026-10-08-difficulty-one-damage',
   maxRuns: 20,
   checkpointMs: 5000,
   hotspotSizePx: 20,

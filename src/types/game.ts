@@ -10,6 +10,7 @@ export interface TemporarySticker {
 }
 
 export interface DiceFace {
+  stickerIdentity?: StickerInstanceIdentity;
   material?: FaceMaterial;
   materialDecay?: number;
   id: string;
@@ -75,8 +76,17 @@ export type StickerItem = PermanentSticker | DisposableSticker;
 /** A directional inventory item becomes a concrete arrow only during face preview/application. */
 export type FaceSticker = PermanentSticker | (Omit<DisposableSticker, 'creature'> & { creature: CreatureId });
 
-export interface ConsumableSticker {
+export interface StickerInstanceIdentity {
   instanceId: string;
+  acquiredAt: number;
+  acquisitionOrder: number;
+}
+
+export type OwnedPermanentSticker = PermanentSticker & StickerInstanceIdentity;
+export type OwnedSticker = StickerItem & StickerInstanceIdentity;
+export type StickerSort = 'name' | 'time';
+
+export interface ConsumableSticker extends StickerInstanceIdentity {
   stickerId: string;
   name: string;
   creature: StickerCreatureId;

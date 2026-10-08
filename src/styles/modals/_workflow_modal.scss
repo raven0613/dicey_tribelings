@@ -98,12 +98,12 @@
 
 .sticker-selection-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.625rem;
   margin-top: auto;
   padding-top: 1rem;
 
-  > button { margin-top: 0; }
+  > button { margin-top: 0; flex: 1; }
 }
 
 .sticker-selection-footer { margin-top: 1rem; }

@@ -1,29 +1,59 @@
 @use '../variables' as *;
 
-.sticker-applier-card {
-  .sticker-match-summary { font-size: max(0.875rem, var(--minimum-font-size)); color: $amber-300; }
+.sticker-applier-card .sticker-match-summary {
+  font-size: max(0.875rem, var(--minimum-font-size));
+  color: $amber-300;
+}
 
-  .sticker-overview {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid rgba($amber-500, 0.6);
-    border-radius: $radius-md;
-    background: rgba($amber-950, 0.5);
+.sticker-overview {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba($amber-500, 0.6);
+  border-radius: $radius-md;
+  background: rgba($amber-950, 0.5);
+}
+
+.sticker-overview-identity {
+  flex: 0 0 auto;
+}
+
+.sticker-overview-sticker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(5rem, calc(var(--minimum-font-size) * 4));
+  aspect-ratio: 1;
+  padding: 0.25rem;
+  border: 2px solid $amber-300;
+  border-radius: $radius-md;
+  background: $slate-800;
+}
+
+button.sticker-overview-sticker {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  &:disabled {
+    cursor: default;
   }
+}
 
-  .sticker-overview-identity {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 0 0 auto;
-
-    .creature-badge { font-size: max(1rem, var(--minimum-font-size)); }
+.sticker-overview-info {
+  min-width: 0;
+  font-size: max(0.875rem, var(--minimum-font-size));
+  line-height: 1.4;
+  > strong {
+    color: $amber-300;
+    font-size: max(1rem, var(--minimum-font-size));
   }
-
-  .sticker-overview-value { font: 800 1.75rem monospace; font-size: max(1.75rem, var(--minimum-font-size)); color: $amber-300; }
-  .sticker-overview-info { min-width: 0; font-size: max(0.875rem, var(--minimum-font-size)); line-height: 1.4; }
-  .sticker-overview-info > strong { color: $amber-300; font-size: max(1rem, var(--minimum-font-size)); }
-  .sticker-overview-info p { color: $slate-200; overflow-wrap: anywhere; }
+  p {
+    color: $slate-200;
+    overflow-wrap: anywhere;
+  }
+  small {
+    color: $slate-400;
+  }
 }

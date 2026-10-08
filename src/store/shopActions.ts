@@ -1,6 +1,6 @@
 import { SHOP_CONFIG } from '../configs/shopConfig';
 import type { GameState, FlowCompletion } from './gameStore.types';
-import type { ConsumableSticker, DisposableSticker, PermanentSticker } from '../types/game';
+import type { ConsumableSticker, DisposableSticker, StickerItem } from '../types/game';
 import { INITIAL_PLAYER_STATS } from '../configs/gameConfig';
 import { INVENTORY_CONFIG } from '../configs/inventoryConfig';
 import { replaceConsumable } from '../service/inventory/inventoryService';
@@ -8,7 +8,7 @@ import { calculateHealPurchase, getEquipmentOffer, getStickerOffer } from '../se
 import { soundService } from '../service/audio/soundService';
 export function createShopActions(set: (value: Partial<GameState>) => void, get: () => GameState,
   createConsumableInstance: (sticker: DisposableSticker) => ConsumableSticker,
-  startStickerFlow: (items: PermanentSticker[], completion: FlowCompletion) => void, completeEquipmentChoice: () => void) {
+  startStickerFlow: (items: StickerItem[], completion: FlowCompletion) => void, completeEquipmentChoice: () => void) {
   return {
     buyShopPack: (id) => {
       const state = get(), node = state.mapNodes[state.currentNodeIndex];
@@ -28,9 +28,11 @@ export function createShopActions(set: (value: Partial<GameState>) => void, get:
       if (get().consumableStickers.length === INVENTORY_CONFIG.consumableCapacity) {
         set({ pendingShopSticker: { sticker: offer.item, cost: offer.cost } });
       } else {
+        const incoming = createConsumableInstance(offer.item);
         set({ gold: get().gold - offer.cost,
-          consumableStickers: [...get().consumableStickers, createConsumableInstance(offer.item)],
+          consumableStickers: [...get().consumableStickers, incoming],
           shopStickers: get().shopStickers.filter((item) => item.id !== stickerId) });
+        startStickerFlow([{ ...offer.item, ...incoming }], 'stay');
         soundService.playCoin();
       }
       return true;
@@ -38,17 +40,20 @@ export function createShopActions(set: (value: Partial<GameState>) => void, get:
 
     replaceShopSticker: (instanceId) => {
       const pending = get().pendingShopSticker;
-      if (!pending) return;
+      if (!pending || !get().consumableStickers.some(item => item.instanceId === instanceId)) return;
+      const incoming = createConsumableInstance(pending.sticker);
       set({
+        temporaryPlacements: get().temporaryPlacements.filter(item => item.consumable.instanceId !== instanceId),
         gold: get().gold - pending.cost,
         consumableStickers: replaceConsumable(
           get().consumableStickers,
           instanceId,
-          createConsumableInstance(pending.sticker)
+          incoming
         ),
         shopStickers: get().shopStickers.filter((item) => item.id !== pending.sticker.id),
         pendingShopSticker: null,
       });
+      startStickerFlow([{ ...pending.sticker, ...incoming }], 'stay');
       soundService.playCoin();
     },
 

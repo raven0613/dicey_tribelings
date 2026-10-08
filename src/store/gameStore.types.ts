@@ -3,7 +3,7 @@ import type { CombatImpact, EnemyAttackFeedback, NumberDisplay, SkillFeedback } 
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
 import type { WaitForAttackMotion, WaitForEnemyAttackMotion } from '../service/battle/battleSettlement';
-import type { CreatureId, CreatureTag } from '../types/creatures';
+import type { ArrowId, CreatureId, CreatureTag } from '../types/creatures';
 import type { CreatureBattleState } from '../types/creatures';
 import {
   AttackStage,
@@ -18,10 +18,12 @@ import {
   Equipment,
   MapNode,
   StickerItem,
-  PermanentSticker,
   StickerPack,
   DisposableSticker,
   TemporaryStickerPlacement,
+  OwnedSticker,
+  OwnedPermanentSticker,
+  StickerSort,
 } from '../types/game';
 import { BattleComboSummary } from '../service/battle/battleEngine';
 import { PackOpenResult } from '../service/stickers/packService';
@@ -29,14 +31,16 @@ import { PackOpenResult } from '../service/stickers/packService';
 export type FlowCompletion = 'advance' | 'stay';
 
 export interface StickerFlow {
-  items: PermanentSticker[];
+  items: OwnedSticker[];
   index: number;
   completion: FlowCompletion;
   rewardGold?: number;
   usedAny?: boolean;
+  editing?: boolean;
 }
 
-export interface PackRevealState extends PackOpenResult {
+export interface PackRevealState extends Omit<PackOpenResult, 'stickers'> {
+  stickers: OwnedPermanentSticker[];
   completion: FlowCompletion;
 }
 
@@ -69,6 +73,15 @@ export interface GameState {
   creatureBattleState: CreatureBattleState;
   equipments: Equipment[];
   consumableStickers: ConsumableSticker[];
+  permanentStickers: OwnedPermanentSticker[];
+  temporaryPlacements: TemporaryStickerPlacement[];
+  stickerSort: StickerSort;
+  setStickerSort: (sort: StickerSort) => void;
+  placeInventorySticker: (instanceId: string, diceId: string, faceIndex: number, direction?: ArrowId) => boolean;
+  takeFaceSticker: (diceId: string, faceIndex: number) => boolean;
+  moveFaceSticker: (sourceDiceId: string, sourceIndex: number, targetDiceId: string, targetIndex: number) => boolean;
+  discardInventorySticker: (instanceId: string) => void;
+  storeFlowSticker: (index: number) => boolean;
   mapNodes: MapNode[];
   currentNodeIndex: number;
   routeChoices: number[];
@@ -147,7 +160,7 @@ export interface GameState {
   shopEquipments: Equipment[];
   toggleSound: () => void;
   startNode: (nodeIndex: number) => void;
-  confirmBattlePreparation: (placements: TemporaryStickerPlacement[]) => void;
+  confirmBattlePreparation: (placements?: TemporaryStickerPlacement[]) => void;
   startBattleRoll: () => void;
   finishRollAnimation: () => void;
   useControlReroll: (dieIndex: number) => void;
@@ -158,7 +171,7 @@ export interface GameState {
   removeDamagePop: (id: number) => void;
   openPackAction: (packId: string, completion: FlowCompletion) => void;
   beginOpenedPack: () => void;
-  applyCurrentPermanentSticker: (diceId: string, faceIndex: number) => void;
+  applyCurrentSticker: (diceId: string, faceIndex: number, direction?: ArrowId) => boolean;
   skipBattleReward: () => void;
   openChest: () => void;
   claimChestReward: (option: ChestRewardOption) => void;

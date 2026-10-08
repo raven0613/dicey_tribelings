@@ -3,13 +3,14 @@ import { drawDiceRecipes, instantiateRecipe } from '../service/dice/diceDraft';
 import { generateBattleRewardOptions } from '../service/rewards/rewardService';
 import { getRefreshCost, rewardKey } from '../service/rewards/refreshService';
 import { generateShopStock } from '../service/shop/shopStock';
+import { initializeFaceStickers } from '../service/inventory/stickerInstances';
 export function createDraftActions(set: (value: Partial<GameState>) => void, get: () => GameState) {
   return {
     acknowledgeRewardDice: () => set({ receivedRewardDice: null }),
     chooseRewardDice: (recipeId: string) => {
       const state = get(), recipe = state.diceRewardOptions.find(item => item.id === recipeId);
       if (!recipe || state.combatPhase !== 'VICTORY' || state.receivedRewardDice) return;
-      set({ dicePool: [...state.dicePool, instantiateRecipe(recipe)], diceRewardOptions: [] });
+      set({ dicePool: [...state.dicePool, ...initializeFaceStickers([instantiateRecipe(recipe)])], diceRewardOptions: [] });
     },
     refreshDiceReward: () => {
       const state = get(), cost = getRefreshCost('dice', state.diceRefreshes);

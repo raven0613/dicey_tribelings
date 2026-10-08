@@ -6,13 +6,11 @@ import type { StoryId } from '../types/story';
 interface StoryState {
   screen: 'menu' | 'game';
   seen: Partial<Record<StoryId, boolean>>;
-  temporaryUnlocked: boolean;
   queue: StoryId[];
   preview: boolean;
   enqueue: (id: StoryId) => void;
   finish: () => void;
   leaveChest: () => void;
-  unlockTemporary: () => void;
   beginRun: () => void;
   returnToMenu: () => void;
   previewEnding: () => void;
@@ -20,7 +18,7 @@ interface StoryState {
 }
 
 export const useStoryStore = create<StoryState>()(persist((set, get) => ({
-  screen: 'menu', seen: {}, temporaryUnlocked: false, queue: [], preview: false,
+  screen: 'menu', seen: {}, queue: [], preview: false,
   enqueue: (id) => {
     const { seen, queue, preview } = get();
     if (preview || seen[id] || queue.includes(id)) return;
@@ -37,10 +35,6 @@ export const useStoryStore = create<StoryState>()(persist((set, get) => ({
     const { queue, seen } = get();
     if (queue.includes('chest')) set({ queue: queue.filter((id) => id !== 'chest'), seen: { ...seen, chest: true } });
   },
-  unlockTemporary: () => {
-    if (!get().temporaryUnlocked) set({ temporaryUnlocked: true });
-    get().enqueue('temporary');
-  },
   beginRun: () => {
     set({ screen: 'game', queue: [], preview: false });
     get().enqueue('intro');
@@ -49,10 +43,10 @@ export const useStoryStore = create<StoryState>()(persist((set, get) => ({
   previewEnding: () => set({ screen: 'menu', queue: ['ending'], preview: true }),
   resetRecords: () => {
     usePreferencesStore.getState().resetPreferences();
-    set({ screen: 'menu', seen: {}, temporaryUnlocked: false, queue: [], preview: false });
+    set({ screen: 'menu', seen: {}, queue: [], preview: false });
   },
 }), {
   name: 'tribelings-story-progress',
   storage: createJSONStorage(() => localStorage),
-  partialize: ({ seen, temporaryUnlocked }) => ({ seen, temporaryUnlocked }),
+  partialize: ({ seen }) => ({ seen }),
 }));

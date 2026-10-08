@@ -8,13 +8,13 @@ import type { TemporaryStickerPlacement } from '../../../types/game';
 import { EquipmentBar } from '../../equipment/EquipmentBar';
 import { PlayerVitals } from '../PlayerVitals';
 import { PreparationEnemySummary } from './PreparationEnemySummary';
-import { PreparationEditor } from './PreparationEditor';
-import { usePreparation } from './usePreparation';
+import { StickerEditor } from '../../stickers/editor/StickerEditor';
 
 export function BattlePreparationPanel() {
   const reducedMotion = useReducedMotion();
   const gold = useGameStore((state) => state.gold);
-  const p = usePreparation();
+  const placements = useGameStore(state => state.temporaryPlacements);
+  const [inventoryBusy, setInventoryBusy] = useState(false);
   const [stage, setStage] = useState<'entering' | 'ready' | 'leaving'>('entering');
   const [error, setError] = useState('');
   const pending = useRef<TemporaryStickerPlacement[] | null>(null);
@@ -22,12 +22,12 @@ export function BattlePreparationPanel() {
   useEffect(() => { panel.current?.focus(); }, []);
 
   const enterBattle = () => {
-    if (stage !== 'ready' || pending.current) return;
+    if (stage !== 'ready' || pending.current || inventoryBusy) return;
     const { dicePool, consumableStickers } = useGameStore.getState();
-    if (!validateTemporaryPlacements(dicePool, consumableStickers, p.placements)) {
+    if (!validateTemporaryPlacements(dicePool, consumableStickers, placements)) {
       setError('配置已變更，請檢查貼紙位置與方向。'); return;
     }
-    pending.current = p.placements;
+    pending.current = placements;
     setStage('leaving');
   };
   return <div className="preparation-panel-viewport">
@@ -56,12 +56,12 @@ export function BattlePreparationPanel() {
         </header>
         <div className="preparation-panel-body">
           <EquipmentBar idPrefix="preparation-equipment" />
-          <PreparationEditor preparation={p} />
+          <StickerEditor onBusyChange={setInventoryBusy} />
         </div>
         <footer className="preparation-panel-footer">
           <PlayerVitals />
-          <span role="status">{error || `已配置 ${p.placements.length} 張・進入戰鬥後消耗並擲骰`}</span>
-          <button type="submit" className="btn-resolve" disabled={stage !== 'ready'}>
+          <span role="status">{error || `已配置 ${placements.length} 張臨時貼紙・進入戰鬥後消耗並擲骰`}</span>
+          <button type="submit" className="btn-resolve" disabled={stage !== 'ready' || inventoryBusy}>
             <Play className="ui-icon" />{config.enterLabel}
           </button>
         </footer>

@@ -39,23 +39,17 @@
   gap: .5rem; padding: .75rem; background: $slate-900;
   border: 1px solid $slate-600; border-radius: $radius-xl;
   > :not(.dice-net) { flex-shrink: 0; }
-  .consumable-bar { padding: 0; border: 0; }
-  .consumable-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .preparation-editor-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .preparation-directions { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
   button { min-width: 48px; font-size: 1.4em; }
   [aria-pressed='true'] { border-color: $amber-300; background: $slate-700; box-shadow: inset 0 0 0 2px $amber-300; }
 }
-.preparation-editor-tools button, .consumable-withdraw {
+.preparation-editor-tools button {
   min-height: 48px; border: 1px solid $slate-600; border-radius: $radius-md;
   padding: .4rem .7rem; background: $slate-800; color: $slate-100;
   &:disabled { opacity: .5; cursor: not-allowed; }
 }
-.consumable-entry { position: relative; display: flex; min-width: 0; }
-.consumable-entry .consumable-slot { flex: 1; padding-right: 48px; align-content: center; }
-.consumable-location { display: block; color: $slate-300; margin-top: .2rem; }
-.consumable-withdraw { position: absolute; right: 0; top: 0; min-width: 48px; }
 .preparation-panel-footer { flex-shrink: 0; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
   .btn-resolve { margin-left: auto; }
 }
@@ -70,7 +64,6 @@
   }
   .preparation-editor { padding: .4rem; overflow: auto;
     .dice-net { flex: 1 0 16rem; }
-    .consumable-slot { padding-left: .3rem; padding-right: 0; padding-top: 48px; font-size: max(.75rem, var(--minimum-font-size)); }
   }
   .preparation-panel-footer { gap: .35rem; font-size: max(.8rem, var(--minimum-font-size)); }
   .preparation-panel-footer > .player-vitals { max-height: 4.5rem; overflow: auto; }

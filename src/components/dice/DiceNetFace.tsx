@@ -31,15 +31,17 @@ interface DiceNetFaceProps {
   previewing: boolean;
   onApply?: () => void;
   onPreviewSelect?: () => void;
+  dragBindings?: Pick<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onPointerDown'>;
+  onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, dice, dicePool, index, geometry, scale, relation, neighbors,
-  onHover, onFocus, sticker, previewing, onApply, onPreviewSelect, matched, blockedReason, arrowTarget, invalidArrowTarget }) => {
+  onHover, onFocus, sticker, previewing, onApply, onPreviewSelect, matched, blockedReason, arrowTarget, invalidArrowTarget, onContextMenu, dragBindings }) => {
   const { mobile, minimumFontSize } = useGameViewport();
   const showPreview = !!sticker && previewing;
   const effective = getPreviewFace(face, showPreview ? sticker : undefined);
   const creature = CREATURE_CONFIG[effective.creature];
-  const { tooltip, tooltipProps, show } = useSkillTooltip(
+  const { tooltip, tooltipProps, show, dismiss } = useSkillTooltip(
     <DiceNetTooltip dice={dice} dicePool={dicePool} faceIndex={index} sticker={showPreview ? sticker : undefined} />,
     { interactive: true, className: 'dice-net-tooltip' });
   const { bounds, contentBounds } = geometry;
@@ -56,7 +58,11 @@ export const DiceNetFace: React.FC<DiceNetFaceProps> = ({ face, dice, dicePool, 
     onFocus={(event) => { if (event.currentTarget.matches(':focus-visible')) { onFocus(index); tooltipProps.onFocus(event); } }}
     onBlur={() => { onFocus(null); tooltipProps.onBlur(); }}
     onClick={onPreviewSelect ?? (blockedReason ? undefined : onApply)}
+    data-sticker-face={index} data-sticker-dice={dice.id}
+    onPointerDown={dragBindings ? event => { dismiss(); dragBindings.onPointerDown?.(event); } : undefined}
+    onContextMenu={onContextMenu ? event => { dismiss(); onContextMenu(event); } : undefined}
     style={{ ...materialStyle(effective.material), width: '100%', height: '100%',
+      touchAction: dragBindings ? 'none' : undefined, userSelect: dragBindings ? 'none' : undefined,
       clipPath: `polygon(${polygon})` }}>
     <span className="dice-net-content" style={{
       left: (contentBounds.x - bounds.x) * scale,

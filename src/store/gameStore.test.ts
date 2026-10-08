@@ -120,9 +120,9 @@ test('bundle rewards reveal together, apply in any order and retain the receivin
   assert.deepEqual(claimed.battleRewardOptions, []);
   const chosen = claimed.stickerFlow!.items.at(-1)!;
   claimed.chooseFlowSticker(claimed.stickerFlow!.items.length - 1);
-  useGameStore.getState().applyCurrentPermanentSticker(die.id, die.faces.length);
+  useGameStore.getState().applyCurrentSticker(die.id, die.faces.length);
   assert.equal(useGameStore.getState().dicePool, before.dicePool);
-  useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
+  useGameStore.getState().applyCurrentSticker(die.id, 0);
   const applied = useGameStore.getState();
   assert.equal(applied.stickerFlow?.items.length, REWARD_CONFIG.normalHiddenStickerCount);
   assert.equal(applied.stickerFlow?.index, -1);
@@ -332,7 +332,7 @@ test('recipe choice gates loot, duplicate recipes create independent dice and re
   const reward = loot[0];
   useGameStore.getState().claimBattleReward(reward.id);
   useGameStore.getState().chooseFlowSticker(0);
-  useGameStore.getState().applyCurrentPermanentSticker(second.id, 0);
+  useGameStore.getState().applyCurrentSticker(second.id, 0);
   assert.equal(useGameStore.getState().battleRewardPickCount, REWARD_CONFIG.advancedPickCount - 1);
   assert.deepEqual(useGameStore.getState().dicePool.find(die => die.id === first.id), first);
 });
@@ -376,7 +376,8 @@ test('shop permanent purchases and refresh spend once and keep modified dice', (
   assert.equal(useGameStore.getState().shopRefreshes, 0, 'pending placement keeps shop locked');
   const die = useGameStore.getState().dicePool[0];
   useGameStore.getState().chooseFlowSticker(0);
-  useGameStore.getState().applyCurrentPermanentSticker(die.id, 0);
+  useGameStore.getState().applyCurrentSticker(die.id, 0);
+  useGameStore.getState().returnToStickerSelection();
   const before = useGameStore.getState();
   before.refreshShop();
   assert.equal(useGameStore.getState().gold, 0);

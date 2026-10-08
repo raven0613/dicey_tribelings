@@ -1,6 +1,7 @@
 import { getArrowConfigurationError } from '../dice/directionalFaces';
 import { ARROW_CONFIG, ARROW_DESCRIPTION, ARROW_IDS } from '../../configs/directionalStickerConfig';
 import type { ArrowId } from '../../types/creatures';
+import { createOwnedSticker, createStickerIdentity } from './stickerInstances';
 import {
   ConsumableSticker,
   Dice,
@@ -12,7 +13,7 @@ import {
 
 export function createConsumableSticker(sticker: DisposableSticker, instanceId: string): ConsumableSticker {
   return {
-    instanceId,
+    ...createStickerIdentity(instanceId),
     stickerId: sticker.id,
     name: sticker.name,
     creature: sticker.creature,
@@ -43,6 +44,7 @@ export function applyPermanentSticker(
   faceIndex: number,
   sticker: PermanentSticker
 ): Dice[] {
+  const owned = createOwnedSticker(sticker);
   return dicePool.map((die) => {
     if (die.id !== diceId || !die.faces[faceIndex]) return die;
     const faces = [...die.faces];
@@ -51,6 +53,7 @@ export function applyPermanentSticker(
       material: sticker.material,
       materialDecay: undefined,
       creature: sticker.creature,
+      stickerIdentity: { instanceId: owned.instanceId, acquiredAt: owned.acquiredAt, acquisitionOrder: owned.acquisitionOrder },
       temporarySticker: undefined,
     };
     return { ...die, faces };
