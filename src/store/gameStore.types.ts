@@ -1,8 +1,16 @@
 import type { DiceRecipe } from '../configs/creatures/diceRecipeConfig';
-import type { CombatImpact, EnemyAttackFeedback, NumberDisplay, SkillFeedback } from '../types/battle';
+import type {
+  CombatImpact,
+  EnemyAttackFeedback,
+  NumberDisplay,
+  SkillFeedback,
+} from '../types/battle';
 import type { DiceAction } from '../service/battle/rollService';
 import type { RerollStep } from '../service/battle/creatures/rerollResolution';
-import type { WaitForAttackMotion, WaitForEnemyAttackMotion } from '../service/battle/battleSettlement';
+import type {
+  WaitForAttackMotion,
+  WaitForEnemyAttackMotion,
+} from '../service/battle/battleSettlement';
 import type { ArrowId, CreatureId, CreatureTag } from '../types/creatures';
 import type { CreatureBattleState } from '../types/creatures';
 import {
@@ -61,6 +69,8 @@ export interface EquipmentSlotFeedback {
 
 export interface GameState {
   runId: string | null;
+  telemetryDecision: import('../service/telemetry/decisionTypes').DecisionCommit | null;
+  telemetryEnemyActions: import('../service/telemetry/decisionTypes').EnemyActionRecord[] | null;
   combatImpact: CombatImpact | null;
   playerHp: number;
   maxHp: number;
@@ -77,9 +87,19 @@ export interface GameState {
   temporaryPlacements: TemporaryStickerPlacement[];
   stickerSort: StickerSort;
   setStickerSort: (sort: StickerSort) => void;
-  placeInventorySticker: (instanceId: string, diceId: string, faceIndex: number, direction?: ArrowId) => boolean;
+  placeInventorySticker: (
+    instanceId: string,
+    diceId: string,
+    faceIndex: number,
+    direction?: ArrowId,
+  ) => boolean;
   takeFaceSticker: (diceId: string, faceIndex: number) => boolean;
-  moveFaceSticker: (sourceDiceId: string, sourceIndex: number, targetDiceId: string, targetIndex: number) => boolean;
+  moveFaceSticker: (
+    sourceDiceId: string,
+    sourceIndex: number,
+    targetDiceId: string,
+    targetIndex: number,
+  ) => boolean;
   discardInventorySticker: (instanceId: string) => void;
   storeFlowSticker: (index: number) => boolean;
   mapNodes: MapNode[];
@@ -166,7 +186,10 @@ export interface GameState {
   useControlReroll: (dieIndex: number) => void;
   setDiceAction: (action: DiceAction) => void;
   finishRerollAnimation: (dieIndex: number) => void;
-  executeBattleSettlement: (waitForAttackMotion: WaitForAttackMotion, waitForEnemyMotion?: WaitForEnemyAttackMotion) => Promise<void>;
+  executeBattleSettlement: (
+    waitForAttackMotion: WaitForAttackMotion,
+    waitForEnemyMotion?: WaitForEnemyAttackMotion,
+  ) => Promise<void>;
   addDamagePop: (pop: DamagePopInput) => void;
   removeDamagePop: (id: number) => void;
   openPackAction: (packId: string, completion: FlowCompletion) => void;
@@ -187,5 +210,4 @@ export interface GameState {
   restartGame: () => void;
   openDiceInspect: (dice: Dice) => void;
   closeDiceInspect: () => void;
-
 }

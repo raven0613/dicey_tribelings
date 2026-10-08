@@ -1,3 +1,4 @@
+import { recordDecision } from '../../service/telemetry/commit';
 import type { GameState } from '../gameStore.types';
 import {
   canEditStickers,
@@ -35,6 +36,7 @@ export function createInventoryActions(
       )
         return false;
       set(result);
+      recordDecision(set, state, get(), { kind: 'move', source: 'backpack' });
       soundService.playStickerApply();
       return true;
     },
@@ -71,6 +73,7 @@ export function createInventoryActions(
           return false;
         set({ temporaryPlacements: placements });
       }
+      recordDecision(set, state, get(), { kind: 'place', source: 'backpack' });
       soundService.playStickerApply();
       return true;
     },
@@ -82,11 +85,13 @@ export function createInventoryActions(
       );
       if (temporaryPlacements.length !== state.temporaryPlacements.length) {
         set({ temporaryPlacements });
+        recordDecision(set, state, get(), { kind: 'take', source: 'backpack' });
         return true;
       }
       const result = takePermanent(state.dicePool, state.permanentStickers, diceId, faceIndex);
       if (!result) return false;
       set(result);
+      recordDecision(set, state, get(), { kind: 'take', source: 'backpack' });
       return true;
     },
     discardInventorySticker: (instanceId) => {
@@ -101,6 +106,7 @@ export function createInventoryActions(
           (item) => item.consumable.instanceId !== instanceId,
         ),
       });
+      recordDecision(set, state, get(), { kind: 'discard', source: 'backpack' });
     },
   } satisfies Pick<
     GameState,

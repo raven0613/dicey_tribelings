@@ -19,9 +19,10 @@ export async function animateEnemyAttack(
   result: EnemyAttackResult,
   heavy: boolean,
   isCurrent: () => boolean,
+  onImpact?: () => void,
 ): Promise<boolean> {
   const initial = get();
-  const enemy = initial.enemies.find(item => item.id === initial.activeEnemyId)!;
+  const enemy = initial.enemies.find((item) => item.id === initial.activeEnemyId)!;
   const feedback = {
     heavy,
     strength: getEnemyStrikeStrength(enemy.definitionId, result.damage, heavy),
@@ -35,9 +36,9 @@ export async function animateEnemyAttack(
   };
 
   set({ enemyAttack: { ...feedback, stage: 'windup' } });
-  if (!await wait('windup') || !isCurrent()) return false;
+  if (!(await wait('windup')) || !isCurrent()) return false;
   set({ enemyAttack: { ...feedback, stage: 'dash' } });
-  if (!await wait('dash') || !isCurrent()) return false;
+  if (!(await wait('dash')) || !isCurrent()) return false;
 
   const state = get();
   const impact = {
@@ -53,9 +54,10 @@ export async function animateEnemyAttack(
     combatImpact: { kind: 'enemy', source: result.source },
     enemyAttack: { ...impact, stage: 'impact' },
   });
-  if (!await wait('impact') || !isCurrent()) return false;
+  onImpact?.();
+  if (!(await wait('impact')) || !isCurrent()) return false;
   set({ enemyAttack: { ...impact, stage: 'recoil' } });
-  if (!await wait('recoil') || !isCurrent()) return false;
+  if (!(await wait('recoil')) || !isCurrent()) return false;
   set({ enemyAttack: null });
   return true;
 }

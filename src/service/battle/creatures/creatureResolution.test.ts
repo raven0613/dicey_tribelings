@@ -20,7 +20,7 @@ test('three sisters share each team grant once without a feedback loop', () => {
   const pool = [die('a', { 1: 'sisters' }), die('b', { 1: 'sisters' }), die('c', { 1: 'sisters' }), die('h', { 1: 'herald' })];
   const state = { ...createCreatureBattleState(), rerollBonuses: [{ diceId: 'h', damage: 4 }] };
   const result = resolve(pool, undefined, ['REROLL_DROP'], state);
-  assert.deepEqual(result.items.slice(0, 3).map(item => item.finalDamage), Array(3).fill(1 + b.herald.bonusPerAttack * 3));
+  assert.deepEqual(result.items.slice(0, 3).map(item => item.finalDamage), Array(3).fill(1 + b.herald.bonusPerAttack * (1 + 2 * b.sisters.shareMultiplier)));
 });
 test('twins use highest pip while preserving material base modifier and full repeats per pair', () => {
   const twin = die('a', { 1: 'twins', 2: 'twins', 4: 'twins', 6: 'twins' });

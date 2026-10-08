@@ -1,3 +1,4 @@
+import { recordDecision } from '../../service/telemetry/commit';
 import { INVENTORY_CONFIG } from '../../configs/inventoryConfig';
 import { canEditStickers, placePermanent } from '../../service/inventory/backpack';
 import { createOwnedSticker } from '../../service/inventory/stickerInstances';
@@ -22,14 +23,43 @@ export function createStickerFlowActions(
       return;
     }
     if (!items.length) {
-      if (flow.rewardGold && !flow.usedAny && !used) set({ gold: get().gold + flow.rewardGold });
+      if (flow.rewardGold && !flow.usedAny && !used) {
+        const before = get();
+        set({ gold: before.gold + flow.rewardGold });
+        recordDecision(set, before, get(), {
+          kind: 'income',
+          source: 'reward',
+          label: '放棄全部戰利品',
+        });
+      }
       complete(flow.completion);
     } else set({ stickerFlow: { ...flow, items, index: -1, usedAny: flow.usedAny || used } });
   };
   const discard = (index: number) => {
-    const item = get().stickerFlow?.items[index];
+    const state = get();
+    const item = state.stickerFlow?.items[index];
     if (!item) return;
-    if (item.isDisposable) get().discardInventorySticker(item.instanceId);
+    if (item.isDisposable)
+      set({
+        consumableStickers: state.consumableStickers.filter(
+          (value) => value.instanceId !== item.instanceId,
+        ),
+        temporaryPlacements: state.temporaryPlacements.filter(
+          (value) => value.consumable.instanceId !== item.instanceId,
+        ),
+      });
+    recordDecision(
+      set,
+      state,
+      {
+        ...get(),
+        stickerFlow: {
+          ...state.stickerFlow!,
+          items: state.stickerFlow!.items.filter((_, i) => i !== index),
+        },
+      },
+      { kind: 'discard', source: 'backpack', items: [item] },
+    );
     finish(index, false);
   };
   return {
@@ -44,6 +74,7 @@ export function createStickerFlowActions(
           if (state.permanentStickers.length >= INVENTORY_CONFIG.permanentCapacity) return false;
           set({ permanentStickers: [...state.permanentStickers, item] });
         }
+        recordDecision(set, state, get(), { kind: 'store', source: 'backpack', items: [item] });
         finish(index, true);
         return true;
       },
@@ -71,6 +102,11 @@ export function createStickerFlowActions(
               (item) => !(item.diceId === diceId && item.faceIndex === faceIndex),
             ),
           });
+          recordDecision(set, state, get(), {
+            kind: 'place',
+            source: 'backpack',
+            items: [sticker],
+          });
           soundService.playStickerApply();
         }
         finish(flow.index, true);
@@ -88,12 +124,29 @@ export function createStickerFlowActions(
       },
       discardStickerAt: discard,
       skipStickerFlow: () => {
-        const flow = get().stickerFlow;
+        const state = get();
+        const flow = state.stickerFlow;
         if (!flow) return;
-        flow.items
-          .filter((item) => item.isDisposable)
-          .forEach((item) => get().discardInventorySticker(item.instanceId));
+        const discardedIds = new Set(flow.items.map((item) => item.instanceId));
+        set({
+          consumableStickers: state.consumableStickers.filter(
+            (item) => !discardedIds.has(item.instanceId),
+          ),
+          temporaryPlacements: state.temporaryPlacements.filter(
+            (item) => !discardedIds.has(item.consumable.instanceId),
+          ),
+        });
         if (flow.rewardGold && !flow.usedAny) set({ gold: get().gold + flow.rewardGold });
+        recordDecision(
+          set,
+          state,
+          { ...get(), stickerFlow: null },
+          {
+            kind: 'skip',
+            source: state.mapNodes[state.currentNodeIndex].type === 'shop' ? 'shop' : 'reward',
+            items: flow.items,
+          },
+        );
         complete(flow.completion);
       },
     } satisfies Pick<

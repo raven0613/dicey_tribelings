@@ -55,7 +55,7 @@ test('every tribeling resolves across region dice counts, face densities and all
       }
     }
   }
-  context.diagnostic(`${CREATURE_IDS.length} tribelings, ${samples} deterministic roster samples; current abilities unchanged.`);
+  context.diagnostic(`${CREATURE_IDS.length} tribelings, ${samples} deterministic roster samples using current balance config.`);
 });
 
 for (const size of [3, 6, 10]) test(`${size}-die seeded builds preserve finite rerolls, exact attack plans and event continuity`, (context) => {

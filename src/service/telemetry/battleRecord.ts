@@ -4,9 +4,26 @@ import { DAMAGE_SOURCE_LABELS } from '../../configs/telemetryConfig';
 import type { BattleRecord, TelemetryState, RoundRecord } from './types';
 
 export function startRound(state: TelemetryState, now: number): RoundRecord {
-  return { round: state.creatureBattleState.round, startedAt: now, endedAt: null, rerolls: 0, settled: false,
-    output: 0, damageHp: 0, damageShield: 0, takenHp: 0, absorbed: 0, healing: 0,
-    bonusAttacks: 0, repeatAttacks: 0, skills: [], before: combatOf(state), after: null };
+  return {
+    round: state.creatureBattleState.round,
+    startedAt: now,
+    endedAt: null,
+    rerolls: 0,
+    settled: false,
+    output: 0,
+    damageHp: 0,
+    damageShield: 0,
+    takenHp: 0,
+    absorbed: 0,
+    healing: 0,
+    bonusAttacks: 0,
+    repeatAttacks: 0,
+    skills: [],
+    initial: combatOf(state),
+    enemyActions: [],
+    before: combatOf(state),
+    after: null,
+  };
 }
 
 export function finishRound(battle: BattleRecord, state: TelemetryState, now: number) {
@@ -17,7 +34,12 @@ export function finishRound(battle: BattleRecord, state: TelemetryState, now: nu
 }
 
 /** Reads committed deltas, including impact updates; identical animation updates contribute zero. */
-export function updateBattle(battle: BattleRecord, state: TelemetryState, previous: TelemetryState, now: number): boolean {
+export function updateBattle(
+  battle: BattleRecord,
+  state: TelemetryState,
+  previous: TelemetryState,
+  now: number,
+): boolean {
   let changed = false;
   if (state.creatureBattleState.round > previous.creatureBattleState.round) {
     finishRound(battle, previous, now);
@@ -26,12 +48,28 @@ export function updateBattle(battle: BattleRecord, state: TelemetryState, previo
   }
   const round = battle.rounds.at(-1);
   if (!round || round.endedAt !== null) return changed;
-  const rerolls = state.creatureBattleState.round === previous.creatureBattleState.round
-    ? Math.max(0, state.creatureBattleState.rerollCount - previous.creatureBattleState.rerollCount) : 0;
+  if (
+    state.telemetryEnemyActions &&
+    state.telemetryEnemyActions !== previous.telemetryEnemyActions
+  ) {
+    round.enemyActions = structuredClone(state.telemetryEnemyActions);
+    changed = true;
+  }
+  const rerolls =
+    state.creatureBattleState.round === previous.creatureBattleState.round
+      ? Math.max(
+          0,
+          state.creatureBattleState.rerollCount - previous.creatureBattleState.rerollCount,
+        )
+      : 0;
   round.rerolls += rerolls;
   battle.rerolls += rerolls;
   changed ||= rerolls > 0;
-  if (state.combatPhase === 'RESOLVING_CALCULATION' && previous.combatPhase !== state.combatPhase && previous.comboSummary) {
+  if (
+    state.combatPhase === 'RESOLVING_CALCULATION' &&
+    previous.combatPhase !== state.combatPhase &&
+    previous.comboSummary
+  ) {
     const summary = previous.comboSummary;
     round.before = combatOf(previous);
     round.settled = true;
@@ -47,10 +85,29 @@ export function updateBattle(battle: BattleRecord, state: TelemetryState, previo
     const hpLoss = loss(previous.playerHp, state.playerHp);
     const shieldLoss = loss(previous.playerShield, state.playerShield);
     const healing = loss(state.playerHp, previous.playerHp);
-    const attackImpact = state.combatImpact !== previous.combatImpact && state.combatImpact
-      && state.combatImpact.kind !== 'enemy';
-    const enemyHpLoss = attackImpact ? previous.enemies.reduce((sum, enemy) => sum + loss(enemy.hp, state.enemies.find(item => item.id === enemy.id)?.hp ?? enemy.hp), 0) : 0;
-    const enemyShieldLoss = attackImpact ? previous.enemies.reduce((sum, enemy) => sum + loss(enemy.shield, state.enemies.find(item => item.id === enemy.id)?.shield ?? enemy.shield), 0) : 0;
+    const attackImpact =
+      state.combatImpact !== previous.combatImpact &&
+      state.combatImpact &&
+      state.combatImpact.kind !== 'enemy';
+    const enemyHpLoss = attackImpact
+      ? previous.enemies.reduce(
+          (sum, enemy) =>
+            sum +
+            loss(enemy.hp, state.enemies.find((item) => item.id === enemy.id)?.hp ?? enemy.hp),
+          0,
+        )
+      : 0;
+    const enemyShieldLoss = attackImpact
+      ? previous.enemies.reduce(
+          (sum, enemy) =>
+            sum +
+            loss(
+              enemy.shield,
+              state.enemies.find((item) => item.id === enemy.id)?.shield ?? enemy.shield,
+            ),
+          0,
+        )
+      : 0;
     round.takenHp += hpLoss;
     round.absorbed += shieldLoss;
     round.healing += healing;
@@ -58,11 +115,15 @@ export function updateBattle(battle: BattleRecord, state: TelemetryState, previo
     round.damageShield += enemyShieldLoss;
     changed ||= hpLoss + shieldLoss + healing + enemyHpLoss + enemyShieldLoss > 0;
     if (previous.playerHp > 0 && state.playerHp <= 0) {
-      const enemy = previous.enemies.find(item => item.id === previous.activeEnemyId);
+      const enemy = previous.enemies.find((item) => item.id === previous.activeEnemyId);
       const intent = enemy ? currentIntent(enemy).name : '';
-      battle.death = { phase: previous.combatPhase, intent,
+      battle.death = {
+        phase: previous.combatPhase,
+        intent,
         source: DAMAGE_SOURCE_LABELS[state.combatImpact?.source ?? 'intent'],
-        beforeHit: combatOf(previous), afterHit: combatOf(state) };
+        beforeHit: combatOf(previous),
+        afterHit: combatOf(state),
+      };
     }
   }
   return changed;

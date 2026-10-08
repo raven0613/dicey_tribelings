@@ -1,3 +1,4 @@
+import { CREATURE_BALANCE } from '../../../configs/creatures/creatureBalanceConfig';
 import { createSkillEventLog } from './skillEventLog';
 import { createEchoResolution } from './echoResolution';
 import { refreshImposterTargets, getRoundFace } from './imposterResolution';
@@ -86,7 +87,7 @@ export function createResolutionContext(dice: Dice[], indices: number[], equipme
     for (const pass of replay ? [transfer, replay] : [transfer]) {
       if (copies) applyAttack(pass, item, amount * copies);
       for (const sister of sisters) {
-        applyAttack(pass, sister, amount);
+        applyAttack(pass, sister, amount * CREATURE_BALANCE.sisters.shareMultiplier);
         sister.externalGain = true;
       }
     }

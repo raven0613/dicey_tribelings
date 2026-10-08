@@ -1,4 +1,5 @@
 export const CREATURE_BALANCE = {
+  sisters: { shareMultiplier: 3 },
   family: { bonusPerFace: 2 }, chef: { storagePerFace: 2 },
   twins: { facesPerPair: 2 }, gang: { fraction: 0.5 }, boss: { perRobbery: 0.2 },
   loner: { multiplier: 2 }, follower: { range: 1, fraction: 0.5, perFace: 0.15 },

@@ -5,7 +5,7 @@ export const CREATURE_SKILL_INTRO: Record<CreatureId, string> = {
   arrowUp: ARROW_DESCRIPTION, arrowDown: ARROW_DESCRIPTION, arrowLeft: ARROW_DESCRIPTION, arrowRight: ARROW_DESCRIPTION,
   blank: '依骰面點數攻擊。',
   family: `同骰每有 1 個其他土人家族，攻擊力 +${b.family.bonusPerFace}，且自身的 buff 額外生效一次。`,
-  sisters: "自身得到 buff 時，其他朝上的土人姐妹花各獲得相同 buff。",
+  sisters: `自身得到外部攻擊加成時，其他朝上的土人姐妹花各獲得該加成值 ×${b.sisters.shareMultiplier}。`,
   twins: `攻擊力變為同骰土人雙胞胎中的最高值；且同骰每湊齊 ${b.twins.facesPerPair} 個土人雙胞胎，額外攻擊一次`,
   gang: `同骰每有 1 個相鄰的其他土人混混，產生 1 次追加攻擊，傷害為自身基礎攻擊力的 ${b.gang.fraction * 100}%。`,
   boss: `搶奪另一名 [普通] 土人的全部攻擊力。本回合每有過 1 次成功的搶奪，本次奪得的攻擊力額外增加 ${b.boss.perRobbery * 100}%`,
